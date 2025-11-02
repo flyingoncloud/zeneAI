@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatBox from '@/components/ChatBox';
 import GuidanceModal from '@/components/GuidanceModal';
 import Paywall from '@/components/Paywall';
+import ImageGallery from '@/components/ImageGallery';
+import SketchPad from '@/components/SketchPad';
 
 // 与 ChatBox 的 onDetect 保持一致
 export type DetectedItem = {
@@ -50,7 +52,7 @@ export default function FlowPage() {
         }
     }, []);
 
-    // 实时记录（原始轨迹，可能包含重复）
+    // 轨迹记录：每次 ChatBox 识别到 Parts/Self 时会调用 handleDetect
     const [records, setRecords] = useState<DetectedItem[]>([]);
 
     // ChatBox 回调：把识别结果并入轨迹
@@ -59,13 +61,12 @@ export default function FlowPage() {
         setRecords((prev) => [...prev, ...items]);
     }
 
-    // 去重后的 Self / Parts 列表与数量 
+    // 实时统计：去重后的 Self/Parts 列表 + 计数
     const { uniqSelf, uniqParts, selfCount, partCount } = useMemo(() => {
         const sSet = new Set<string>();
         const pSet = new Set<string>();
         const s: string[] = [];
         const p: string[] = [];
-
         for (const r of records) {
             if (r.type === 'self') {
                 if (!sSet.has(r.label)) {
@@ -99,35 +100,22 @@ export default function FlowPage() {
 
     function markPaid() {
         setPaid(true);
+        setPayOpen(false);
         try {
             localStorage.setItem('zene_paid', '1');
-        } catch { }
-        setPayOpen(false);
-        nextToReport();
-    }
-
-    // 进入报告页 
-    function nextToReport() {
-        // 报告页会从 localStorage 里读 zene_transcript，以及 /flow 的去重记录
-        try {
-            localStorage.setItem(
-                'zene_flow_unique',
-                JSON.stringify({ self: uniqSelf, parts: uniqParts })
-            );
         } catch { }
         router.push('/report');
     }
 
-    // 生成按钮（被弹窗“生成报告”复用）
     function handleGenerateClicked() {
         if (!paid) {
             setPayOpen(true);
         } else {
-            nextToReport();
+            router.push('/report');
         }
     }
 
-    // 顶部“总结一下”点击：根据是否有 Self 选择 4.1/4.2 文案 
+    // 顶部"总结一下"点击：根据是否有 Self 选择 4.1/4.2 文案 
     const [guideOpen, setGuideOpen] = useState(false);
     const [guideVariant, setGuideVariant] =
         useState<'noSelf' | 'selfFound' | 'parts3'>('noSelf');
@@ -144,7 +132,7 @@ export default function FlowPage() {
         }
     }
 
-    // 3.2：每满 3 个 Parts 触发一次弹窗（可“不再提示”）
+    // 3.2：每满 3 个 Parts 触发一次弹窗（可"不再提示"）
     const [partsModalOpen, setPartsModalOpen] = useState(false);
     const [partsModalLastK, setPartsModalLastK] = useState<number>(() => {
         if (typeof window === 'undefined') return 0;
@@ -188,106 +176,164 @@ export default function FlowPage() {
         }
     }
 
+    // Image Gallery state
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const chatBoxRef = useRef<any>(null);
+
+    const handleGalleryImageSelect = (imageUrl: string) => {
+        if (chatBoxRef.current && chatBoxRef.current.handleGalleryImage) {
+            chatBoxRef.current.handleGalleryImage(imageUrl);
+        }
+    };
+
+    // Canvas state
+    const [canvasOpen, setCanvasOpen] = useState(false);
+
+    const handleCanvasExport = async (blob: Blob) => {
+        try {
+            const formData = new FormData();
+            formData.append('file', blob, 'drawing.png');
+            
+            const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/zene/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const uploadData = await uploadResponse.json();
+            if (uploadData.ok) {
+                const fullImageUrl = uploadData.url.startsWith('http') 
+                    ? uploadData.url 
+                    : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${uploadData.url}`;
+                
+                // Add drawing to conversation like gallery images
+                if (chatBoxRef.current && chatBoxRef.current.handleGalleryImage) {
+                    chatBoxRef.current.handleGalleryImage(fullImageUrl);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to upload drawing:', error);
+        }
+        setCanvasOpen(false);
+    };
+
     return (
-        <div className="mx-auto max-w-6xl space-y-4 p-4">
-            {/* 顶部标题 & 按钮组 */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold">Step 1–3.3 固定布局</h1>
-
-                <div className="flex items-center gap-2">
-                    {/* 重置 */}
-                    <button
-                        className="rounded-xl bg-zinc-200 px-3 py-2 text-zinc-700"
-                        onClick={handleResetClick}
-                    >
-                        重置测试
-                    </button>
-
-                    {/* 可选“总结一下”，不满足条件时置灰 */}
-                    <button
-                        className={[
-                            'rounded-xl px-4 py-2',
-                            gateOk
-                                ? 'bg-zinc-900 text-white'
-                                : 'cursor-not-allowed bg-zinc-200 text-zinc-500',
-                        ].join(' ')}
-                        onClick={openSummary}
-                        disabled={!gateOk}
-                    >
-                        总结一下
-                    </button>
-                </div>
-            </div>
-
-            <div className="rounded-2xl border p-3 text-sm text-zinc-600">
-                {gateOk ? (
-                    <span>
-                        可以总结了：当前进度 Self <b>{selfCount}</b>，Parts{' '}
-                        <b>{partCount}</b>。
-                    </span>
-                ) : (
-                    <span>
-                        生成报告条件未满足：需要出现 <b>1 个 Self</b> 或 <b>Parts ≥ 3</b>。 当前进度：
-                        Self <b>{selfCount}</b>，Parts <b>{partCount}</b>。
-                    </span>
-                )}
-            </div>
-
-            {/* 主体两栏布局 */}
-            <div className="grid grid-cols-12 gap-6">
-                {/* 左侧：实时记录 */}
-                <div className="col-span-4">
-                    <div className="rounded-2xl border p-4">
-                        <h3 className="mb-3 text-lg font-medium">实时记录</h3>
-
-                        <div className="mb-4">
-                            <div className="mb-1 font-medium">
-                                Self <span className="text-sm text-zinc-500">({selfCount})</span>
-                            </div>
-                            {uniqSelf.length ? (
-                                <ul className="space-y-1">
-                                    {uniqSelf.map((s) => (
-                                        <li key={s} className="flex items-center gap-2">
-                                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                            <span>{s}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-zinc-400">暂无 Self 记录</div>
-                            )}
-                        </div>
-
-                        <div>
-                            <div className="mb-1 font-medium">
-                                Parts{' '}
-                                <span className="text-sm text-zinc-500">({partCount})</span>
-                            </div>
-                            {uniqParts.length ? (
-                                <ul className="space-y-1">
-                                    {uniqParts.map((p) => (
-                                        <li key={p} className="flex items-center gap-2">
-                                            <span className="h-2 w-2 rounded-full bg-blue-500" />
-                                            <span>{p}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-zinc-400">暂无 Parts 记录</div>
-                            )}
-                        </div>
+        <div className="h-screen flex flex-col">
+            {/* Header */}
+            <div className="border-b border-gray-200 p-4">
+                <div className="flex">
+                    {/* Left side - matches sidebar width */}
+                    <div className="w-[40%]">
+                        <h1 className="text-xl font-semibold">内视涂鸦 - IFS 探索</h1>
                     </div>
-                </div>
-
-                {/* 右侧：聊天盒子 */}
-                <div className="col-span-8">
-                    <div className="rounded-2xl border p-3">
-                        <ChatBox onDetect={handleDetect} />
+                    {/* Right side - matches conversation width */}
+                    <div className="w-[60%] flex justify-end">
+                        <button
+                            className="rounded-xl bg-zinc-200 px-3 py-2 text-zinc-700 hover:bg-zinc-300"
+                            onClick={handleResetClick}
+                        >
+                            重置测试
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* 3.2：每 3 个 Parts 弹一次 */}
+            {/* Main Content - Two Column Layout */}
+            <div className="flex-1 flex">
+                {/* Left Sidebar - 40% */}
+                <div className="w-[40%] bg-gray-50 border-r border-gray-200 p-4 flex flex-col">
+                    {/* Report Status */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-3">报告状态</h3>
+                        <div className="bg-white rounded-lg p-4 border">
+                            {gateOk ? (
+                                <div className="text-green-600">
+                                    <div className="flex items-center mb-2">
+                                        <span className="text-green-500 mr-2">✓</span>
+                                        <span>生成报告条件已满足</span>
+                                    </div>
+                                    <button
+                                        onClick={openSummary}
+                                        className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                                    >
+                                        总结一下
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="text-gray-600">
+                                    <div className="flex items-center mb-2">
+                                        <span className="text-gray-400 mr-2">○</span>
+                                        <span>生成报告条件未满足</span>
+                                    </div>
+                                    <p className="text-sm text-gray-500">
+                                        需要：1个Self 或 3个Parts
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        当前：Self {selfCount}，Parts {partCount}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Real-time Records */}
+                    <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-3">实时记录</h3>
+                        <div className="bg-white rounded-lg p-4 border h-full overflow-y-auto">
+                            <div className="space-y-4">
+                                {/* Self Records */}
+                                <div>
+                                    <h4 className="font-medium text-emerald-600 mb-2 flex items-center">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
+                                        Self ({selfCount})
+                                    </h4>
+                                    {uniqSelf.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {uniqSelf.map((item, i) => (
+                                                <div key={i} className="bg-emerald-50 px-2 py-1 rounded text-sm">
+                                                    {item}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-400 text-sm">暂无 Self 记录</p>
+                                    )}
+                                </div>
+
+                                {/* Parts Records */}
+                                <div>
+                                    <h4 className="font-medium text-blue-600 mb-2 flex items-center">
+                                        <span className="h-2 w-2 rounded-full bg-blue-500 mr-2" />
+                                        Parts ({partCount})
+                                    </h4>
+                                    {uniqParts.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {uniqParts.map((item, i) => (
+                                                <div key={i} className="bg-blue-50 px-2 py-1 rounded text-sm">
+                                                    {item}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-400 text-sm">暂无 Parts 记录</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Main Content - 60% */}
+                <div className="w-[60%] flex flex-col">
+                    <ChatBox 
+                        ref={chatBoxRef}
+                        onDetect={handleDetect} 
+                        onGalleryOpen={() => setGalleryOpen(true)}
+                        onCanvasOpen={() => setCanvasOpen(true)}
+                    />
+                </div>
+            </div>
+
+            {/* Modals */}
             <GuidanceModal
                 open={partsModalOpen}
                 variant="parts3"
@@ -297,7 +343,6 @@ export default function FlowPage() {
                 onNever={handlePartsNever}
             />
 
-            {/* 4.1 / 4.2：总结引导（手动触发） */}
             <GuidanceModal
                 open={guideOpen}
                 variant={guideVariant}
@@ -306,8 +351,19 @@ export default function FlowPage() {
                 onGenerate={handleGenerateClicked}
             />
 
-            {/* 付费弹窗 */}
             <Paywall open={payOpen} onClose={() => setPayOpen(false)} onPaid={markPaid} />
+            
+            <ImageGallery 
+                open={galleryOpen} 
+                onClose={() => setGalleryOpen(false)} 
+                onImageSelect={handleGalleryImageSelect}
+            />
+            
+            <SketchPad 
+                open={canvasOpen} 
+                onClose={() => setCanvasOpen(false)} 
+                onExport={handleCanvasExport}
+            />
         </div>
     );
 }
