@@ -26,6 +26,37 @@ def get_ai_response(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo"
         raise Exception(f"Error getting AI response: {str(e)}")
 
 
+def get_ai_response_with_image(prompt: str, image_data: str, model: str = "gpt-4o") -> str:
+    """
+    Get response from OpenAI Vision API with image
+
+    Args:
+        prompt: Text prompt for analysis
+        image_data: Base64 encoded image data
+        model: OpenAI model to use (must support vision)
+
+    Returns:
+        AI response content
+    """
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
+                    ]
+                }
+            ],
+            max_tokens=300
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        raise Exception(f"Error getting AI response with image: {str(e)}")
+
+
 def build_message_history(db_messages) -> List[Dict[str, str]]:
     """
     Build message history for OpenAI API from database messages

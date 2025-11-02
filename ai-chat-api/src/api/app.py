@@ -1,15 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
 import logging
+import base64
 
 from src.config.settings import CORS_ORIGINS
 from src.database.database import get_db, init_db
 from src.database import models as db_models
 from src.api import models as api_models
-from src.api.chat_service import get_ai_response, build_message_history
+from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
 
 # Configure logging
 logging.basicConfig(
@@ -116,6 +117,8 @@ def chat(
     If session_id is provided, add to existing conversation.
     Otherwise, create a new conversation with a generated session_id.
     """
+    logger.info(f"Received chat request: {chat_request.message[:100]}...")
+    
     # Get or create conversation
     if chat_request.session_id:
         conversation = db.query(db_models.Conversation).filter(
@@ -151,11 +154,14 @@ def chat(
 
     # Build message history for AI
     message_history = build_message_history(messages)
+    logger.info(f"Built message history with {len(message_history)} messages")
 
     # Get AI response
     try:
         ai_response = get_ai_response(message_history)
+        logger.info(f"AI response: {ai_response[:100]}...")
     except Exception as e:
+        logger.error(f"Error getting AI response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     # Save assistant message
@@ -168,12 +174,64 @@ def chat(
     db.commit()
     db.refresh(assistant_message)
 
-    return {
+    response = {
         "session_id": conversation.session_id,
         "conversation_id": conversation.id,
         "user_message": user_message,
         "assistant_message": assistant_message
     }
+    logger.info(f"Returning response for session {conversation.session_id}")
+    return response
+
+
+@app.post("/analyze-image-uri/")
+def analyze_image_uri(
+    image_uri: str = Form(...),
+    prompt: str = Form("Analyze this image and describe what you see. Focus on the mood, emotions, and therapeutic insights it might evoke for someone in IFS therapy.")
+):
+    """Analyze image from URI (local file or S3) using OpenAI Vision API"""
+    logger.info(f"Received image analysis request - URI: {image_uri}")
+    logger.info(f"Prompt: {prompt[:100]}...")
+    
+    try:
+        # Get image bytes based on URI type
+        if image_uri.startswith("http://") or image_uri.startswith("https://"):
+            # External URL - download
+            logger.info(f"Downloading external image: {image_uri}")
+            import httpx
+            with httpx.Client() as client:
+                response = client.get(image_uri)
+                image_bytes = response.content
+            logger.info(f"Downloaded {len(image_bytes)} bytes")
+        elif image_uri.startswith("/uploads/"):
+            # Local file
+            import os
+            file_path = "." + image_uri
+            logger.info(f"Reading local file: {file_path}")
+            if not os.path.exists(file_path):
+                logger.error(f"File not found: {file_path}")
+                raise HTTPException(status_code=404, detail=f"File not found: {image_uri}")
+            with open(file_path, "rb") as f:
+                image_bytes = f.read()
+            logger.info(f"Read {len(image_bytes)} bytes from local file")
+        elif image_uri.startswith("s3://"):
+            # Future: S3 implementation
+            logger.warning("S3 URI received but not implemented")
+            raise HTTPException(status_code=501, detail="S3 support not implemented yet")
+        else:
+            logger.error(f"Unsupported URI format: {image_uri}")
+            raise HTTPException(status_code=400, detail=f"Unsupported URI format: {image_uri}")
+        
+        # Convert to base64 and analyze
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        logger.info(f"Converted to base64, length: {len(base64_image)}")
+        
+        analysis = get_ai_response_with_image(prompt, base64_image)
+        logger.info(f"AI analysis completed: {analysis[:100]}...")
+        return {"analysis": analysis}
+    except Exception as e:
+        logger.error(f"Error in image analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/conversations/{conversation_id}")
