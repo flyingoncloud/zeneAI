@@ -218,8 +218,20 @@ public class ZeneController {
                         "Help the user explore their Parts and Self with compassion and curiosity. " +
                         "Detected emotions: " + detected.toString();
         
+        String fullMessage = context + "\n\nUser: " + message;
+        
         try {
-            return openAIService.generateResponse(context + "\n\nUser: " + message);
+            // If there are images, use the first one for analysis
+            if (images != null && !images.isEmpty()) {
+                String imageUrl = images.get(0);
+                // Convert relative URL to full URL if needed
+                if (imageUrl.startsWith("/uploads/")) {
+                    imageUrl = "http://localhost:8080" + imageUrl;
+                }
+                return openAIService.getChatResponseWithImage(fullMessage, imageUrl);
+            } else {
+                return openAIService.getChatResponse(fullMessage);
+            }
         } catch (Exception e) {
             return "我理解你的感受。让我们一起探索这些情绪背后的需要。你能告诉我更多关于这种感觉的吗？";
         }
@@ -231,7 +243,12 @@ public class ZeneController {
             Map.of("id", "g1", "url", "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=60"),
             Map.of("id", "g2", "url", "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=900&q=60"),
             Map.of("id", "g3", "url", "https://images.unsplash.com/photo-1470770903676-69b98201ea1c?auto=format&fit=crop&w=900&q=60"),
-            Map.of("id", "g4", "url", "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=60")
+            Map.of("id", "g4", "url", "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=60"),
+            Map.of("id", "g5", "url", "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=60"),
+            Map.of("id", "g6", "url", "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=900&q=60"),
+            Map.of("id", "g7", "url", "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=900&q=60"),
+            Map.of("id", "g8", "url", "https://images.unsplash.com/photo-1418065460487-3956c3043904?auto=format&fit=crop&w=900&q=60"),
+            Map.of("id", "g9", "url", "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=60")
         );
         
         Map<String, Object> response = new HashMap<>();
@@ -285,6 +302,43 @@ public class ZeneController {
         return ResponseEntity.ok(response);
     }
     
+    @PostMapping("/analyze-image")
+    public ResponseEntity<Map<String, Object>> analyzeImage(@RequestBody Map<String, Object> request) {
+        String imageUrl = (String) request.get("imageUrl");
+        
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("ok", false);
+            response.put("error", "Image URL is required");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        try {
+            String prompt = "Analyze this image and describe what you see. Focus on the mood, emotions, and therapeutic insights it might evoke for someone in IFS therapy.";
+            String analysis = openAIService.getChatResponseWithImage(prompt, imageUrl);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("ok", true);
+            response.put("analysis", analysis);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("ok", false);
+            response.put("error", "Analysis failed: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    @GetMapping("/greeting")
+    public ResponseEntity<Map<String, Object>> getGreeting() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("ok", true);
+        response.put("message", "欢迎来到内心探索之旅。我是你的情感陪伴者，让我们一起倾听内心的声音，探索你的感受和情绪。");
+        
+        return ResponseEntity.ok(response);
+    }
+    
     private List<String> generateSuggestions(List<String> self, List<String> parts) {
         List<String> suggestions = new ArrayList<>();
         
@@ -292,7 +346,7 @@ public class ZeneController {
             suggestions.add("在感到「平静」时，回看聊天记录中的关键节点，标注是什么帮助你回到平静。");
         }
         if (self.contains("好奇")) {
-            suggestions.add("保持好奇：每遇到一个情绪片段，先问"它在保护什么？"再做下一步。");
+            suggestions.add("保持好奇：每遇到一个情绪片段，先问\"它在保护什么？\"再做下一步。");
         }
         if (parts.contains("焦虑")) {
             suggestions.add("给焦虑一个名字，并写下一句它想传达的话，接纳它的存在再继续。");

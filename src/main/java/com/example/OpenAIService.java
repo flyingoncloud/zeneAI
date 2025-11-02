@@ -8,6 +8,12 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+
 @Service
 public class OpenAIService {
     
@@ -19,14 +25,26 @@ public class OpenAIService {
     @Value("${openai.mock.enabled:false}")
     private boolean mockEnabled;
     
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build();
     private final ObjectMapper mapper = new ObjectMapper();
     
     public String getChatResponse(String message) {
+        return getChatResponseWithImage(message, null);
+    }
+    
+    public String getChatResponseWithImage(String message, String imageUrl) {
         // Mock mode for testing without using OpenAI credits
         if (mockEnabled) {
             logger.debug("Mock mode enabled - returning simulated response");
-            return "This is a mock response to: \"" + message + "\". Set openai.mock.enabled=false to use real OpenAI API.";
+            String mockResponse = "This is a mock response to: \"" + message + "\".";
+            if (imageUrl != null) {
+                mockResponse += " I can see you've shared an image, but I'm in mock mode so I can't analyze it.";
+            }
+            return mockResponse + " Set openai.mock.enabled=false to use real OpenAI API.";
         }
         // Validate API key
         if (apiKey == null || apiKey.trim().isEmpty() || apiKey.equals("YOUR_OPENAI_API_KEY_HERE")) {
@@ -39,10 +57,61 @@ public class OpenAIService {
         logger.debug("API key first 10 chars: {}", apiKey.substring(0, Math.min(10, apiKey.length())));
         
         try {
-            String json = String.format(
-                "{\"model\":\"gpt-3.5-turbo\",\"messages\":[{\"role\":\"user\",\"content\":\"%s\"}],\"max_tokens\":150}",
-                message.replace("\"", "\\\"")
-            );
+            // Create proper JSON using ObjectMapper
+            Map<String, Object> requestBody = new HashMap<>();
+            
+            // Use GPT-4 Vision if image is provided, otherwise use GPT-3.5-turbo
+            if (imageUrl != null) {
+                requestBody.put("model", "gpt-4o");
+                requestBody.put("max_tokens", 300);
+                
+                // Create message with image content
+                Map<String, Object> messageObj = new HashMap<>();
+                messageObj.put("role", "user");
+                
+                List<Map<String, Object>> content = new ArrayList<>();
+                
+                // Add text content
+                Map<String, Object> textContent = new HashMap<>();
+                textContent.put("type", "text");
+                textContent.put("text", message);
+                content.add(textContent);
+                
+                // Add image content as base64
+                Map<String, Object> imageContent = new HashMap<>();
+                imageContent.put("type", "image_url");
+                Map<String, String> imageUrlObj = new HashMap<>();
+                
+                // Convert image to base64 if it's a local URL
+                if (imageUrl.startsWith("http://localhost:8080/uploads/")) {
+                    try {
+                        String base64Image = convertImageToBase64(imageUrl);
+                        imageUrlObj.put("url", "data:image/jpeg;base64," + base64Image);
+                    } catch (Exception e) {
+                        logger.error("Failed to convert image to base64: {}", e.getMessage());
+                        imageUrlObj.put("url", imageUrl); // Fallback to original URL
+                    }
+                } else {
+                    imageUrlObj.put("url", imageUrl);
+                }
+                
+                imageContent.put("image_url", imageUrlObj);
+                content.add(imageContent);
+                
+                messageObj.put("content", content);
+                requestBody.put("messages", Arrays.asList(messageObj));
+            } else {
+                requestBody.put("model", "gpt-3.5-turbo");
+                requestBody.put("max_tokens", 150);
+                
+                Map<String, String> messageObj = new HashMap<>();
+                messageObj.put("role", "user");
+                messageObj.put("content", message);
+                
+                requestBody.put("messages", Arrays.asList(messageObj));
+            }
+            
+            String json = mapper.writeValueAsString(requestBody);
             
             logger.debug("OpenAI request payload: {}", json);
             
@@ -82,10 +151,27 @@ public class OpenAIService {
                     return aiResponse;
                 }
             }
+        } catch (java.net.SocketTimeoutException e) {
+            logger.error("OpenAI API timeout", e);
+            return "OpenAI服务响应超时，请稍后再试。如果是图片分析，可能图片较大导致处理时间较长。";
         } catch (Exception e) {
             logger.error("Error calling OpenAI API", e);
             return "Error: " + e.getMessage();
         }
         return "No response received";
+    }
+    
+    private String convertImageToBase64(String imageUrl) throws Exception {
+        // Extract filename from URL
+        String filename = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+        String filePath = "uploads/" + filename;
+        
+        try {
+            byte[] imageBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filePath));
+            return java.util.Base64.getEncoder().encodeToString(imageBytes);
+        } catch (Exception e) {
+            logger.error("Failed to read image file: {}", filePath, e);
+            throw e;
+        }
     }
 }

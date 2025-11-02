@@ -13,7 +13,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable()
             .authorizeRequests()
-            .antMatchers("/api/auth/**", "/api/chat/**", "/api/messages", "/api/test-key").permitAll()
+            .antMatchers("/api/auth/**", "/api/chat/**", "/api/zene/**", "/api/messages", "/api/test-key", "/uploads/**").permitAll()
             .anyRequest().authenticated();
     }
 }
