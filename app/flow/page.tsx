@@ -243,11 +243,8 @@ export default function FlowPage() {
     // Intro modal state
     const [introOpen, setIntroOpen] = useState(false);
 
-    // Danmaku state
-    const [showDanmaku, setShowDanmaku] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return localStorage.getItem('zene_danmaku_seen') !== '1';
-    });
+    // Danmaku state - show on every page load
+    const [showDanmaku, setShowDanmaku] = useState(true);
 
 
 
@@ -284,7 +281,7 @@ export default function FlowPage() {
                 laneMinGapPx={130}         // 同轨道更不易重叠
                 onFinish={() => {
                     setShowDanmaku(false);
-                    try { localStorage.setItem('zene_danmaku_seen', '1'); } catch { }
+                    try { localStorage.setItem('zene_danmaku_seen', Date.now().toString()); } catch { }
                 }}
             />
 

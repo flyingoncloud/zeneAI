@@ -94,19 +94,40 @@ export default function Danmaku({
 
     // 规范化 + 打标签 + 打乱 + 采样
     const data = useMemo(() => {
-        const arr = messages.map((m) =>
-            typeof m === "string" ? { text: m, mood: tagMood(m) } : { text: m.text, mood: m.mood ?? tagMood(m.text) }
-        );
+        const arr = messages.map((m) => {
+            if (typeof m === "string") {
+                const mood = tagMood(m);
+                return { text: m, mood };
+            } else if (m && typeof m === "object" && typeof m.text === "string") {
+                const mood = m.mood ?? tagMood(m.text);
+                return { text: m.text, mood };
+            } else {
+                // Fallback for invalid data
+                console.warn("Invalid message format:", m, typeof m);
+                return { text: String(m), mood: "neutral" as Mood };
+            }
+        });
+        
+        // Multiple shuffles for better randomization
         shuffle(arr);
+        shuffle(arr);
+        
         return arr.slice(0, Math.min(maxMessages, arr.length));
-    }, [messages, maxMessages]);
+    }, [messages, maxMessages, Date.now()]); // Add timestamp to force re-randomization
 
     const finished = useRef(0);
     const total = data.length;
 
     // 屏幕尺寸（客户端安全）
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const [dimensions, setDimensions] = useState({ vw: 1200, vh: 800 });
+    
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setDimensions({ vw: window.innerWidth, vh: window.innerHeight });
+        }
+    }, []);
+
+    const { vw, vh } = dimensions;
 
     // 轨道：自适应高度 + 充分覆盖全屏
     const laneH = clamp(vh * 0.045, 26, 46);              // 每行高度
