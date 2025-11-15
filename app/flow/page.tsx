@@ -7,6 +7,12 @@ import GuidanceModal from '@/components/GuidanceModal';
 import Paywall from '@/components/Paywall';
 import ImageGallery from '@/components/ImageGallery';
 import SketchPad from '@/components/SketchPad';
+import IntroModal from '@/components/IntroModal';
+import Danmaku from '@/components/Danmaku';
+import { DANMAKU_100 } from '@/lib/danmaku100';
+
+
+
 
 // 与 ChatBox 的 onDetect 保持一致
 export type DetectedItem = {
@@ -22,6 +28,7 @@ const ZENE_KEYS = [
     'zene_parts_modal_optout',
     'zene_flow_unique',
     'zene_transcript',
+    'zene_danmaku_seen',
 ];
 
 function resetZeneState() {
@@ -51,6 +58,23 @@ export default function FlowPage() {
             location.reload();
         }
     }, []);
+
+    // ?danmaku=1
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const p = new URLSearchParams(window.location.search);
+        if (p.get('danmaku') === '1') {
+            try { localStorage.removeItem('zene_danmaku_seen'); } catch { }
+            setShowDanmaku(true);
+
+            // 用完参数后移除，保持地址干净
+            p.delete('danmaku');
+            const newUrl = window.location.pathname + (p.toString() ? `?${p.toString()}` : '');
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, []);
+
+
 
     // 轨迹记录：每次 ChatBox 识别到 Parts/Self 时会调用 handleDetect
     const [records, setRecords] = useState<DetectedItem[]>([]);
@@ -193,18 +217,18 @@ export default function FlowPage() {
         try {
             const formData = new FormData();
             formData.append('file', blob, 'drawing.png');
-            
+
             const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/zene/upload`, {
                 method: 'POST',
                 body: formData
             });
-            
+
             const uploadData = await uploadResponse.json();
             if (uploadData.ok) {
-                const fullImageUrl = uploadData.url.startsWith('http') 
-                    ? uploadData.url 
+                const fullImageUrl = uploadData.url.startsWith('http')
+                    ? uploadData.url
                     : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${uploadData.url}`;
-                
+
                 // Add drawing to conversation like gallery images
                 if (chatBoxRef.current && chatBoxRef.current.handleGalleryImage) {
                     chatBoxRef.current.handleGalleryImage(fullImageUrl);
@@ -215,6 +239,19 @@ export default function FlowPage() {
         }
         setCanvasOpen(false);
     };
+
+    // Intro modal state
+    const [introOpen, setIntroOpen] = useState(false);
+
+    // Danmaku state
+    const [showDanmaku, setShowDanmaku] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return localStorage.getItem('zene_danmaku_seen') !== '1';
+    });
+
+
+
+
 
     return (
         <div className="h-screen flex flex-col">
@@ -236,6 +273,20 @@ export default function FlowPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Danmaku */}
+            <Danmaku
+                open={showDanmaku}
+                messages={DANMAKU_100}
+                maxMessages={24}           // 更稀疏
+                maxLanes={16}              // 更多行，覆盖更满
+                durationRange={[7, 12]}
+                laneMinGapPx={130}         // 同轨道更不易重叠
+                onFinish={() => {
+                    setShowDanmaku(false);
+                    try { localStorage.setItem('zene_danmaku_seen', '1'); } catch { }
+                }}
+            />
 
             {/* Main Content - Two Column Layout */}
             <div className="flex-1 flex">
@@ -324,9 +375,19 @@ export default function FlowPage() {
 
                 {/* Right Main Content - 60% */}
                 <div className="w-[60%] flex flex-col">
-                    <ChatBox 
+                    {/* 顶部工具条：新增“使用说明”按钮 */}
+                    <div className="flex items-center justify-end gap-2 p-3 border-b">
+                        <button
+                            onClick={() => setIntroOpen(true)}
+                            className="rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
+                        >
+                            使用说明
+                        </button>
+                    </div>
+
+                    <ChatBox
                         ref={chatBoxRef}
-                        onDetect={handleDetect} 
+                        onDetect={handleDetect}
                         onGalleryOpen={() => setGalleryOpen(true)}
                         onCanvasOpen={() => setCanvasOpen(true)}
                     />
@@ -352,18 +413,22 @@ export default function FlowPage() {
             />
 
             <Paywall open={payOpen} onClose={() => setPayOpen(false)} onPaid={markPaid} />
-            
-            <ImageGallery 
-                open={galleryOpen} 
-                onClose={() => setGalleryOpen(false)} 
+
+            <ImageGallery
+                open={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
                 onImageSelect={handleGalleryImageSelect}
             />
-            
-            <SketchPad 
-                open={canvasOpen} 
-                onClose={() => setCanvasOpen(false)} 
+
+            <SketchPad
+                open={canvasOpen}
+                onClose={() => setCanvasOpen(false)}
                 onExport={handleCanvasExport}
             />
+
+            <IntroModal open={introOpen} onClose={() => setIntroOpen(false)} />
+
+
         </div>
     );
 }
