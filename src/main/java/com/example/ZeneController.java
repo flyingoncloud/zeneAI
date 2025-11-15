@@ -6,6 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.client.RestTemplate;
@@ -35,6 +39,9 @@ public class ZeneController {
     
     @Autowired
     private OpenAIService openAIService;
+    
+    @Autowired
+    private ImageStorageService imageStorageService;
     
     @Value("${ai.chat.api.url:http://localhost:8000}")
     private String aiChatApiUrl;
@@ -233,6 +240,37 @@ public class ZeneController {
         String fullMessage = context + "\n\nUser: " + message;
         
         try {
+            // If there are images, use image analysis endpoint
+            if (images != null && !images.isEmpty()) {
+                String imageUri = images.get(0);
+                System.out.println("Processing image URI: " + imageUri);
+                
+                try {
+                    // Send URI to ai-chat-api for processing
+                    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+                    body.add("image_uri", imageUri);
+                    body.add("prompt", fullMessage);
+                    
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                    HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+                    
+                    ResponseEntity<Map> response = restTemplate.exchange(
+                        aiChatApiUrl + "/analyze-image-uri/", 
+                        HttpMethod.POST, 
+                        entity, 
+                        Map.class
+                    );
+                    
+                    Map<String, Object> apiResponse = response.getBody();
+                    return (String) apiResponse.get("analysis");
+                } catch (Exception imageEx) {
+                    System.out.println("Error processing image: " + imageEx.getMessage());
+                    // Fall back to text-only processing
+                }
+            }
+            
+            // Regular chat request
             Map<String, String> chatRequest = Map.of("message", fullMessage);
             System.out.println("Sending request to ai-chat-api: " + chatRequest);
             
@@ -247,15 +285,9 @@ public class ZeneController {
                 Map.class
             );
             
-            System.out.println("Response status: " + response.getStatusCode());
-            System.out.println("Response body: " + response.getBody());
-            
             Map<String, Object> apiResponse = response.getBody();
             Map<String, Object> assistantMessage = (Map<String, Object>) apiResponse.get("assistant_message");
-            String result = (String) assistantMessage.get("content");
-            
-            System.out.println("Extracted response: " + result);
-            return result;
+            return (String) assistantMessage.get("content");
             
         } catch (Exception e) {
             System.out.println("Error calling ai-chat-api: " + e.getMessage());
