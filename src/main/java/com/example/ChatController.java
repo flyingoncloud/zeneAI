@@ -7,6 +7,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +24,8 @@ import java.util.stream.Collectors;
 public class ChatController {
     
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Autowired
     private OpenAIService openAIService;
@@ -34,6 +41,9 @@ public class ChatController {
     
     @Value("${openai.api.key}")
     private String apiKey;
+    
+    @Value("${ai.chat.api.url:http://localhost:8000}")
+    private String aiChatApiUrl;
     
     @GetMapping("/debug")
     public Map<String, String> debug() {
@@ -87,18 +97,32 @@ public class ChatController {
             return Map.of("response", "User not found");
         }
         
-        logger.debug("Received chat request from {}: {}", username, message);
-        
-        // Save user message
-        messageRepository.save(new Message(user.get(), "user", message));
-        
-        String response = openAIService.getChatResponse(message);
-        logger.debug("Sending response: {}", response);
-        
-        // Save assistant message
-        messageRepository.save(new Message(user.get(), "assistant", response));
-        
-        return Map.of("response", response);
+        try {
+            Map<String, String> chatRequest = Map.of("message", message);
+            String json = objectMapper.writeValueAsString(chatRequest);
+            
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(aiChatApiUrl + "/chat/"))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            Map<String, Object> apiResponse = objectMapper.readValue(response.body(), Map.class);
+            
+            Map<String, Object> assistantMessage = (Map<String, Object>) apiResponse.get("assistant_message");
+            String responseContent = (String) assistantMessage.get("content");
+            
+            messageRepository.save(new Message(user.get(), "user", message));
+            messageRepository.save(new Message(user.get(), "assistant", responseContent));
+            
+            return Map.of("response", responseContent);
+            
+        } catch (Exception e) {
+            logger.error("Error calling ai-chat-api", e);
+            return Map.of("response", "Error processing request: " + e.getMessage());
+        }
     }
     
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

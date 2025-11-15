@@ -1,9 +1,15 @@
 package com.example;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -21,11 +27,17 @@ import java.util.regex.Pattern;
 @CrossOrigin(origins = "*")
 public class ZeneController {
     
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
     @Autowired
     private ZeneSessionRepository sessionRepository;
     
     @Autowired
     private OpenAIService openAIService;
+    
+    @Value("${ai.chat.api.url:http://localhost:8000}")
+    private String aiChatApiUrl;
     
     private static final Map<Pattern, String> SELF_PATTERNS = Map.of(
         Pattern.compile("(平静|calm)", Pattern.CASE_INSENSITIVE), "平静",
@@ -221,18 +233,33 @@ public class ZeneController {
         String fullMessage = context + "\n\nUser: " + message;
         
         try {
-            // If there are images, use the first one for analysis
-            if (images != null && !images.isEmpty()) {
-                String imageUrl = images.get(0);
-                // Convert relative URL to full URL if needed
-                if (imageUrl.startsWith("/uploads/")) {
-                    imageUrl = "http://localhost:8080" + imageUrl;
-                }
-                return openAIService.getChatResponseWithImage(fullMessage, imageUrl);
-            } else {
-                return openAIService.getChatResponse(fullMessage);
-            }
+            Map<String, String> chatRequest = Map.of("message", fullMessage);
+            System.out.println("Sending request to ai-chat-api: " + chatRequest);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Content-Type", "application/json");
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(chatRequest, headers);
+            
+            ResponseEntity<Map> response = restTemplate.exchange(
+                aiChatApiUrl + "/chat/", 
+                HttpMethod.POST, 
+                entity, 
+                Map.class
+            );
+            
+            System.out.println("Response status: " + response.getStatusCode());
+            System.out.println("Response body: " + response.getBody());
+            
+            Map<String, Object> apiResponse = response.getBody();
+            Map<String, Object> assistantMessage = (Map<String, Object>) apiResponse.get("assistant_message");
+            String result = (String) assistantMessage.get("content");
+            
+            System.out.println("Extracted response: " + result);
+            return result;
+            
         } catch (Exception e) {
+            System.out.println("Error calling ai-chat-api: " + e.getMessage());
+            e.printStackTrace();
             return "我理解你的感受。让我们一起探索这些情绪背后的需要。你能告诉我更多关于这种感觉的吗？";
         }
     }
