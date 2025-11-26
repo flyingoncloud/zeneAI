@@ -1,6 +1,6 @@
 // app/page.tsx
-import { redirect } from 'next/navigation';
+import EmotionalRescueEntry from '@/components/EmotionalRescueEntry';
 
 export default function Home() {
-  redirect('/flow');
+  return <EmotionalRescueEntry />;
 }
