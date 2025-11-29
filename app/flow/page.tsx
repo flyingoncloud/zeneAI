@@ -10,6 +10,8 @@ import SketchPad from '@/components/SketchPad';
 import IntroModal from '@/components/IntroModal';
 import Danmaku from '@/components/Danmaku';
 import { DANMAKU_100 } from '@/lib/danmaku100';
+import UserAvatar from '@/components/UserAvatar';
+
 
 
 
@@ -247,27 +249,20 @@ export default function FlowPage() {
     const [showDanmaku, setShowDanmaku] = useState(true);
 
 
-
-
-
     return (
         <div className="h-screen flex flex-col">
             {/* Header */}
-            <div className="border-b border-gray-200 p-4">
-                <div className="flex">
-                    {/* Left side - matches sidebar width */}
-                    <div className="w-[40%]">
-                        <h1 className="text-xl font-semibold">内视涂鸦 - IFS 探索</h1>
-                    </div>
-                    {/* Right side - matches conversation width */}
-                    <div className="w-[60%] flex justify-end">
-                        <button
-                            className="rounded-xl bg-zinc-200 px-3 py-2 text-zinc-700 hover:bg-zinc-300"
-                            onClick={handleResetClick}
-                        >
-                            重置测试
-                        </button>
-                    </div>
+            <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <h1 className="text-xl font-semibold">内视涂鸦 - IFS 探索</h1>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        className="rounded-xl bg-zinc-200 px-3 py-2 text-zinc-700 hover:bg-zinc-300"
+                        onClick={handleResetClick}
+                    >
+                        重置测试
+                    </button>
+                    <UserAvatar />
                 </div>
             </div>
 
