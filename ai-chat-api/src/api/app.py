@@ -6,11 +6,12 @@ import uuid
 import logging
 import base64
 
-from src.config.settings import CORS_ORIGINS
+from src.config.settings import CORS_ORIGINS, IFS_DETECTION_ENABLED
 from src.database.database import get_db, init_db
 from src.database import models as db_models
 from src.api import models as api_models
 from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
+from src.ifs.detector import IFSDetector
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize IFS Detector
+ifs_detector = IFSDetector() if IFS_DETECTION_ENABLED else None
 
 
 @app.on_event("startup")
@@ -173,6 +177,42 @@ def chat(
     db.add(assistant_message)
     db.commit()
     db.refresh(assistant_message)
+
+    # IFS Detection (if enabled)
+    if ifs_detector and ifs_detector.should_analyze(len(messages)):
+        try:
+            logger.debug(f"Running IFS analysis on conversation {conversation.id}")
+
+            # Get existing IFS state from conversation metadata
+            existing_state = conversation.extra_data.get('ifs_state') if conversation.extra_data else None
+
+            # Build message list for detection
+            message_list = [{"role": msg.role, "content": msg.content} for msg in messages]
+
+            # Run IFS detection
+            ifs_analysis = ifs_detector.detect(
+                messages=message_list,
+                existing_state=existing_state,
+                current_message_id=assistant_message.id
+            )
+
+            # Update conversation metadata with IFS state
+            if not conversation.extra_data:
+                conversation.extra_data = {}
+            conversation.extra_data['ifs_state'] = ifs_analysis
+
+            # Add IFS analysis to assistant message extra_data
+            if not assistant_message.extra_data:
+                assistant_message.extra_data = {}
+            assistant_message.extra_data['ifs_analysis'] = ifs_analysis
+
+            db.commit()
+
+            logger.debug(f"IFS analysis completed: {ifs_analysis.get('analysis_type')}, LLM used: {ifs_analysis.get('llm_used')}")
+
+        except Exception as e:
+            logger.error(f"IFS detection failed: {e}", exc_info=True)
+            # Don't fail the whole request if IFS detection fails
 
     response = {
         "session_id": conversation.session_id,
