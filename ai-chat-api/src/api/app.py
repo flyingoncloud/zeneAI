@@ -160,9 +160,35 @@ def chat(
     message_history = build_message_history(messages)
     logger.info(f"Built message history with {len(message_history)} messages")
 
-    # Get AI response
+    # Multi-Framework Psychology Detection (if enabled) - Run BEFORE AI response
+    psychology_analysis_for_ai = None
+    if psychology_detector and psychology_detector.should_analyze(len(messages)):
+        try:
+            logger.debug(f"Running multi-framework psychology analysis on conversation {conversation.id}")
+
+            # Get existing psychology state from conversation metadata
+            existing_state = conversation.extra_data.get('psychology_state') if conversation.extra_data else None
+
+            # Build message list for detection (include the new user message)
+            message_list = [{"role": msg.role, "content": msg.content} for msg in messages]
+            message_list.append({"role": "user", "content": chat_request.message})
+
+            # Run multi-framework detection
+            psychology_analysis_for_ai = psychology_detector.analyze_conversation(
+                messages=message_list,
+                existing_state=existing_state,
+                current_message_id=len(message_list)
+            )
+
+            logger.debug(f"Psychology analysis for AI completed: frameworks={list(psychology_analysis_for_ai.get('frameworks', {}).keys())}")
+
+        except Exception as e:
+            logger.error(f"Multi-framework psychology detection failed: {e}", exc_info=True)
+            # Continue without psychology context if detection fails
+
+    # Get AI response with psychology context
     try:
-        ai_response = get_ai_response(message_history)
+        ai_response = get_ai_response(message_history, psychology_analysis=psychology_analysis_for_ai)
         logger.info(f"AI response: {ai_response[:100]}...")
     except Exception as e:
         logger.error(f"Error getting AI response: {e}")
@@ -178,47 +204,32 @@ def chat(
     db.commit()
     db.refresh(assistant_message)
 
-    # Multi-Framework Psychology Detection (if enabled)
-    if psychology_detector and psychology_detector.should_analyze(len(messages)):
+    # Store psychology analysis in assistant message if available
+    if psychology_analysis_for_ai:
         try:
-            logger.debug(f"Running multi-framework psychology analysis on conversation {conversation.id}")
-
-            # Get existing psychology state from conversation metadata
-            existing_state = conversation.extra_data.get('psychology_state') if conversation.extra_data else None
-
-            # Build message list for detection
-            message_list = [{"role": msg.role, "content": msg.content} for msg in messages]
-
-            # Run multi-framework detection
-            psychology_analysis = psychology_detector.analyze_conversation(
-                messages=message_list,
-                existing_state=existing_state,
-                current_message_id=assistant_message.id
-            )
-
             # Update conversation metadata with psychology state
             if not conversation.extra_data:
                 conversation.extra_data = {}
-            conversation.extra_data['psychology_state'] = psychology_analysis
+            conversation.extra_data['psychology_state'] = psychology_analysis_for_ai
 
             # Add psychology analysis to assistant message extra_data
             if not assistant_message.extra_data:
                 assistant_message.extra_data = {}
-            assistant_message.extra_data['psychology_analysis'] = psychology_analysis
+            assistant_message.extra_data['psychology_analysis'] = psychology_analysis_for_ai
             
             # Maintain backward compatibility - include IFS analysis separately if present
-            if 'ifs' in psychology_analysis.get('frameworks', {}):
-                ifs_analysis = psychology_analysis['frameworks']['ifs']
+            if 'ifs' in psychology_analysis_for_ai.get('frameworks', {}):
+                ifs_analysis = psychology_analysis_for_ai['frameworks']['ifs']
                 assistant_message.extra_data['ifs_analysis'] = ifs_analysis
 
             db.commit()
 
-            frameworks_analyzed = list(psychology_analysis.get('frameworks', {}).keys())
-            logger.debug(f"Psychology analysis completed: frameworks={frameworks_analyzed}, total_confidence={psychology_analysis.get('total_confidence', 0.0)}")
+            frameworks_analyzed = list(psychology_analysis_for_ai.get('frameworks', {}).keys())
+            logger.debug(f"Psychology analysis stored: frameworks={frameworks_analyzed}, total_confidence={psychology_analysis_for_ai.get('total_confidence', 0.0)}")
 
         except Exception as e:
-            logger.error(f"Multi-framework psychology detection failed: {e}", exc_info=True)
-            # Don't fail the whole request if psychology detection fails
+            logger.error(f"Failed to store psychology analysis: {e}", exc_info=True)
+            # Don't fail the whole request if storage fails
 
     response = {
         "session_id": conversation.session_id,

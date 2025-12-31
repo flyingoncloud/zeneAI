@@ -188,6 +188,148 @@ research_data = detector.data_collector.export_research_data({
 })
 ```
 
+## Psychology-Informed AI Responses
+
+### Overview
+
+The AI responses are now contextually informed by the detected psychological frameworks. When the multi-framework psychology detection system identifies patterns in the conversation, this information is provided to the AI to generate more therapeutically relevant and framework-appropriate responses.
+
+### How It Works
+
+1. **Pre-Response Analysis**: Psychology detection runs BEFORE generating the AI response
+2. **Context Generation**: Detected patterns are converted into therapeutic context
+3. **Informed Response**: AI receives psychology context in the system prompt
+4. **Natural Integration**: Psychology insights are woven naturally into responses
+
+### Framework-Specific Response Adaptations
+
+#### IFS-Informed Responses
+When IFS patterns are detected, the AI will:
+- Acknowledge different parts that may be present
+- Recognize Self-energy when detected
+- Use parts-friendly language
+- Avoid pathologizing internal conflicts
+
+**Example Context**: "IFS部分活跃：perfectionist, critic；检测到自我能量存在"
+
+#### CBT-Informed Responses  
+When CBT patterns are detected, the AI will:
+- Gently address cognitive distortions without being confrontational
+- Suggest behavioral observations or experiments
+- Acknowledge thought-feeling-behavior connections
+- Support cognitive restructuring when appropriate
+
+**Example Context**: "认知扭曲模式：catastrophizing, all_or_nothing；行为模式：avoidance"
+
+#### Jungian-Informed Responses
+When Jungian patterns are detected, the AI will:
+- Honor symbolic and archetypal content
+- Explore deeper meanings in dreams or imagery
+- Support individuation process
+- Acknowledge shadow work or projection
+
+**Example Context**: "原型内容：shadow, anima；梦境或象征性内容；个体化过程指标"
+
+#### Narrative-Informed Responses
+When Narrative patterns are detected, the AI will:
+- Support problem externalization language
+- Encourage alternative story development
+- Acknowledge unique outcomes and exceptions
+- Honor preferred identity claims
+
+**Example Context**: "问题外化语言；重新创作身份；独特结果或例外"
+
+#### Attachment-Informed Responses
+When Attachment patterns are detected, the AI will:
+- Acknowledge attachment needs and fears
+- Validate relational experiences
+- Support emotional regulation
+- Honor attachment styles without judgment
+
+**Example Context**: "依恋模式：anxious, avoidant；情绪调节模式；关系动态模式"
+
+### Multi-Framework Integration
+
+When multiple frameworks are detected, the AI receives integrated context:
+
+**Example**: "认知扭曲模式：catastrophizing；IFS部分活跃：critic；依恋模式：anxious；检测到多个心理学框架的模式：cbt, ifs, attachment，表明复杂的心理呈现"
+
+This enables the AI to:
+- Acknowledge the complexity of the psychological presentation
+- Draw connections between different therapeutic perspectives
+- Provide more nuanced and comprehensive responses
+- Avoid over-focusing on a single therapeutic modality
+
+### Response Quality Features
+
+#### Natural Integration
+- Psychology insights are woven naturally into conversation
+- Avoids overly technical or clinical language
+- Maintains conversational flow and empathy
+- Doesn't feel robotic or template-based
+
+#### Therapeutic Sensitivity
+- Respects the user's psychological state
+- Avoids triggering or confrontational language
+- Supports the user's current capacity
+- Honors their therapeutic journey
+
+#### Cultural Adaptation
+- Chinese responses incorporate culturally appropriate therapeutic concepts
+- English responses maintain Western therapeutic frameworks
+- Bilingual pattern detection ensures accurate cultural context
+
+### Configuration
+
+Psychology-informed responses can be controlled through:
+
+```env
+# Enable/disable psychology-informed responses
+PSYCHOLOGY_DETECTION_ENABLED=true
+
+# Individual framework controls affect response context
+CBT_DETECTION_ENABLED=true
+JUNGIAN_DETECTION_ENABLED=true
+# ... etc
+
+# Confidence thresholds affect when context is included
+CBT_MIN_CONFIDENCE=0.7  # Higher = more selective context
+```
+
+### Example Response Comparison
+
+#### Without Psychology Context:
+**User**: "我总是觉得最坏的情况会发生，而且我感觉我有不同的部分在对压力做出不同的反应。"
+
+**AI Response**: "听起来你在经历一些焦虑。你能告诉我更多关于这些感受的情况吗？"
+
+#### With Psychology Context:
+**Psychology Context**: "认知扭曲模式：catastrophizing；IFS部分活跃：manager, exile；检测到多个心理学框架的模式：cbt, ifs，表明复杂的心理呈现"
+
+**AI Response**: "我听到你提到了灾难性思维的模式，这确实会带来很多焦虑。同时，你对内在不同部分的觉察很有价值——这些部分可能都在试图以自己的方式保护你。你能感受到这些不同部分是如何对压力做出反应的吗？"
+
+### Benefits
+
+1. **More Relevant Responses**: AI responses are tailored to detected psychological patterns
+2. **Therapeutic Alignment**: Responses align with appropriate therapeutic frameworks
+3. **Reduced Misunderstanding**: AI avoids responses that conflict with user's psychological state
+4. **Enhanced Empathy**: Deeper understanding leads to more empathetic responses
+5. **Therapeutic Support**: Responses can gently support therapeutic processes
+
+### Monitoring and Quality Assurance
+
+The system logs psychology context usage:
+
+```bash
+2025-01-01 10:01:00 - src.api.chat_service - DEBUG - Psychology context generated: 认知扭曲模式：catastrophizing；IFS部分活跃：critic
+2025-01-01 10:01:02 - src.api.app - DEBUG - AI response generated with psychology context
+```
+
+This enables monitoring of:
+- How often psychology context influences responses
+- Which frameworks most commonly inform responses
+- Response quality and therapeutic appropriateness
+
 ## Usage Examples
 
 ### Basic Analysis
