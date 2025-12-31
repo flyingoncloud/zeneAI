@@ -150,8 +150,29 @@ ai-chat-api/
 │   ├── database/
 │   │   ├── models.py           # SQLAlchemy models
 │   │   └── database.py         # Database connection
-│   └── config/
-│       └── settings.py         # Configuration
+│   ├── config/
+│   │   └── settings.py         # Configuration
+│   ├── psychology/             # Psychology detection modules
+│   │   ├── multi_detector.py   # Multi-framework psychology detection
+│   │   ├── detectors/          # Individual psychology detectors
+│   │   └── adapters/           # Framework adapters
+│   ├── ifs/                    # Internal Family Systems detection
+│   │   ├── detector.py         # IFS detection logic
+│   │   └── models.py           # IFS data models
+│   └── reports/                # Report generation
+│       ├── report_generator.py # PDF report generation
+│       └── chinese_template_generator.py # Chinese report templates
+├── tests/                      # Test files (organized by category)
+│   ├── api/                    # API endpoint tests
+│   ├── framework/              # Framework-specific tests
+│   ├── integration/            # Integration tests
+│   ├── unit/                   # Unit tests
+│   └── *.py                    # General test files
+├── demos/                      # Demo and example files
+│   ├── reports/                # Report generation demos
+│   ├── psychology/             # Psychology detection demos
+│   ├── system/                 # Complete system demos
+│   └── *.py                    # General demo files
 ├── requirements.txt
 ├── .env.example
 ├── docker-compose.yml          # PostgreSQL setup
@@ -255,13 +276,35 @@ python run.py
 ### Running tests
 
 ```bash
-# Test API is running
-curl http://localhost:8000/
+# Run all tests
+python -m pytest tests/ -v
 
-# Test chat endpoint
-curl -X POST http://localhost:8000/chat/ \
-  -H "Content-Type: application/json" \
-  -d '{"message": "test"}'
+# Run specific test categories
+python -m pytest tests/api/ -v          # API tests
+python -m pytest tests/framework/ -v    # Framework tests
+python -m pytest tests/unit/ -v         # Unit tests
+python -m pytest tests/integration/ -v  # Integration tests
+
+# Run property-based tests
+python -m pytest tests/test_*_property.py -v
+```
+
+### Running demos
+
+```bash
+# Report generation demos
+python demos/reports/demo_working_report.py
+python demos/reports/demo_chinese_report.py
+
+# Psychology detection demos
+python demos/psychology/demo_framework_analysis.py
+
+# Complete system demos
+python demos/system/demo_complete_system.py
+python demos/system/demo_final_chinese_system.py
+
+# General demos
+python demos/demo_chinese_working.py
 ```
 
 ## Deployment

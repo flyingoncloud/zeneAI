@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/api/app.py
+# hypothesis_version: 6.148.8
+
+[0.0, 0.5, 0.6, 400, 404, 500, 501, '*', '.', '.docx', '/', '/analyze-image-uri/', '/chat/', '/conversations/', '/uploads/', '1.0.0', 'analysis', 'analyzed', 'assistant', 'assistant_message', 'average_confidence', 'confidence_score', 'content', 'conversation_id', 'created_at', 'criteria', 'detected_frameworks', 'download_url', 'elements_detected', 'eligible', 'filename', 'frameworks', 'frameworks_detected', 'http://', 'https://', 'id', 'ifs', 'ifs_analysis', 'message', 'message_count', 'messages', 'note', 'psychology_analysis', 'psychology_state', 'rb', 'reason', 'report_path', 'reports', 'role', 's3://', 'session_id', 'startup', 'timestamp', 'title', 'user', 'user_id', 'user_message', 'utf-8', 'version']

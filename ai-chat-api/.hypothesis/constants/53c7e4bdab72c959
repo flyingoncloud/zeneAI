@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/file_mover.py
+# hypothesis_version: 6.148.8
+
+['=== FILE MAPPING ===', '__main__', 'api', 'category', 'complete', 'demo', 'demo_*.py', 'demos', 'exists', 'file_type', 'final', 'framework', 'general', 'integration', 'mapping', 'original_locations', 'path', 'permissions', 'psychology', 'report', 'reports', 'source_path', 'system', 'target_dir', 'target_path', 'test', 'test_*.py', 'tests', 'timestamp', 'unit', 'w']

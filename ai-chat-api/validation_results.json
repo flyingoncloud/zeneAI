@@ -1,0 +1,43 @@
+{
+  "test_files": {
+    "tests/test_real_conversation_analysis.py": true,
+    "tests/test_chinese_response.py": true,
+    "tests/test_real_conversation_provided.py": true,
+    "tests/test_report_generation.py": true,
+    "tests/test_openai_import.py": true,
+    "tests/framework/test_improved_framework_response.py": true,
+    "tests/framework/test_interactive_frameworks.py": true,
+    "tests/framework/test_multi_framework_response.py": true,
+    "tests/framework/test_final_framework_demo.py": true,
+    "tests/api/test_api_report_endpoints.py": true
+  },
+  "demo_files": {
+    "demos/demo_chinese_working.py": true,
+    "demos/system/demo_final_chinese_system.py": true,
+    "demos/system/demo_complete_system.py": true,
+    "demos/reports/demo_chinese_report.py": true,
+    "demos/reports/demo_working_report.py": true
+  },
+  "main_app": {
+    "core_imports": false,
+    "config_loading": true,
+    "run_py_syntax": true
+  },
+  "summary": {
+    "test_files": {
+      "success_rate": 1.0,
+      "successful": 10,
+      "total": 10
+    },
+    "demo_files": {
+      "success_rate": 1.0,
+      "successful": 5,
+      "total": 5
+    },
+    "main_app": {
+      "success_rate": 0.6666666666666666,
+      "successful": 2,
+      "total": 3
+    }
+  }
+}

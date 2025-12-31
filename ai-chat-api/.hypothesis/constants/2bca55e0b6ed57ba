@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/psychology/base_detector.py
+# hypothesis_version: 6.148.8
+
+[0.6, '\\b', 'analysis_interval', 'cn', 'confidence_threshold', 'content', 'enabled', 'framework', 'has_patterns', 'patterns_found', 'role', 'user', 'window_size', '一', '鿿']

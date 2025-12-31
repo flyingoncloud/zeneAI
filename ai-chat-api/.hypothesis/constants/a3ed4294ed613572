@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/psychology/multi_detector.py
+# hypothesis_version: 6.148.8
+
+[0.0, 0.5, 'analysis_count', 'analysis_summary', 'analysis_type', 'analyzed', 'complexity_indicator', 'complexity_score', 'confidence_score', 'count', 'description', 'elements_detected', 'enabled', 'error', 'evidence', 'framework_name', 'framework_overlap', 'frameworks', 'has_patterns', 'hybrid', 'llm_used', 'message', 'pattern_only', 'patterns_found', 'timestamp', 'total_confidence', 'window_size']

@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/ifs/detector.py
+# hypothesis_version: 6.148.8
+
+['analysis_count', 'analysis_type', 'analyzed', 'enabled', 'error', 'has_parts', 'has_self', 'hybrid', 'llm_used', 'message', 'parts_detected', 'pattern_only', 'patterns_found', 'self_presence']

@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/ifs/state_manager.py
+# hypothesis_version: 6.148.8
+
+[0.4, 0.5, 0.6, 'No IFS analysis yet', 'analysis_count', 'analysis_type', 'analyzed', 'confidence', 'detected', 'emotions', 'evidence', 'hybrid', 'indicators', 'intensity', 'llm_used', 'parts_detected', 'score', 'self_presence', 'timestamp', 'triggers']

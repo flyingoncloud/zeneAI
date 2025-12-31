@@ -271,7 +271,42 @@ http://localhost:8000/docs
 
 You should see the interactive Swagger UI with all endpoints.
 
-### Step 3: Test Chat Endpoint (New Conversation)
+### Step 3: Run Test Suite
+
+The project includes comprehensive tests organized by category:
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test categories
+python -m pytest tests/api/ -v          # API endpoint tests
+python -m pytest tests/framework/ -v    # Framework-specific tests
+python -m pytest tests/unit/ -v         # Unit tests
+python -m pytest tests/integration/ -v  # Integration tests
+
+# Run property-based tests
+python -m pytest tests/test_*_property.py -v
+```
+
+### Step 4: Run Demo Scripts
+
+Test the system functionality with demo scripts:
+
+```bash
+# Report generation demos
+python demos/reports/demo_working_report.py
+python demos/reports/demo_chinese_report.py
+
+# Complete system demos
+python demos/system/demo_complete_system.py
+python demos/system/demo_final_chinese_system.py
+
+# General demos
+python demos/demo_chinese_working.py
+```
+
+### Step 5: Test Chat Endpoint (New Conversation)
 
 ```bash
 curl -X POST "http://localhost:8000/chat/" \
@@ -303,7 +338,7 @@ Expected response (session_id will be different):
 
 **Save the `session_id` from the response for the next step!**
 
-### Step 4: Test Continuing a Conversation
+### Step 6: Test Continuing a Conversation
 
 Replace `YOUR_SESSION_ID` with the session_id from the previous response:
 
@@ -313,7 +348,7 @@ curl -X POST "http://localhost:8000/chat/" \
   -d '{"message": "Tell me a joke", "session_id": "YOUR_SESSION_ID"}'
 ```
 
-### Step 5: Get Conversation History
+### Step 7: Get Conversation History
 
 Replace `YOUR_SESSION_ID`:
 
@@ -323,7 +358,7 @@ curl "http://localhost:8000/conversations/session/YOUR_SESSION_ID"
 
 This will return the full conversation with all messages.
 
-### Step 6: Test with User ID
+### Step 8: Test with User ID
 
 ```bash
 curl -X POST "http://localhost:8000/chat/?user_id=user123" \
@@ -331,7 +366,7 @@ curl -X POST "http://localhost:8000/chat/?user_id=user123" \
   -d '{"message": "Hello!"}'
 ```
 
-### Step 7: Get All Conversations for a User
+### Step 9: Get All Conversations for a User
 
 ```bash
 curl "http://localhost:8000/conversations/user/user123"

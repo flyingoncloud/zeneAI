@@ -28,21 +28,16 @@ class MultiPsychologyDetector:
         # Will be populated when frameworks are registered
         self._frameworks_registered = False
         
+        # Register frameworks on initialization
+        self.register_all_frameworks()
+        
     def register_all_frameworks(self):
         """Register all available psychology frameworks."""
         if self._frameworks_registered:
             return
             
         try:
-            # Import and register IFS (existing system)
-            from src.ifs.detector import IFSDetector
-            from src.psychology.adapters.ifs_adapter import IFSAdapter
-            
-            ifs_detector = IFSDetector()
-            ifs_adapter = IFSAdapter(ifs_detector)
-            self.framework_manager.register_framework(ifs_adapter)
-            
-            # Register other frameworks
+            # Register psychology frameworks
             from src.psychology.detectors.cbt_detector import CBTDetector
             from src.psychology.detectors.jungian_detector import JungianDetector
             from src.psychology.detectors.narrative_detector import NarrativeDetector
@@ -53,8 +48,23 @@ class MultiPsychologyDetector:
             self.framework_manager.register_framework(NarrativeDetector())
             self.framework_manager.register_framework(AttachmentDetector())
             
+            # Try to register IFS if available
+            try:
+                from src.ifs.detector import IFSDetector
+                from src.psychology.adapters.ifs_adapter import IFSAdapter
+                
+                ifs_detector = IFSDetector()
+                ifs_adapter = IFSAdapter(ifs_detector)
+                self.framework_manager.register_framework(ifs_adapter)
+                logger.info("IFS framework registered successfully")
+            except ImportError:
+                logger.warning("IFS detector not available, skipping IFS registration")
+            
             self._frameworks_registered = True
-            logger.info("All psychology frameworks registered successfully")
+            
+            # Log registered frameworks
+            enabled_frameworks = self.framework_manager.get_enabled_frameworks()
+            logger.info(f"Psychology frameworks registered successfully: {enabled_frameworks}")
             
         except Exception as e:
             logger.error(f"Failed to register frameworks: {e}")

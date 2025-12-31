@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/ifs/__init__.py
+# hypothesis_version: 6.148.8
+
+['IFSAnalysis', 'IFSDetector', 'Part', 'SelfPresence']

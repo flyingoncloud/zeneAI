@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/ifs/llm_analyzer.py
+# hypothesis_version: 6.148.8
+
+[0.0, 0.3, 0.5, 500, 800, 'confidence', 'content', 'detected', 'emotions', 'evidence', 'indicators', 'intensity', 'json_object', 'manager', 'name', 'needs', 'parts', 'parts_detected', 'role', 'score', 'self_presence', 'subtype', 'system', 'triggers', 'type', 'user']

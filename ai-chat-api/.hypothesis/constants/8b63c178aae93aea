@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/psychology/framework_manager.py
+# hypothesis_version: 6.148.8
+
+[0.6, 0.7, 'analysis_interval', 'attachment', 'cbt', 'confidence_threshold', 'enabled', 'ifs', 'jungian', 'narrative', 'window_size']

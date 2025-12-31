@@ -1,0 +1,4 @@
+# file: /Volumes/workplace/zeneAI/ai-chat-api/src/reports/chinese_template_generator.py
+# hypothesis_version: 6.148.8
+
+[0.0, 0.3, 0.5, 0.6, 100, '%Y年%m月%d日', '%d%b%Y', '...', 'N/A', '\\n', '\\n\\n', 'all_elements', 'analyzed', 'assistant', 'attachment', 'cbt', 'confidence_score', 'content', 'detection_count', 'detections', 'elements', 'elements_detected', 'frameworks', 'highest_confidence', 'id', 'ifs', 'jungian', 'messages', 'narrative', 'psychology_analysis', 'reports', 'role', 'subtype', 'timestamp', 'total_confidence', 'type', 'unknown', 'user', '{{CONVERSATION_ID}}', '{{RECOMMENDATIONS}}', '{{REPORT_DATE}}', '{{TOTAL_MESSAGES}}', '依恋理论', '内在家庭系统(IFS)', '叙事疗法', '对话中未找到心理分析数据', '对话统计信息：', '无框架分析数据可用。', '未知', '本次对话分析中未发现心理分析数据。', '本次对话未产生特定的治疗洞察。', '检测到的关键要素：', '荣格心理学', '认知行为疗法(CBT)', '讨论的主要主题：']

@@ -1,0 +1,187 @@
+{
+  "original_locations": {
+    "test_real_conversation_analysis.py": {
+      "path": "test_real_conversation_analysis.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_improved_framework_response.py": {
+      "path": "test_improved_framework_response.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_interactive_frameworks.py": {
+      "path": "test_interactive_frameworks.py",
+      "permissions": "755",
+      "exists": true
+    },
+    "test_multi_framework_response.py": {
+      "path": "test_multi_framework_response.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_final_framework_demo.py": {
+      "path": "test_final_framework_demo.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_chinese_response.py": {
+      "path": "test_chinese_response.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_real_conversation_provided.py": {
+      "path": "test_real_conversation_provided.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_api_report_endpoints.py": {
+      "path": "test_api_report_endpoints.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_report_generation.py": {
+      "path": "test_report_generation.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "test_openai_import.py": {
+      "path": "test_openai_import.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "demo_final_chinese_system.py": {
+      "path": "demo_final_chinese_system.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "demo_chinese_report.py": {
+      "path": "demo_chinese_report.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "demo_working_report.py": {
+      "path": "demo_working_report.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "demo_chinese_working.py": {
+      "path": "demo_chinese_working.py",
+      "permissions": "644",
+      "exists": true
+    },
+    "demo_complete_system.py": {
+      "path": "demo_complete_system.py",
+      "permissions": "644",
+      "exists": true
+    }
+  },
+  "timestamp": "/Volumes/workplace/zeneAI/ai-chat-api",
+  "mapping": {
+    "test_real_conversation_analysis.py": {
+      "source_path": "test_real_conversation_analysis.py",
+      "target_path": "tests/test_real_conversation_analysis.py",
+      "file_type": "test",
+      "category": "general",
+      "target_dir": "tests"
+    },
+    "test_improved_framework_response.py": {
+      "source_path": "test_improved_framework_response.py",
+      "target_path": "tests/framework/test_improved_framework_response.py",
+      "file_type": "test",
+      "category": "framework",
+      "target_dir": "tests/framework"
+    },
+    "test_interactive_frameworks.py": {
+      "source_path": "test_interactive_frameworks.py",
+      "target_path": "tests/framework/test_interactive_frameworks.py",
+      "file_type": "test",
+      "category": "framework",
+      "target_dir": "tests/framework"
+    },
+    "test_multi_framework_response.py": {
+      "source_path": "test_multi_framework_response.py",
+      "target_path": "tests/framework/test_multi_framework_response.py",
+      "file_type": "test",
+      "category": "framework",
+      "target_dir": "tests/framework"
+    },
+    "test_final_framework_demo.py": {
+      "source_path": "test_final_framework_demo.py",
+      "target_path": "tests/framework/test_final_framework_demo.py",
+      "file_type": "test",
+      "category": "framework",
+      "target_dir": "tests/framework"
+    },
+    "test_chinese_response.py": {
+      "source_path": "test_chinese_response.py",
+      "target_path": "tests/test_chinese_response.py",
+      "file_type": "test",
+      "category": "general",
+      "target_dir": "tests"
+    },
+    "test_real_conversation_provided.py": {
+      "source_path": "test_real_conversation_provided.py",
+      "target_path": "tests/test_real_conversation_provided.py",
+      "file_type": "test",
+      "category": "general",
+      "target_dir": "tests"
+    },
+    "test_api_report_endpoints.py": {
+      "source_path": "test_api_report_endpoints.py",
+      "target_path": "tests/api/test_api_report_endpoints.py",
+      "file_type": "test",
+      "category": "api",
+      "target_dir": "tests/api"
+    },
+    "test_report_generation.py": {
+      "source_path": "test_report_generation.py",
+      "target_path": "tests/test_report_generation.py",
+      "file_type": "test",
+      "category": "general",
+      "target_dir": "tests"
+    },
+    "test_openai_import.py": {
+      "source_path": "test_openai_import.py",
+      "target_path": "tests/test_openai_import.py",
+      "file_type": "test",
+      "category": "general",
+      "target_dir": "tests"
+    },
+    "demo_final_chinese_system.py": {
+      "source_path": "demo_final_chinese_system.py",
+      "target_path": "demos/system/demo_final_chinese_system.py",
+      "file_type": "demo",
+      "category": "system",
+      "target_dir": "demos/system"
+    },
+    "demo_chinese_report.py": {
+      "source_path": "demo_chinese_report.py",
+      "target_path": "demos/reports/demo_chinese_report.py",
+      "file_type": "demo",
+      "category": "reports",
+      "target_dir": "demos/reports"
+    },
+    "demo_working_report.py": {
+      "source_path": "demo_working_report.py",
+      "target_path": "demos/reports/demo_working_report.py",
+      "file_type": "demo",
+      "category": "reports",
+      "target_dir": "demos/reports"
+    },
+    "demo_chinese_working.py": {
+      "source_path": "demo_chinese_working.py",
+      "target_path": "demos/demo_chinese_working.py",
+      "file_type": "demo",
+      "category": "general",
+      "target_dir": "demos"
+    },
+    "demo_complete_system.py": {
+      "source_path": "demo_complete_system.py",
+      "target_path": "demos/system/demo_complete_system.py",
+      "file_type": "demo",
+      "category": "system",
+      "target_dir": "demos/system"
+    }
+  }
+}

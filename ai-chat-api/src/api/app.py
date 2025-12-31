@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import uuid
 import logging
 import base64
+import os
 
 from src.config.settings import CORS_ORIGINS, PSYCHOLOGY_DETECTION_ENABLED
 from src.database.database import get_db, init_db
@@ -12,6 +14,7 @@ from src.database import models as db_models
 from src.api import models as api_models
 from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
 from src.psychology.multi_detector import MultiPsychologyDetector
+from src.reports.chinese_template_generator import generate_chinese_conversation_report
 
 # Configure logging
 logging.basicConfig(
@@ -303,3 +306,186 @@ def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
     db.delete(conversation)
     db.commit()
     return {"message": "Conversation deleted successfully"}
+
+
+@app.post("/conversations/{conversation_id}/generate-report")
+def generate_psychology_report(
+    conversation_id: int, 
+    db: Session = Depends(get_db),
+    user_info: Optional[dict] = None
+):
+    """
+    Generate a comprehensive psychology analysis report for a conversation.
+    
+    The report will only be generated if the conversation meets minimum criteria:
+    - At least 6 messages
+    - At least 2 psychology frameworks detected
+    - Average confidence score >= 0.6
+    """
+    # Get conversation
+    conversation = db.query(db_models.Conversation).filter(
+        db_models.Conversation.id == conversation_id
+    ).first()
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Get all messages
+    messages = db.query(db_models.Message).filter(
+        db_models.Message.conversation_id == conversation_id
+    ).order_by(db_models.Message.created_at).all()
+    
+    # Build conversation data for report generation
+    conversation_data = {
+        'id': conversation.id,
+        'session_id': conversation.session_id,
+        'user_id': conversation.user_id,
+        'title': getattr(conversation, 'title', f"Conversation {conversation.id}"),
+        'created_at': conversation.created_at.isoformat() if conversation.created_at else None,
+        'messages': []
+    }
+    
+    # Add messages with psychology analysis
+    for message in messages:
+        message_data = {
+            'id': message.id,
+            'role': message.role,
+            'content': message.content,
+            'timestamp': message.created_at.isoformat() if message.created_at else None
+        }
+        
+        # Include psychology analysis if available
+        if message.extra_data and 'psychology_analysis' in message.extra_data:
+            message_data['psychology_analysis'] = message.extra_data['psychology_analysis']
+        
+        conversation_data['messages'].append(message_data)
+    
+    try:
+        # Generate report
+        report_path = generate_chinese_conversation_report(
+            conversation_data=conversation_data,
+            user_info=user_info,
+            output_dir="reports"
+        )
+        
+        if not report_path:
+            raise HTTPException(
+                status_code=400, 
+                detail="Conversation does not meet criteria for report generation. Need at least 6 messages, 2+ frameworks detected, and 0.6+ average confidence."
+            )
+        
+        # Return report info
+        return {
+            "message": "Report generated successfully",
+            "report_path": report_path,
+            "filename": os.path.basename(report_path),
+            "conversation_id": conversation_id,
+            "download_url": f"/reports/download/{os.path.basename(report_path)}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating report for conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
+
+
+@app.get("/reports/download/{filename}")
+def download_report(filename: str):
+    """
+    Download a generated psychology report.
+    
+    Args:
+        filename: Name of the report file to download
+    """
+    report_path = os.path.join("reports", filename)
+    
+    if not os.path.exists(report_path):
+        raise HTTPException(status_code=404, detail="Report file not found")
+    
+    # Validate filename format for security
+    if not filename.startswith("ZENE_Report_Pro_Edited_") or not filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Invalid report filename")
+    
+    return FileResponse(
+        path=report_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+
+@app.get("/conversations/{conversation_id}/report-eligibility")
+def check_report_eligibility(conversation_id: int, db: Session = Depends(get_db)):
+    """
+    Check if a conversation is eligible for report generation.
+    
+    Returns eligibility status and detailed criteria information.
+    """
+    # Get conversation
+    conversation = db.query(db_models.Conversation).filter(
+        db_models.Conversation.id == conversation_id
+    ).first()
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Get all messages
+    messages = db.query(db_models.Message).filter(
+        db_models.Message.conversation_id == conversation_id
+    ).order_by(db_models.Message.created_at).all()
+    
+    # Build conversation data
+    conversation_data = {
+        'id': conversation.id,
+        'messages': []
+    }
+    
+    for message in messages:
+        message_data = {
+            'role': message.role,
+            'content': message.content
+        }
+        
+        if message.extra_data and 'psychology_analysis' in message.extra_data:
+            message_data['psychology_analysis'] = message.extra_data['psychology_analysis']
+        
+        conversation_data['messages'].append(message_data)
+    
+    # Check eligibility using report generator
+    from src.reports.report_generator import ZENEReportGenerator
+    generator = ZENEReportGenerator()
+    eligible, reason = generator.should_generate_report(conversation_data)
+    
+    # Gather detailed statistics
+    psychology_analyses = [
+        msg.get('psychology_analysis') for msg in conversation_data['messages']
+        if msg.get('psychology_analysis', {}).get('analyzed', False)
+    ]
+    
+    frameworks_detected = set()
+    total_confidence = 0
+    analysis_count = 0
+    
+    for analysis in psychology_analyses:
+        frameworks = analysis.get('frameworks', {})
+        for name, data in frameworks.items():
+            confidence = data.get('confidence_score', 0.0)
+            elements = data.get('elements_detected', [])
+            
+            if confidence >= 0.5 or len(elements) >= 2:
+                frameworks_detected.add(name)
+                total_confidence += confidence
+                analysis_count += 1
+    
+    avg_confidence = total_confidence / max(analysis_count, 1) if analysis_count > 0 else 0
+    
+    return {
+        "eligible": eligible,
+        "reason": reason,
+        "criteria": {
+            "message_count": len(conversation_data['messages']),
+            "min_messages_required": 6,
+            "frameworks_detected": len(frameworks_detected),
+            "min_frameworks_required": 2,
+            "average_confidence": round(avg_confidence, 2),
+            "min_confidence_required": 0.6,
+            "psychology_analyses_count": len(psychology_analyses)
+        },
+        "detected_frameworks": list(frameworks_detected)
+    }
