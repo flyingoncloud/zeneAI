@@ -170,7 +170,12 @@ class FrameworkManager:
         config = self.get_framework_config(framework_name)
         interval = config.get('analysis_interval', 3)
         
-        return message_count > 0 and message_count % interval == 0
+        # Analyze if message count is a multiple of interval OR if it's been long enough
+        # This ensures we don't miss analysis opportunities due to strict interval matching
+        return message_count > 0 and (
+            message_count % interval == 0 or  # Regular interval
+            message_count >= interval  # At least minimum messages for analysis
+        )
     
     def _get_default_config(self) -> Dict:
         """Get default configuration for all frameworks."""

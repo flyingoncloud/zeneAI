@@ -18,7 +18,7 @@ def get_system_prompt_for_language(language: str = "chinese", psychology_context
     """
     base_psychology_instruction = ""
     if psychology_context:
-        base_psychology_instruction = f"\n\n心理学背景信息：{psychology_context}\n请在回应中适当考虑这些心理学洞察，但要自然地融入对话中，不要过于技术性或突兀。"
+        base_psychology_instruction = f"\n\n心理学背景信息：{psychology_context}\n请根据检测到的心理学框架来调整你的回应风格。如果检测到认知行为疗法(CBT)模式，请关注思维模式和行为；如果检测到依恋理论模式，请关注关系动态；如果检测到荣格心理学模式，请关注象征和原型；如果检测到叙事疗法模式，请支持重新创作故事；如果检测到IFS模式，请承认不同的内在部分。请自然地融入这些洞察，避免过于技术性。"
     
     if language.lower() == "chinese":
         return {
@@ -29,7 +29,7 @@ def get_system_prompt_for_language(language: str = "chinese", psychology_context
         english_psychology_instruction = ""
         if psychology_context:
             # Translate psychology context to English for English responses
-            english_psychology_instruction = f"\n\nPsychological context: {psychology_context}\nPlease consider these psychological insights in your response, but integrate them naturally into the conversation without being overly technical or abrupt."
+            english_psychology_instruction = f"\n\nPsychological context: {psychology_context}\nPlease adapt your response style based on the detected psychological frameworks. If CBT patterns are detected, focus on thought patterns and behaviors; if attachment patterns are detected, focus on relational dynamics; if Jungian patterns are detected, honor symbolic and archetypal content; if narrative therapy patterns are detected, support re-authoring stories; if IFS patterns are detected, acknowledge different internal parts. Integrate these insights naturally without being overly technical."
         
         return {
             "role": "system", 
@@ -139,24 +139,28 @@ def _generate_psychology_context(psychology_analysis: Dict) -> str:
     context_parts = []
     frameworks = psychology_analysis.get('frameworks', {})
     
-    # Process each framework's findings
+    # Sort frameworks by confidence score (highest first) to prioritize stronger detections
+    framework_items = []
     for framework_name, analysis in frameworks.items():
         elements = analysis.get('elements_detected', [])
-        if not elements:
-            continue
-            
         confidence = analysis.get('confidence_score', 0.0)
-        if confidence < 0.3:  # Skip low-confidence detections
-            continue
-        
+        if elements and confidence >= 0.3:  # Only include frameworks with elements and decent confidence
+            framework_items.append((framework_name, analysis, confidence))
+    
+    # Sort by confidence (descending)
+    framework_items.sort(key=lambda x: x[2], reverse=True)
+    
+    # Process frameworks in order of confidence
+    for framework_name, analysis, confidence in framework_items:
+        elements = analysis.get('elements_detected', [])
         framework_context = _get_framework_context(framework_name, elements, confidence)
         if framework_context:
             context_parts.append(framework_context)
     
     # Add cross-framework insights if available
     cross_insights = psychology_analysis.get('cross_framework_insights', {})
-    if cross_insights.get('multiple_frameworks'):
-        frameworks_detected = cross_insights['multiple_frameworks'].get('frameworks', [])
+    if cross_insights.get('multiple_frameworks_detected'):
+        frameworks_detected = cross_insights['multiple_frameworks_detected'].get('frameworks', [])
         if len(frameworks_detected) > 1:
             context_parts.append(f"检测到多个心理学框架的模式：{', '.join(frameworks_detected)}，表明复杂的心理呈现")
     
@@ -279,10 +283,12 @@ def _get_attachment_context(elements: List[Dict]) -> str:
         context_parts.append(f"依恋模式：{', '.join(style_types)}")
     
     if regulation:
-        context_parts.append("情绪调节模式")
+        regulation_types = [elem.get('subtype', 'emotional_regulation') for elem in regulation[:2]]
+        context_parts.append(f"情绪调节：{', '.join(regulation_types)}")
     
     if relational:
-        context_parts.append("关系动态模式")
+        relational_types = [elem.get('subtype', 'relational_pattern') for elem in relational[:2]]
+        context_parts.append(f"关系模式：{', '.join(relational_types)}")
     
     return "；".join(context_parts)
 

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology Framework Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .framework-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .framework-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .framework-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .example-message {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .example-message:hover {
+            background: #e9ecef;
+        }
+        
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        
+        .ai-message {
+            background: #28a745;
+            color: white;
+            margin-right: 20%;
+        }
+        
+        .analysis-message {
+            background: #ffc107;
+            color: #333;
+            font-size: 0.9em;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 Psychology Framework Tester</h1>
+        <p>Test different psychology frameworks by clicking example messages or typing your own</p>
+    </div>
+    
+    <div class="status" id="status">
+        <span id="statusText">Connecting to API...</span>
+    </div>
+    
+    <div class="framework-grid">
+        <div class="framework-card">
+            <h3>🎭 IFS (Internal Family Systems)</h3>
+            <p>Parts work and Self energy</p>
+            <div class="example-message" onclick="sendMessage('Part of me wants to take risks, but another part is terrified of failure')">
+                "Part of me wants to take risks, but another part is terrified of failure"
+            </div>
+            <div class="example-message" onclick="sendMessage('There\'s a protective part that tries to control everything')">
+                "There's a protective part that tries to control everything"
+            </div>
+            <div class="example-message" onclick="sendMessage('I notice different parts of me show up in different situations')">
+                "I notice different parts of me show up in different situations"
+            </div>
+        </div>
+        
+        <div class="framework-card">
+            <h3>🧠 CBT (Cognitive Behavioral Therapy)</h3>
+            <p>Thought patterns and behaviors</p>
+            <div class="example-message" onclick="sendMessage('I always think the worst case scenario will happen')">
+                "I always think the worst case scenario will happen"
+            </div>
+            <div class="example-message" onclick="sendMessage('Everything is either perfect or a complete disaster')">
+                "Everything is either perfect or a complete disaster"
+            </div>
+            <div class="example-message" onclick="sendMessage('I should be perfect at everything I do')">
+                "I should be perfect at everything I do"
+            </div>
+        </div>
+        
+        <div class="framework-card">
+            <h3>🌙 Jungian Psychology</h3>
+            <p>Archetypes, dreams, and symbolic content</p>
+            <div class="example-message" onclick="sendMessage('I had a dream about being chased by a dark shadow figure')">
+                "I had a dream about being chased by a dark shadow figure"
+            </div>
+            <div class="example-message" onclick="sendMessage('I feel like I\'m on a hero\'s journey, facing challenges to transform')">
+                "I feel like I'm on a hero's journey, facing challenges to transform"
+            </div>
+            <div class="example-message" onclick="sendMessage('There\'s a wise old woman in my dreams who gives me advice')">
+                "There's a wise old woman in my dreams who gives me advice"
+            </div>
+        </div>
+        
+        <div class="framework-card">
+            <h3>📖 Narrative Therapy</h3>
+            <p>Externalization and re-authoring stories</p>
+            <div class="example-message" onclick="sendMessage('Depression tells me I\'m worthless, but I want to rewrite that story')">
+                "Depression tells me I'm worthless, but I want to rewrite that story"
+            </div>
+            <div class="example-message" onclick="sendMessage('There was a time when I felt confident and capable')">
+                "There was a time when I felt confident and capable"
+            </div>
+            <div class="example-message" onclick="sendMessage('The anxiety tries to convince me I can\'t handle challenges')">
+                "The anxiety tries to convince me I can't handle challenges"
+            </div>
+        </div>
+        
+        <div class="framework-card">
+            <h3>💕 Attachment Theory</h3>
+            <p>Relational patterns and emotional regulation</p>
+            <div class="example-message" onclick="sendMessage('I\'m always anxious in relationships and worry about being abandoned')">
+                "I'm always anxious in relationships and worry about being abandoned"
+            </div>
+            <div class="example-message" onclick="sendMessage('I have trouble trusting people and get clingy when I feel insecure')">
+                "I have trouble trusting people and get clingy when I feel insecure"
+            </div>
+            <div class="example-message" onclick="sendMessage('I tend to avoid getting too close because I might get hurt')">
+                "I tend to avoid getting too close because I might get hurt"
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-container">
+        <h3>💬 Chat Interface</h3>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+            <button class="btn btn-primary" onclick="sendCustomMessage()">Send</button>
+            <button class="btn btn-success" onclick="createNewConversation()">New Chat</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let conversationId = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createNewConversation();
+        });
+        
+        async function createNewConversation() {
+            try {
+                const response = await fetch(`${API_BASE}/conversations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: 'Framework Testing Session'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    conversationId = data.id;
+                    updateStatus('connected', `Connected - Conversation ID: ${conversationId}`);
+                    clearChat();
+                } else {
+                    updateStatus('disconnected', 'Failed to create conversation');
+                }
+            } catch (error) {
+                updateStatus('disconnected', `Connection error: ${error.message}`);
+            }
+        }
+        
+        async function sendMessage(content) {
+            if (!conversationId) {
+                alert('No active conversation. Please create a new chat.');
+                return;
+            }
+            
+            // Add user message to chat
+            addMessageToChat('user', content);
+            
+            try {
+                const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: content
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Add AI response
+                    if (data.content) {
+                        addMessageToChat('ai', data.content);
+                    }
+                    
+                    // Add psychology analysis
+                    if (data.psychology_analysis) {
+                        displayPsychologyAnalysis(data.psychology_analysis);
+                    }
+                } else {
+                    addMessageToChat('ai', 'Error: Failed to get response');
+                }
+            } catch (error) {
+                addMessageToChat('ai', `Error: ${error.message}`);
+            }
+        }
+        
+        function sendCustomMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (content) {
+                sendMessage(content);
+                input.value = '';
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendCustomMessage();
+            }
+        }
+        
+        function addMessageToChat(type, content) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            const prefix = type === 'user' ? '👤 You: ' : '🤖 AI: ';
+            messageDiv.textContent = prefix + content;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function displayPsychologyAnalysis(analysis) {
+            if (!analysis.analyzed) {
+                return;
+            }
+            
+            const frameworks = analysis.frameworks || {};
+            const frameworkNames = Object.keys(frameworks);
+            
+            if (frameworkNames.length === 0) {
+                addAnalysisMessage('🔍 No frameworks detected');
+                return;
+            }
+            
+            // Sort frameworks by confidence
+            const sortedFrameworks = frameworkNames
+                .map(name => ({
+                    name,
+                    data: frameworks[name],
+                    confidence: frameworks[name].confidence_score || 0
+                }))
+                .filter(fw => fw.confidence > 0 || fw.data.elements_detected?.length > 0)
+                .sort((a, b) => b.confidence - a.confidence);
+            
+            let analysisText = '🧠 Framework Analysis:\n';
+            
+            sortedFrameworks.forEach(fw => {
+                const elements = fw.data.elements_detected || [];
+                analysisText += `• ${fw.name.toUpperCase()}: ${fw.confidence.toFixed(2)} confidence`;
+                
+                if (elements.length > 0) {
+                    const elementTypes = elements.slice(0, 2).map(el => el.subtype || el.type).join(', ');
+                    analysisText += ` (${elementTypes})`;
+                }
+                analysisText += '\n';
+            });
+            
+            // Add cross-framework insights
+            const crossInsights = analysis.cross_framework_insights || {};
+            if (crossInsights.multiple_frameworks_detected) {
+                const detected = crossInsights.multiple_frameworks_detected.frameworks || [];
+                analysisText += `\n🔗 Multiple frameworks: ${detected.join(', ')}`;
+            }
+            
+            addAnalysisMessage(analysisText);
+        }
+        
+        function addAnalysisMessage(content) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message analysis-message';
+            messageDiv.style.whiteSpace = 'pre-line';
+            messageDiv.textContent = content;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function updateStatus(type, message) {
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            
+            status.className = `status ${type}`;
+            statusText.textContent = message;
+        }
+        
+        function clearChat() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            addAnalysisMessage('🚀 New conversation started! Click example messages or type your own to test framework detection.');
+        }
+    </script>
+</body>
+</html>
