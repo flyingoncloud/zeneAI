@@ -1,0 +1,1 @@
+"""Adapters for integrating existing systems with the multi-framework architecture."""

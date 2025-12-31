@@ -1,8 +1,36 @@
 from openai import OpenAI
-from src.config.settings import OPENAI_API_KEY
+from src.config.settings import OPENAI_API_KEY, AI_RESPONSE_LANGUAGE, AI_FORCE_LANGUAGE
 from typing import List, Dict
 
 client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+def get_system_prompt_for_language(language: str = "chinese") -> Dict[str, str]:
+    """
+    Get system prompt based on configured language
+    
+    Args:
+        language: Target language for responses
+        
+    Returns:
+        System prompt dictionary
+    """
+    if language.lower() == "chinese":
+        return {
+            "role": "system",
+            "content": "你是一个AI助手。请始终用中文回复用户的所有问题和对话。无论用户使用什么语言提问，你都必须用中文回答。保持回答的准确性和有用性，但确保所有回复都是中文。"
+        }
+    elif language.lower() == "english":
+        return {
+            "role": "system", 
+            "content": "You are an AI assistant. Please always respond in English to all user questions and conversations, regardless of what language the user uses to ask questions."
+        }
+    else:
+        # Default to Chinese
+        return {
+            "role": "system",
+            "content": "你是一个AI助手。请始终用中文回复用户的所有问题和对话。无论用户使用什么语言提问，你都必须用中文回答。保持回答的准确性和有用性，但确保所有回复都是中文。"
+        }
 
 
 def get_ai_response(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo") -> str:
@@ -17,6 +45,17 @@ def get_ai_response(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo"
         AI response content
     """
     try:
+        # Add system prompt to enforce configured language if enabled
+        if AI_FORCE_LANGUAGE:
+            system_prompt = get_system_prompt_for_language(AI_RESPONSE_LANGUAGE)
+            
+            # Insert system prompt at the beginning if not already present
+            if not messages or messages[0].get("role") != "system":
+                messages = [system_prompt] + messages
+            else:
+                # Replace existing system prompt with language enforcement
+                messages[0] = system_prompt
+        
         response = client.chat.completions.create(
             model=model,
             messages=messages
@@ -39,13 +78,24 @@ def get_ai_response_with_image(prompt: str, image_data: str, model: str = "gpt-4
         AI response content
     """
     try:
+        # Get system prompt based on configured language
+        system_prompt = get_system_prompt_for_language(AI_RESPONSE_LANGUAGE)
+        
+        # Add language instruction to the prompt if force language is enabled
+        if AI_FORCE_LANGUAGE and AI_RESPONSE_LANGUAGE.lower() == "chinese":
+            chinese_instruction = "请用中文回答。"
+            full_prompt = f"{chinese_instruction} {prompt}"
+        else:
+            full_prompt = prompt
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
+                system_prompt,
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": prompt},
+                        {"type": "text", "text": full_prompt},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
                     ]
                 }

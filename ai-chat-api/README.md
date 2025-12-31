@@ -205,6 +205,39 @@ API_PORT=8000
 
 # CORS
 CORS_ORIGINS=*
+
+# IFS Detection (Internal Family Systems)
+IFS_DETECTION_ENABLED=true
+IFS_ANALYSIS_INTERVAL=3
+IFS_WINDOW_SIZE=10
+IFS_MIN_CONFIDENCE=0.6
+IFS_LLM_MODEL=gpt-3.5-turbo
+
+# AI Response Language Settings
+AI_RESPONSE_LANGUAGE=chinese
+AI_FORCE_LANGUAGE=true
+```
+
+### Language Configuration
+
+The API supports configurable response languages:
+
+- **`AI_RESPONSE_LANGUAGE`**: Set the target language for AI responses
+  - `chinese` (default): All responses in Chinese
+  - `english`: All responses in English
+  
+- **`AI_FORCE_LANGUAGE`**: Force language regardless of user input language
+  - `true` (default): Always respond in configured language
+  - `false`: Allow natural language detection
+
+**Example**: With `AI_RESPONSE_LANGUAGE=chinese` and `AI_FORCE_LANGUAGE=true`, the AI will always respond in Chinese even if users write in English, Japanese, or other languages.
+
+### Testing Chinese Responses
+
+Run the test script to verify Chinese response functionality:
+
+```bash
+python test_chinese_response.py
 ```
 
 ## Development
