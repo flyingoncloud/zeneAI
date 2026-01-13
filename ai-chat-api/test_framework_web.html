@@ -20,6 +20,53 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 10px;
+            position: relative;
+        }
+
+        .btn-settings {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-settings:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+        }
+
+        .settings-modal-content {
+            background: white;
+            margin: 100px auto;
+            padding: 30px;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
         }
         
         .framework-grid {
@@ -132,11 +179,175 @@
             background: #28a745;
             color: white;
         }
-        
+
         .btn-success:hover {
             background: #1e7e34;
         }
-        
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #117a8b;
+        }
+
+        .btn-info:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .report-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow: auto;
+        }
+
+        .report-modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 30px;
+            max-width: 900px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .report-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .report-modal-close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .report-modal-close:hover {
+            color: #333;
+        }
+
+        .report-content {
+            line-height: 1.6;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .report-actions {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .module-recommendations {
+            margin: 15px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .module-recommendations-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .module-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .module-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .module-icon {
+            font-size: 1.8em;
+        }
+
+        .module-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .module-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .module-reason {
+            font-size: 0.85em;
+            color: #764ba2;
+            font-style: italic;
+            padding: 8px;
+            background: #f8f9fa;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+        }
+
         .status {
             padding: 10px;
             border-radius: 5px;
@@ -160,85 +371,14 @@
 <body>
     <div class="header">
         <h1>🧠 Psychology Framework Tester</h1>
-        <p>Test different psychology frameworks by clicking example messages or typing your own</p>
+        <button class="btn btn-settings" onclick="openSettings()" title="Configure API endpoint">⚙️</button>
     </div>
-    
+
     <div class="status" id="status">
         <span id="statusText">Connecting to API...</span>
+        <span id="apiUrlDisplay" style="font-size: 0.85em; opacity: 0.7; margin-left: 10px;"></span>
     </div>
-    
-    <div class="framework-grid">
-        <div class="framework-card">
-            <h3>🎭 IFS (Internal Family Systems)</h3>
-            <p>Parts work and Self energy</p>
-            <div class="example-message" onclick="sendMessage('Part of me wants to take risks, but another part is terrified of failure')">
-                "Part of me wants to take risks, but another part is terrified of failure"
-            </div>
-            <div class="example-message" onclick="sendMessage('There\'s a protective part that tries to control everything')">
-                "There's a protective part that tries to control everything"
-            </div>
-            <div class="example-message" onclick="sendMessage('I notice different parts of me show up in different situations')">
-                "I notice different parts of me show up in different situations"
-            </div>
-        </div>
-        
-        <div class="framework-card">
-            <h3>🧠 CBT (Cognitive Behavioral Therapy)</h3>
-            <p>Thought patterns and behaviors</p>
-            <div class="example-message" onclick="sendMessage('I always think the worst case scenario will happen')">
-                "I always think the worst case scenario will happen"
-            </div>
-            <div class="example-message" onclick="sendMessage('Everything is either perfect or a complete disaster')">
-                "Everything is either perfect or a complete disaster"
-            </div>
-            <div class="example-message" onclick="sendMessage('I should be perfect at everything I do')">
-                "I should be perfect at everything I do"
-            </div>
-        </div>
-        
-        <div class="framework-card">
-            <h3>🌙 Jungian Psychology</h3>
-            <p>Archetypes, dreams, and symbolic content</p>
-            <div class="example-message" onclick="sendMessage('I had a dream about being chased by a dark shadow figure')">
-                "I had a dream about being chased by a dark shadow figure"
-            </div>
-            <div class="example-message" onclick="sendMessage('I feel like I\'m on a hero\'s journey, facing challenges to transform')">
-                "I feel like I'm on a hero's journey, facing challenges to transform"
-            </div>
-            <div class="example-message" onclick="sendMessage('There\'s a wise old woman in my dreams who gives me advice')">
-                "There's a wise old woman in my dreams who gives me advice"
-            </div>
-        </div>
-        
-        <div class="framework-card">
-            <h3>📖 Narrative Therapy</h3>
-            <p>Externalization and re-authoring stories</p>
-            <div class="example-message" onclick="sendMessage('Depression tells me I\'m worthless, but I want to rewrite that story')">
-                "Depression tells me I'm worthless, but I want to rewrite that story"
-            </div>
-            <div class="example-message" onclick="sendMessage('There was a time when I felt confident and capable')">
-                "There was a time when I felt confident and capable"
-            </div>
-            <div class="example-message" onclick="sendMessage('The anxiety tries to convince me I can\'t handle challenges')">
-                "The anxiety tries to convince me I can't handle challenges"
-            </div>
-        </div>
-        
-        <div class="framework-card">
-            <h3>💕 Attachment Theory</h3>
-            <p>Relational patterns and emotional regulation</p>
-            <div class="example-message" onclick="sendMessage('I\'m always anxious in relationships and worry about being abandoned')">
-                "I'm always anxious in relationships and worry about being abandoned"
-            </div>
-            <div class="example-message" onclick="sendMessage('I have trouble trusting people and get clingy when I feel insecure')">
-                "I have trouble trusting people and get clingy when I feel insecure"
-            </div>
-            <div class="example-message" onclick="sendMessage('I tend to avoid getting too close because I might get hurt')">
-                "I tend to avoid getting too close because I might get hurt"
-            </div>
-        </div>
-    </div>
-    
+
     <div class="chat-container">
         <h3>💬 Chat Interface</h3>
         <div class="chat-messages" id="chatMessages"></div>
@@ -246,80 +386,176 @@
             <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
             <button class="btn btn-primary" onclick="sendCustomMessage()">Send</button>
             <button class="btn btn-success" onclick="createNewConversation()">New Chat</button>
+            <button class="btn btn-info" onclick="generatePsychologyReport()" id="reportBtn" disabled>📊 Generate Report</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="settings-modal">
+        <div class="settings-modal-content">
+            <h2>⚙️ API Settings</h2>
+            <p>Configure the backend API endpoint for sharing via tunnel (ngrok, localtunnel, etc.)</p>
+
+            <label for="apiUrlInput"><strong>API Base URL:</strong></label>
+            <input type="text" id="apiUrlInput" class="settings-input" placeholder="http://localhost:8000 or https://your-tunnel.ngrok.io">
+
+            <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                <strong>Default:</strong> http://localhost:8000<br>
+                <strong>Example ngrok:</strong> https://abc123.ngrok-free.app
+            </p>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+                <button class="btn" onclick="resetSettings()">Reset to Default</button>
+                <button class="btn" onclick="closeSettings()">Cancel</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5000/api';
+        // API Configuration - loaded from localStorage or default
+        let API_BASE = localStorage.getItem('API_BASE') || 'http://localhost:8000';
+
+        let sessionId = null;
         let conversationId = null;
-        
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            updateApiUrlDisplay();
             createNewConversation();
         });
-        
+
+        // Settings Functions
+        function openSettings() {
+            const modal = document.getElementById('settingsModal');
+            const input = document.getElementById('apiUrlInput');
+            input.value = API_BASE;
+            modal.style.display = 'block';
+        }
+
+        function closeSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.style.display = 'none';
+        }
+
+        function saveSettings() {
+            const input = document.getElementById('apiUrlInput');
+            let newUrl = input.value.trim();
+
+            // Remove trailing slash if present
+            if (newUrl.endsWith('/')) {
+                newUrl = newUrl.slice(0, -1);
+            }
+
+            // Validate URL format
+            if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+                alert('API URL must start with http:// or https://');
+                return;
+            }
+
+            // Save to localStorage and update
+            localStorage.setItem('API_BASE', newUrl);
+            API_BASE = newUrl;
+            updateApiUrlDisplay();
+            closeSettings();
+
+            // Show success message
+            updateStatus('connected', `API endpoint updated to: ${newUrl.replace('https://', '').replace('http://', '')}`);
+
+            // Suggest creating new conversation
+            if (confirm('API endpoint updated! Create a new conversation to use the new endpoint?')) {
+                createNewConversation();
+            }
+        }
+
+        function resetSettings() {
+            const defaultUrl = 'http://localhost:8000';
+            localStorage.setItem('API_BASE', defaultUrl);
+            API_BASE = defaultUrl;
+            document.getElementById('apiUrlInput').value = defaultUrl;
+            updateApiUrlDisplay();
+            updateStatus('connected', 'API endpoint reset to localhost');
+        }
+
+        function updateApiUrlDisplay() {
+            const display = document.getElementById('apiUrlDisplay');
+            const shortUrl = API_BASE.replace('https://', '').replace('http://', '');
+            display.textContent = `API: ${shortUrl}`;
+        }
+
         async function createNewConversation() {
             try {
-                const response = await fetch(`${API_BASE}/conversations`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: 'Framework Testing Session'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    conversationId = data.id;
-                    updateStatus('connected', `Connected - Conversation ID: ${conversationId}`);
-                    clearChat();
-                } else {
-                    updateStatus('disconnected', 'Failed to create conversation');
-                }
+                // Clear session to start fresh
+                sessionId = null;
+                conversationId = null;
+                updateStatus('connected', 'Ready - Send a message to start');
+                clearChat();
             } catch (error) {
                 updateStatus('disconnected', `Connection error: ${error.message}`);
             }
         }
-        
+
         async function sendMessage(content) {
-            if (!conversationId) {
-                alert('No active conversation. Please create a new chat.');
-                return;
-            }
-            
             // Add user message to chat
             addMessageToChat('user', content);
-            
+
             try {
-                const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+                // Build request body
+                const requestBody = {
+                    message: content
+                };
+
+                // Include session_id if we have one
+                if (sessionId) {
+                    requestBody.session_id = sessionId;
+                }
+
+                const response = await fetch(`${API_BASE}/chat/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        content: content
-                    })
+                    body: JSON.stringify(requestBody)
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
-                    
+
+                    // Store session info
+                    sessionId = data.session_id;
+                    conversationId = data.conversation_id;
+                    updateStatus('connected', `Session: ${sessionId.substring(0, 8)}... | Conv ID: ${conversationId}`);
+
+                    // Enable report button
+                    updateReportButton();
+
                     // Add AI response
-                    if (data.content) {
-                        addMessageToChat('ai', data.content);
+                    if (data.assistant_message && data.assistant_message.content) {
+                        addMessageToChat('ai', data.assistant_message.content);
                     }
-                    
+
                     // Add psychology analysis
-                    if (data.psychology_analysis) {
-                        displayPsychologyAnalysis(data.psychology_analysis);
+                    if (data.assistant_message && data.assistant_message.extra_data && data.assistant_message.extra_data.psychology_analysis) {
+                        displayPsychologyAnalysis(data.assistant_message.extra_data.psychology_analysis);
+                    } else {
+                        // Show info message if no analysis yet
+                        const messageCount = document.querySelectorAll('.user-message').length;
+                        if (messageCount === 1) {
+                            addAnalysisMessage('ℹ️  Psychology analysis will appear after 2+ messages (waiting for patterns to emerge)');
+                        }
+                    }
+
+                    // Add module recommendations
+                    if (data.module_recommendations && data.module_recommendations.length > 0) {
+                        displayModuleRecommendations(data.module_recommendations);
                     }
                 } else {
-                    addMessageToChat('ai', 'Error: Failed to get response');
+                    const errorText = await response.text();
+                    addMessageToChat('ai', `Error: ${response.status} - ${errorText}`);
                 }
             } catch (error) {
                 addMessageToChat('ai', `Error: ${error.message}`);
+                updateStatus('disconnected', `Connection error: ${error.message}`);
             }
         }
         
@@ -353,47 +589,89 @@
         
         function displayPsychologyAnalysis(analysis) {
             if (!analysis.analyzed) {
+                addAnalysisMessage('⏳ Analysis not run yet (need more messages)');
                 return;
             }
-            
-            const frameworks = analysis.frameworks || {};
-            const frameworkNames = Object.keys(frameworks);
-            
-            if (frameworkNames.length === 0) {
-                addAnalysisMessage('🔍 No frameworks detected');
+
+            // Support both old 'frameworks' and new 'indicators' structure
+            const indicators = analysis.indicators || analysis.frameworks || {};
+            const indicatorNames = Object.keys(indicators);
+
+            if (indicatorNames.length === 0) {
+                addAnalysisMessage('🔍 No psychology patterns detected yet');
                 return;
             }
-            
-            // Sort frameworks by confidence
-            const sortedFrameworks = frameworkNames
+
+            // Sort indicators by confidence (show ALL indicators, even with 0 confidence)
+            const sortedIndicators = indicatorNames
                 .map(name => ({
                     name,
-                    data: frameworks[name],
-                    confidence: frameworks[name].confidence_score || 0
+                    data: indicators[name],
+                    confidence: indicators[name].confidence_score || indicators[name].confidence || 0
                 }))
-                .filter(fw => fw.confidence > 0 || fw.data.elements_detected?.length > 0)
                 .sort((a, b) => b.confidence - a.confidence);
-            
-            let analysisText = '🧠 Framework Analysis:\n';
-            
-            sortedFrameworks.forEach(fw => {
-                const elements = fw.data.elements_detected || [];
-                analysisText += `• ${fw.name.toUpperCase()}: ${fw.confidence.toFixed(2)} confidence`;
-                
-                if (elements.length > 0) {
-                    const elementTypes = elements.slice(0, 2).map(el => el.subtype || el.type).join(', ');
-                    analysisText += ` (${elementTypes})`;
+
+            let analysisText = '🧠 Psychology Pattern Detection:\n\n';
+
+            sortedIndicators.forEach(ind => {
+                const elements = ind.data.elements_detected || ind.data.patterns_detected || [];
+                const confidence = ind.confidence;
+                const analysisType = ind.data.analysis_type || 'unknown';
+                const note = ind.data.note || '';
+
+                // Color-code by confidence level and analysis status
+                let confidenceLabel = '';
+                if (analysisType === 'pending' || !ind.data.analyzed) {
+                    confidenceLabel = '⏳ PENDING';
+                    analysisText += `${ind.name.toUpperCase()}: ${confidence.toFixed(2)} ${confidenceLabel}`;
+                    if (note) {
+                        analysisText += `\n  → ${note}`;
+                    }
+                } else {
+                    if (confidence >= 0.7) {
+                        confidenceLabel = '🟢 HIGH';
+                    } else if (confidence >= 0.4) {
+                        confidenceLabel = '🟡 MEDIUM';
+                    } else if (confidence > 0) {
+                        confidenceLabel = '🟠 LOW';
+                    } else {
+                        confidenceLabel = '⚪ NONE';
+                    }
+
+                    analysisText += `${ind.name.toUpperCase()}: ${confidence.toFixed(2)} ${confidenceLabel}\n`;
+
+                    if (elements.length > 0) {
+                        const elementSummary = elements.slice(0, 3).map(el => {
+                            const type = el.type || el.name || '';
+                            const subtype = el.subtype || '';
+
+                            // Format based on indicator type
+                            if (ind.name === 'cognitive_patterns') {
+                                return (subtype || type).replace(/_/g, ' ');
+                            } else if (ind.name === 'ifs') {
+                                return `${type}: ${subtype}`.replace(/_/g, ' ');
+                            } else if (ind.name === 'relational_patterns') {
+                                return (subtype || type).replace(/_/g, ' ');
+                            } else {
+                                return (subtype || type).replace(/_/g, ' ');
+                            }
+                        }).join(', ');
+                        analysisText += `  → ${elementSummary}`;
+                    } else if (confidence === 0) {
+                        analysisText += `  → No patterns detected`;
+                    }
                 }
+
                 analysisText += '\n';
             });
-            
+
             // Add cross-framework insights
             const crossInsights = analysis.cross_framework_insights || {};
             if (crossInsights.multiple_frameworks_detected) {
                 const detected = crossInsights.multiple_frameworks_detected.frameworks || [];
-                analysisText += `\n🔗 Multiple frameworks: ${detected.join(', ')}`;
+                analysisText += `🔗 Multiple frameworks active: ${detected.join(', ')}`;
             }
-            
+
             addAnalysisMessage(analysisText);
         }
         
@@ -419,7 +697,219 @@
         function clearChat() {
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.innerHTML = '';
-            addAnalysisMessage('🚀 New conversation started! Click example messages or type your own to test framework detection.');
+            addAnalysisMessage('🚀 New conversation started! Type your message to test framework detection.');
+        }
+
+        async function generatePsychologyReport() {
+            if (!sessionId) {
+                alert('No active conversation. Please send at least a few messages first.');
+                return;
+            }
+
+            const reportBtn = document.getElementById('reportBtn');
+            const originalText = reportBtn.textContent;
+            reportBtn.textContent = '⏳ Generating...';
+            reportBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/report/markdown/session/${sessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to generate report');
+                }
+
+                const data = await response.json();
+                displayReportModal(data);
+
+            } catch (error) {
+                console.error('Report generation error:', error);
+                alert(`Failed to generate report: ${error.message}`);
+            } finally {
+                reportBtn.textContent = originalText;
+                reportBtn.disabled = false;
+            }
+        }
+
+        function displayReportModal(reportData) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('reportModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'reportModal';
+                modal.className = 'report-modal';
+                modal.innerHTML = `
+                    <div class="report-modal-content">
+                        <div class="report-modal-header">
+                            <h2>📊 心理特征分析报告</h2>
+                            <span class="report-modal-close" onclick="closeReportModal()">&times;</span>
+                        </div>
+                        <div id="reportSummary" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;"></div>
+                        <div id="reportContent" class="report-content"></div>
+                        <div class="report-actions">
+                            <button class="btn btn-primary" onclick="copyReportToClipboard()">📋 Copy to Clipboard</button>
+                            <button class="btn btn-success" onclick="downloadReport()">💾 Download Markdown</button>
+                            <button class="btn" onclick="closeReportModal()">Close</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                // Close modal when clicking outside
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeReportModal();
+                    }
+                });
+            }
+
+            // Store report data for download/copy
+            window.currentReport = reportData;
+
+            // Display summary with confidence badges
+            const summaryHtml = `
+                <div>
+                    <strong>Summary:</strong> ${reportData.summary}<br>
+                    <strong>Overall Confidence:</strong> ${getConfidenceBadge(reportData.overall_confidence)}<br>
+                    <strong>Message Count:</strong> ${reportData.message_count} messages
+                </div>
+            `;
+            document.getElementById('reportSummary').innerHTML = summaryHtml;
+
+            // Convert markdown to HTML (basic conversion)
+            const htmlContent = convertMarkdownToHtml(reportData.report);
+            document.getElementById('reportContent').innerHTML = htmlContent;
+
+            // Show modal
+            modal.style.display = 'block';
+        }
+
+        function displayModuleRecommendations(recommendations) {
+            if (!recommendations || recommendations.length === 0) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            const recommendationsContainer = document.createElement('div');
+            recommendationsContainer.className = 'module-recommendations';
+
+            // Title
+            const title = document.createElement('div');
+            title.className = 'module-recommendations-title';
+            title.innerHTML = '✨ 推荐模块 Recommended Modules';
+            recommendationsContainer.appendChild(title);
+
+            // Module cards
+            recommendations.forEach(module => {
+                const card = document.createElement('div');
+                card.className = 'module-card';
+                card.onclick = () => {
+                    alert(`模块 "${module.name}" 功能即将上线！\n\nModule "${module.name}" coming soon!`);
+                };
+
+                card.innerHTML = `
+                    <div class="module-header">
+                        <span class="module-icon">${module.icon}</span>
+                        <span class="module-name">${module.name}</span>
+                    </div>
+                    <div class="module-description">${module.description}</div>
+                    <div class="module-reason">💡 ${module.reason}</div>
+                `;
+
+                recommendationsContainer.appendChild(card);
+            });
+
+            chatMessages.appendChild(recommendationsContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function getConfidenceBadge(score) {
+            let badgeClass = 'confidence-low';
+            let label = 'Low';
+
+            if (score >= 0.6) {
+                badgeClass = 'confidence-high';
+                label = 'High';
+            } else if (score >= 0.3) {
+                badgeClass = 'confidence-medium';
+                label = 'Medium';
+            }
+
+            return `<span class="${badgeClass} confidence-badge">${label} (${(score * 100).toFixed(0)}%)</span>`;
+        }
+
+        function convertMarkdownToHtml(markdown) {
+            // Basic markdown to HTML conversion
+            let html = markdown
+                // Headers
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                // Bold
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                // Code blocks
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                // Inline code
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                // Blockquotes
+                .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+                // Unordered lists
+                .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                // Horizontal rules
+                .replace(/^---$/gim, '<hr>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+
+            return `<p>${html}</p>`;
+        }
+
+        function closeReportModal() {
+            const modal = document.getElementById('reportModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function copyReportToClipboard() {
+            if (!window.currentReport) return;
+
+            const reportText = window.currentReport.report;
+            navigator.clipboard.writeText(reportText).then(() => {
+                alert('Report copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        function downloadReport() {
+            if (!window.currentReport) return;
+
+            const reportText = window.currentReport.report;
+            const blob = new Blob([reportText], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `psychology-report-${new Date().toISOString().slice(0, 10)}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Enable report button when we have a session
+        function updateReportButton() {
+            const reportBtn = document.getElementById('reportBtn');
+            if (reportBtn && sessionId) {
+                reportBtn.disabled = false;
+            }
         }
     </script>
 </body>

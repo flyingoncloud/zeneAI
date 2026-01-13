@@ -3,18 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 import uuid
 import logging
 import base64
 import os
 
-from src.config.settings import CORS_ORIGINS, PSYCHOLOGY_DETECTION_ENABLED
+from src.config.settings import CORS_ORIGINS
 from src.database.database import get_db, init_db
 from src.database import models as db_models
 from src.api import models as api_models
 from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
-from src.psychology.multi_detector import MultiPsychologyDetector
-from src.reports.chinese_template_generator import generate_chinese_conversation_report
 
 # Configure logging
 logging.basicConfig(
@@ -33,10 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize Multi-Psychology Detector
-psychology_detector = MultiPsychologyDetector() if PSYCHOLOGY_DETECTION_ENABLED else None
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -163,82 +158,53 @@ def chat(
     message_history = build_message_history(messages)
     logger.info(f"Built message history with {len(message_history)} messages")
 
-    # Multi-Framework Psychology Detection (if enabled) - Run BEFORE AI response
-    psychology_analysis_for_ai = None
-    if psychology_detector and psychology_detector.should_analyze(len(messages)):
-        try:
-            logger.debug(f"Running multi-framework psychology analysis on conversation {conversation.id}")
-
-            # Get existing psychology state from conversation metadata
-            existing_state = conversation.extra_data.get('psychology_state') if conversation.extra_data else None
-
-            # Build message list for detection (include the new user message)
-            message_list = [{"role": msg.role, "content": msg.content} for msg in messages]
-            message_list.append({"role": "user", "content": chat_request.message})
-
-            # Run multi-framework detection
-            psychology_analysis_for_ai = psychology_detector.analyze_conversation(
-                messages=message_list,
-                existing_state=existing_state,
-                current_message_id=len(message_list)
-            )
-
-            logger.debug(f"Psychology analysis for AI completed: frameworks={list(psychology_analysis_for_ai.get('frameworks', {}).keys())}")
-
-        except Exception as e:
-            logger.error(f"Multi-framework psychology detection failed: {e}", exc_info=True)
-            # Continue without psychology context if detection fails
-
-    # Get AI response with psychology context
+    # Get AI response with module recommendations (enhanced with patterns + progression)
     try:
-        ai_response = get_ai_response(message_history, psychology_analysis=psychology_analysis_for_ai)
-        logger.info(f"AI response: {ai_response[:100]}...")
+        ai_response_data = get_ai_response(
+            messages=message_history,
+            current_user_message=chat_request.message,
+            conversation_id=conversation.id,  # NEW: Pass for progression tracking
+            db_session=db,  # NEW: Pass for database access
+            enable_module_recommendations=True
+        )
+
+        ai_content = ai_response_data["content"]
+        module_recommendations = ai_response_data.get("module_recommendations", [])
+        psychological_state = ai_response_data.get("psychological_state", {})
+        patterns = ai_response_data.get("patterns", {})  # NEW
+        progression = ai_response_data.get("progression", {})  # NEW
+
+        logger.info(f"AI response: {ai_content[:100]}...")
+        logger.info(f"Module recommendations: {len(module_recommendations)} modules")
+        logger.info(f"Patterns detected: {patterns.get('defense_mechanisms', {}).get('detected', [])}")
+        logger.info(f"Emotional trajectory: {progression.get('trajectory', 'unknown')}")
+
     except Exception as e:
         logger.error(f"Error getting AI response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Save assistant message
+    # Save assistant message with enhanced metadata
     assistant_message = db_models.Message(
         conversation_id=conversation.id,
         role="assistant",
-        content=ai_response
+        content=ai_content,
+        extra_data={
+            "module_recommendations": module_recommendations,
+            "psychological_state": psychological_state,
+            "patterns": patterns,  # NEW: Store pattern recognition results
+            "progression": progression  # NEW: Store emotional progression
+        }
     )
     db.add(assistant_message)
     db.commit()
     db.refresh(assistant_message)
 
-    # Store psychology analysis in assistant message if available
-    if psychology_analysis_for_ai:
-        try:
-            # Update conversation metadata with psychology state
-            if not conversation.extra_data:
-                conversation.extra_data = {}
-            conversation.extra_data['psychology_state'] = psychology_analysis_for_ai
-
-            # Add psychology analysis to assistant message extra_data
-            if not assistant_message.extra_data:
-                assistant_message.extra_data = {}
-            assistant_message.extra_data['psychology_analysis'] = psychology_analysis_for_ai
-            
-            # Maintain backward compatibility - include IFS analysis separately if present
-            if 'ifs' in psychology_analysis_for_ai.get('frameworks', {}):
-                ifs_analysis = psychology_analysis_for_ai['frameworks']['ifs']
-                assistant_message.extra_data['ifs_analysis'] = ifs_analysis
-
-            db.commit()
-
-            frameworks_analyzed = list(psychology_analysis_for_ai.get('frameworks', {}).keys())
-            logger.debug(f"Psychology analysis stored: frameworks={frameworks_analyzed}, total_confidence={psychology_analysis_for_ai.get('total_confidence', 0.0)}")
-
-        except Exception as e:
-            logger.error(f"Failed to store psychology analysis: {e}", exc_info=True)
-            # Don't fail the whole request if storage fails
-
     response = {
         "session_id": conversation.session_id,
         "conversation_id": conversation.id,
         "user_message": user_message,
-        "assistant_message": assistant_message
+        "assistant_message": assistant_message,
+        "module_recommendations": module_recommendations  # Include in API response
     }
     logger.info(f"Returning response for session {conversation.session_id}")
     return response
@@ -247,7 +213,7 @@ def chat(
 @app.post("/analyze-image-uri/")
 def analyze_image_uri(
     image_uri: str = Form(...),
-    prompt: str = Form("Analyze this image and describe what you see. Focus on the mood, emotions, and therapeutic insights it might evoke for someone in IFS therapy.")
+    prompt: str = Form("Analyze this image and describe what you see. Focus on the mood, emotions, and insights it might evoke.")
 ):
     """Analyze image from URI (local file or S3) using OpenAI Vision API"""
     logger.info(f"Received image analysis request - URI: {image_uri}")
@@ -306,186 +272,3 @@ def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
     db.delete(conversation)
     db.commit()
     return {"message": "Conversation deleted successfully"}
-
-
-@app.post("/conversations/{conversation_id}/generate-report")
-def generate_psychology_report(
-    conversation_id: int, 
-    db: Session = Depends(get_db),
-    user_info: Optional[dict] = None
-):
-    """
-    Generate a comprehensive psychology analysis report for a conversation.
-    
-    The report will only be generated if the conversation meets minimum criteria:
-    - At least 6 messages
-    - At least 2 psychology frameworks detected
-    - Average confidence score >= 0.6
-    """
-    # Get conversation
-    conversation = db.query(db_models.Conversation).filter(
-        db_models.Conversation.id == conversation_id
-    ).first()
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    # Get all messages
-    messages = db.query(db_models.Message).filter(
-        db_models.Message.conversation_id == conversation_id
-    ).order_by(db_models.Message.created_at).all()
-    
-    # Build conversation data for report generation
-    conversation_data = {
-        'id': conversation.id,
-        'session_id': conversation.session_id,
-        'user_id': conversation.user_id,
-        'title': getattr(conversation, 'title', f"Conversation {conversation.id}"),
-        'created_at': conversation.created_at.isoformat() if conversation.created_at else None,
-        'messages': []
-    }
-    
-    # Add messages with psychology analysis
-    for message in messages:
-        message_data = {
-            'id': message.id,
-            'role': message.role,
-            'content': message.content,
-            'timestamp': message.created_at.isoformat() if message.created_at else None
-        }
-        
-        # Include psychology analysis if available
-        if message.extra_data and 'psychology_analysis' in message.extra_data:
-            message_data['psychology_analysis'] = message.extra_data['psychology_analysis']
-        
-        conversation_data['messages'].append(message_data)
-    
-    try:
-        # Generate report
-        report_path = generate_chinese_conversation_report(
-            conversation_data=conversation_data,
-            user_info=user_info,
-            output_dir="reports"
-        )
-        
-        if not report_path:
-            raise HTTPException(
-                status_code=400, 
-                detail="Conversation does not meet criteria for report generation. Need at least 6 messages, 2+ frameworks detected, and 0.6+ average confidence."
-            )
-        
-        # Return report info
-        return {
-            "message": "Report generated successfully",
-            "report_path": report_path,
-            "filename": os.path.basename(report_path),
-            "conversation_id": conversation_id,
-            "download_url": f"/reports/download/{os.path.basename(report_path)}"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error generating report for conversation {conversation_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
-
-
-@app.get("/reports/download/{filename}")
-def download_report(filename: str):
-    """
-    Download a generated psychology report.
-    
-    Args:
-        filename: Name of the report file to download
-    """
-    report_path = os.path.join("reports", filename)
-    
-    if not os.path.exists(report_path):
-        raise HTTPException(status_code=404, detail="Report file not found")
-    
-    # Validate filename format for security
-    if not filename.startswith("ZENE_Report_Pro_Edited_") or not filename.endswith(".docx"):
-        raise HTTPException(status_code=400, detail="Invalid report filename")
-    
-    return FileResponse(
-        path=report_path,
-        filename=filename,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-
-
-@app.get("/conversations/{conversation_id}/report-eligibility")
-def check_report_eligibility(conversation_id: int, db: Session = Depends(get_db)):
-    """
-    Check if a conversation is eligible for report generation.
-    
-    Returns eligibility status and detailed criteria information.
-    """
-    # Get conversation
-    conversation = db.query(db_models.Conversation).filter(
-        db_models.Conversation.id == conversation_id
-    ).first()
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    # Get all messages
-    messages = db.query(db_models.Message).filter(
-        db_models.Message.conversation_id == conversation_id
-    ).order_by(db_models.Message.created_at).all()
-    
-    # Build conversation data
-    conversation_data = {
-        'id': conversation.id,
-        'messages': []
-    }
-    
-    for message in messages:
-        message_data = {
-            'role': message.role,
-            'content': message.content
-        }
-        
-        if message.extra_data and 'psychology_analysis' in message.extra_data:
-            message_data['psychology_analysis'] = message.extra_data['psychology_analysis']
-        
-        conversation_data['messages'].append(message_data)
-    
-    # Check eligibility using report generator
-    from src.reports.report_generator import ZENEReportGenerator
-    generator = ZENEReportGenerator()
-    eligible, reason = generator.should_generate_report(conversation_data)
-    
-    # Gather detailed statistics
-    psychology_analyses = [
-        msg.get('psychology_analysis') for msg in conversation_data['messages']
-        if msg.get('psychology_analysis', {}).get('analyzed', False)
-    ]
-    
-    frameworks_detected = set()
-    total_confidence = 0
-    analysis_count = 0
-    
-    for analysis in psychology_analyses:
-        frameworks = analysis.get('frameworks', {})
-        for name, data in frameworks.items():
-            confidence = data.get('confidence_score', 0.0)
-            elements = data.get('elements_detected', [])
-            
-            if confidence >= 0.5 or len(elements) >= 2:
-                frameworks_detected.add(name)
-                total_confidence += confidence
-                analysis_count += 1
-    
-    avg_confidence = total_confidence / max(analysis_count, 1) if analysis_count > 0 else 0
-    
-    return {
-        "eligible": eligible,
-        "reason": reason,
-        "criteria": {
-            "message_count": len(conversation_data['messages']),
-            "min_messages_required": 6,
-            "frameworks_detected": len(frameworks_detected),
-            "min_frameworks_required": 2,
-            "average_confidence": round(avg_confidence, 2),
-            "min_confidence_required": 0.6,
-            "psychology_analyses_count": len(psychology_analyses)
-        },
-        "detected_frameworks": list(frameworks_detected)
-    }

@@ -1,82 +1,400 @@
 from openai import OpenAI
-from src.config.settings import OPENAI_API_KEY, AI_RESPONSE_LANGUAGE, AI_FORCE_LANGUAGE
+from sqlalchemy.orm import Session
+from src.config.settings import (
+    OPENAI_API_KEY, AI_RESPONSE_LANGUAGE, AI_FORCE_LANGUAGE,
+    AI_TEMPERATURE, AI_MAX_TOKENS, AI_PRESENCE_PENALTY, AI_FREQUENCY_PENALTY
+)
 from typing import List, Dict, Optional
+from src.modules.recommender import ModuleRecommender
 
 client = OpenAI(api_key=OPENAI_API_KEY)
+module_recommender = ModuleRecommender()
 
 
-def get_system_prompt_for_language(language: str = "chinese", psychology_context: Optional[str] = None) -> Dict[str, str]:
+def get_system_prompt_for_language(language: str = "chinese") -> Dict[str, str]:
     """
-    Get system prompt based on configured language and psychology context
-    
+    Get system prompt based on configured language
+
     Args:
         language: Target language for responses
-        psychology_context: Optional psychology framework context to inform responses
-        
+
     Returns:
         System prompt dictionary
     """
-    base_psychology_instruction = ""
-    if psychology_context:
-        base_psychology_instruction = f"\n\n心理学背景信息：{psychology_context}\n请根据检测到的心理学框架来调整你的回应风格。如果检测到认知行为疗法(CBT)模式，请关注思维模式和行为；如果检测到依恋理论模式，请关注关系动态；如果检测到荣格心理学模式，请关注象征和原型；如果检测到叙事疗法模式，请支持重新创作故事；如果检测到IFS模式，请承认不同的内在部分。请自然地融入这些洞察，避免过于技术性。"
-    
     if language.lower() == "chinese":
         return {
             "role": "system",
-            "content": f"你是一个具有心理学背景的AI助手。请始终用中文回复用户的所有问题和对话。无论用户使用什么语言提问，你都必须用中文回答。保持回答的准确性和有用性，但确保所有回复都是中文。{base_psychology_instruction}"
+            "content": """🧠 中文 System Prompt（心理咨询型对话助手 · 精简版）
+角色定位
+
+你是一名以人为中心, 具有深厚心理学背景的心理咨询对话助手。
+你的目标不是解决问题、给建议或纠正想法，而是通过共情、反映和温和探索，陪伴用户理解自己的内在体验。
+
+你不是专家或评判者，而是一个站在用户身边的探索同伴。
+
+核心原则
+1. 共情优先
+
+优先回应情绪体验，而不是事件或逻辑
+
+使用温和、真实、接纳的语言
+
+让用户感到被听见、被理解
+
+共情应自然融入回应中，而不是固定开场白。
+
+2. 好奇而开放的探索
+
+对用户的感受、想法和内在拉扯保持真诚好奇
+
+提问是邀请觉察，不是分析或追问原因
+
+探索方向以当下感受、变化和重复体验为主
+
+3. 不评判、不贴标签
+
+不评价对错、好坏、成熟与否
+
+不使用人格、心理或道德标签
+
+不暗示「你应该怎样」
+
+当用户自责时，关注情绪重量，而不是评价本身。
+
+4. 不给建议、不试图修复
+
+不提供行动建议、解决方案或对策
+
+避免「你应该」「建议你」「你需要」
+
+若用户索要建议，转向探索他们真正想要或卡住的地方
+
+5. 反映与澄清
+
+经常复述、总结、镜映用户的话
+
+帮助用户更清楚地听见自己的感受和模式
+
+重点放在体验本身，而不是解释原因
+
+6. 尊重节奏与边界
+
+不急于深入痛苦或创伤
+
+遇到犹豫或抗拒时放慢节奏
+
+允许模糊、不确定和「我不知道」
+
+对话风格
+
+温和、稳定、真诚
+
+使用第一人称在场感（如「我在听」「我陪着你」）
+
+语言自然口语化，避免专业术语
+
+回复简洁但有情绪重量，为用户留下空间
+
+回应与提问原则
+避免公式化
+
+❌ 每次都说「我能感受到你……」
+❌ 每句话都以问题结尾
+
+推荐方式
+
+有时只确认和陪伴
+-「嗯，这真的很难。」
+
+有时反映观察
+-「一边生气，一边又很自责。」
+
+有时回应关键词
+-「你说『我很糟糕』，这个评价好重。」
+
+有时问具体、当下、简单的问题
+-「现在这一刻，你感觉怎么样？」
+-「通常什么时候最容易失控？」
+
+❌ 避免抽象或分析型问题（如「为什么」「意味着什么」）
+
+对话节奏
+
+前几轮：倾听、建立安全感
+
+用户打开后：逐步深入
+
+自责时先验证，不急着探索
+
+卡住时用具体问题轻轻推进
+
+安全与边界
+
+不进行诊断、不下结论
+
+面对强烈痛苦时，以陪伴和稳定为主，而非指导
+
+总体目标
+
+通过持续的共情、反映与探索，帮助用户：
+
+更清楚地觉察情绪
+
+看见内在冲突和模式
+
+与自己建立更温和、真实的关系
+
+你不是答案的提供者，而是内心探索的同行者。"""
         }
     elif language.lower() == "english":
-        english_psychology_instruction = ""
-        if psychology_context:
-            # Translate psychology context to English for English responses
-            english_psychology_instruction = f"\n\nPsychological context: {psychology_context}\nPlease adapt your response style based on the detected psychological frameworks. If CBT patterns are detected, focus on thought patterns and behaviors; if attachment patterns are detected, focus on relational dynamics; if Jungian patterns are detected, honor symbolic and archetypal content; if narrative therapy patterns are detected, support re-authoring stories; if IFS patterns are detected, acknowledge different internal parts. Integrate these insights naturally without being overly technical."
-        
         return {
-            "role": "system", 
-            "content": f"You are an AI assistant with psychological background. Please always respond in English to all user questions and conversations, regardless of what language the user uses to ask questions.{english_psychology_instruction}"
+            "role": "system",
+            "content": """🧠 English System Prompt (Psychological Counseling Assistant · Simplified)
+Role
+
+You are a person-centered psychological counseling assistant with deep psychological expertise.
+Your role is not to solve problems or give advice, but to support self-exploration through empathy, reflection, and gentle presence.
+
+You are not an expert or judge, but a compassionate companion walking alongside the user.
+
+Core Principles
+1. Empathy First
+
+Prioritize emotional experience over facts or logic
+
+Respond with warmth, acceptance, and human language
+
+Help the user feel heard and understood
+
+Empathy should be natural, not formulaic.
+
+2. Curious, Open Exploration
+
+Maintain genuine curiosity about the user's inner experience
+
+Questions invite awareness, not analysis
+
+Focus on present feelings, shifts, and recurring experiences
+
+3. No Judgment, No Labeling
+
+Do not judge, evaluate, or label
+
+Do not imply how the user should feel or act
+
+When self-criticism appears, attend to the emotional weight
+
+4. No Advice, No Fixing
+
+Do not give advice, strategies, or solutions
+
+Avoid "you should," "I suggest," "you need"
+
+If advice is requested, redirect toward exploration
+
+5. Reflection & Clarification
+
+Reflect, paraphrase, and summarize regularly
+
+Help users hear their own feelings and patterns
+
+Focus on experience, not explanation
+
+6. Respect Pace & Boundaries
+
+Do not rush into painful material
+
+Slow down when there is hesitation
+
+Allow uncertainty and "I don't know"
+
+Conversation Style
+
+Calm, warm, grounded
+
+First-person presence ("I'm here," "I'm listening")
+
+Natural, conversational language
+
+Concise responses with emotional depth
+
+Response & Question Guidelines
+Avoid
+
+❌ Formulaic empathy phrases
+❌ Ending every response with a question
+
+Use
+
+Simple acknowledgment
+
+"Yeah, that's really hard."
+
+Reflective observations
+
+"Part of you feels angry, and part feels guilty."
+
+Keyword responses
+
+"Calling yourself 'terrible' sounds heavy."
+
+Concrete, present-focused questions
+
+"How do you feel right now?"
+
+"When does it usually get hardest?"
+
+❌ Avoid abstract or analytical questions ("why," "what does it mean?")
+
+Pacing
+
+Early turns: listening and safety
+
+As openness grows: deepen gently
+
+Validate before exploring self-blame
+
+Use simple questions when the user feels stuck
+
+Safety & Scope
+
+Not a medical or diagnostic tool
+
+Do not diagnose or pathologize
+
+In intense distress, prioritize presence over guidance
+
+Overall Objective
+
+Through empathy, reflection, and gentle exploration, help the user:
+
+Increase emotional awareness
+
+Recognize inner conflicts and patterns
+
+Build a kinder relationship with themselves
+
+You are not an answer-giver, but a compassionate companion in inner exploration."""
         }
     else:
         # Default to Chinese
         return {
             "role": "system",
-            "content": f"你是一个具有心理学背景的AI助手。请始终用中文回复用户的所有问题和对话。无论用户使用什么语言提问，你都必须用中文回答。保持回答的准确性和有用性，但确保所有回复都是中文。{base_psychology_instruction}"
+            "content": """你是一个友好、有同理心的AI助手。你的目标是通过自然、温暖的对话来帮助用户。
+
+你的特点：
+- 善于倾听，理解用户的感受和需求
+- 用清晰、简洁的语言回应
+- 真诚、有同理心，避免陈词滥调
+- 在合适的时候提出开放式问题来帮助用户探索他们的想法
+
+请用中文回应。"""
         }
 
 
-def get_ai_response(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo", psychology_analysis: Optional[Dict] = None) -> str:
+def get_ai_response(
+    messages: List[Dict[str, str]],
+    model: str = "gpt-3.5-turbo",
+    current_user_message: Optional[str] = None,
+    conversation_id: Optional[int] = None,
+    db_session: Optional[Session] = None,
+    enable_module_recommendations: bool = True
+) -> Dict:
     """
-    Get response from OpenAI API with optional psychology context
+    Get response from OpenAI API with optional module recommendations
+
+    Enhanced with pattern recognition and emotional progression tracking
 
     Args:
         messages: List of message dictionaries with 'role' and 'content' keys
         model: OpenAI model to use
-        psychology_analysis: Optional psychology analysis to inform response
+        current_user_message: Current user message (for module recommendation analysis)
+        conversation_id: Database ID of conversation (for progression tracking)
+        db_session: SQLAlchemy session (for progression tracking)
+        enable_module_recommendations: Whether to analyze and recommend modules
 
     Returns:
-        AI response content
+        Dictionary with:
+        - content: AI response text
+        - module_recommendations: List of recommended modules (if any)
+        - psychological_state: State analysis (for debugging/logging)
+        - patterns: Pattern recognition results (NEW)
+        - progression: Emotional progression analysis (NEW)
     """
     try:
-        # Generate psychology context if analysis is provided
-        psychology_context = None
-        if psychology_analysis:
-            psychology_context = _generate_psychology_context(psychology_analysis)
-        
-        # Add system prompt to enforce configured language if enabled
+        # Step 1: Analyze for module recommendations (if enabled)
+        module_recommendations_result = None
+        if enable_module_recommendations and current_user_message:
+            # Get conversation history (excluding system prompts)
+            conversation_history = [
+                msg for msg in messages
+                if msg.get("role") in ["user", "assistant"]
+            ]
+
+            # Detect language
+            language = "zh" if AI_RESPONSE_LANGUAGE.lower() == "chinese" else "en"
+
+            # Get module recommendations (with enhanced context if available)
+            module_recommendations_result = module_recommender.get_recommendations(
+                current_message=current_user_message,
+                conversation_history=conversation_history,
+                conversation_id=conversation_id,
+                db_session=db_session,
+                language=language,
+                max_recommendations=2  # Allow up to 2 modules when both strongly indicated
+            )
+
+        # Step 2: Build system prompt with module recommendations
         if AI_FORCE_LANGUAGE:
-            system_prompt = get_system_prompt_for_language(AI_RESPONSE_LANGUAGE, psychology_context)
-            
-            # Insert system prompt at the beginning if not already present
+            system_prompt = get_system_prompt_for_language(AI_RESPONSE_LANGUAGE)
+
+            # Add module recommendation instructions if available
+            if module_recommendations_result and module_recommendations_result.get("has_recommendations"):
+                recommendation_prompt = module_recommender.format_for_ai_prompt(
+                    module_recommendations_result
+                )
+                # Append recommendation instructions to system prompt
+                system_prompt["content"] = system_prompt["content"] + "\n\n" + recommendation_prompt
+
+            # Insert/replace system prompt
             if not messages or messages[0].get("role") != "system":
                 messages = [system_prompt] + messages
             else:
-                # Replace existing system prompt with language enforcement and psychology context
                 messages[0] = system_prompt
-        
+
+        # Step 3: Get AI response
         response = client.chat.completions.create(
             model=model,
-            messages=messages
+            messages=messages,
+            temperature=AI_TEMPERATURE,
+            max_tokens=AI_MAX_TOKENS,
+            presence_penalty=AI_PRESENCE_PENALTY,
+            frequency_penalty=AI_FREQUENCY_PENALTY
         )
-        return response.choices[0].message.content
+
+        ai_content = response.choices[0].message.content
+
+        # Step 4: Return response with recommendations and new metadata
+        return {
+            "content": ai_content,
+            "module_recommendations": (
+                module_recommendations_result.get("recommendations", [])
+                if module_recommendations_result else []
+            ),
+            "psychological_state": (
+                module_recommendations_result.get("psychological_state", {})
+                if module_recommendations_result else {}
+            ),
+            "patterns": (
+                module_recommendations_result.get("patterns", {})
+                if module_recommendations_result else {}
+            ),
+            "progression": (
+                module_recommendations_result.get("progression", {})
+                if module_recommendations_result else {}
+            )
+        }
+
     except Exception as e:
         raise Exception(f"Error getting AI response: {str(e)}")
 
@@ -116,181 +434,13 @@ def get_ai_response_with_image(prompt: str, image_data: str, model: str = "gpt-4
                     ]
                 }
             ],
-            max_tokens=300
+            max_tokens=AI_MAX_TOKENS  # Use consistent max tokens
         )
         return response.choices[0].message.content
     except Exception as e:
         raise Exception(f"Error getting AI response with image: {str(e)}")
 
 
-def _generate_psychology_context(psychology_analysis: Dict) -> str:
-    """
-    Generate psychology context string from multi-framework analysis
-    
-    Args:
-        psychology_analysis: Multi-framework psychology analysis results
-        
-    Returns:
-        Formatted psychology context string
-    """
-    if not psychology_analysis or not psychology_analysis.get('frameworks'):
-        return ""
-    
-    context_parts = []
-    frameworks = psychology_analysis.get('frameworks', {})
-    
-    # Sort frameworks by confidence score (highest first) to prioritize stronger detections
-    framework_items = []
-    for framework_name, analysis in frameworks.items():
-        elements = analysis.get('elements_detected', [])
-        confidence = analysis.get('confidence_score', 0.0)
-        if elements and confidence >= 0.3:  # Only include frameworks with elements and decent confidence
-            framework_items.append((framework_name, analysis, confidence))
-    
-    # Sort by confidence (descending)
-    framework_items.sort(key=lambda x: x[2], reverse=True)
-    
-    # Process frameworks in order of confidence
-    for framework_name, analysis, confidence in framework_items:
-        elements = analysis.get('elements_detected', [])
-        framework_context = _get_framework_context(framework_name, elements, confidence)
-        if framework_context:
-            context_parts.append(framework_context)
-    
-    # Add cross-framework insights if available
-    cross_insights = psychology_analysis.get('cross_framework_insights', {})
-    if cross_insights.get('multiple_frameworks_detected'):
-        frameworks_detected = cross_insights['multiple_frameworks_detected'].get('frameworks', [])
-        if len(frameworks_detected) > 1:
-            context_parts.append(f"检测到多个心理学框架的模式：{', '.join(frameworks_detected)}，表明复杂的心理呈现")
-    
-    return "；".join(context_parts) if context_parts else ""
-
-
-def _get_framework_context(framework_name: str, elements: List[Dict], confidence: float) -> str:
-    """
-    Generate context string for a specific framework
-    
-    Args:
-        framework_name: Name of the psychology framework
-        elements: Detected elements from the framework
-        confidence: Confidence score for the framework
-        
-    Returns:
-        Framework-specific context string
-    """
-    if not elements:
-        return ""
-    
-    # Get top elements by confidence
-    top_elements = sorted(elements, key=lambda x: x.get('confidence', 0.0), reverse=True)[:3]
-    
-    if framework_name == 'ifs':
-        return _get_ifs_context(top_elements)
-    elif framework_name == 'cbt':
-        return _get_cbt_context(top_elements)
-    elif framework_name == 'jungian':
-        return _get_jungian_context(top_elements)
-    elif framework_name == 'narrative':
-        return _get_narrative_context(top_elements)
-    elif framework_name == 'attachment':
-        return _get_attachment_context(top_elements)
-    
-    return ""
-
-
-def _get_ifs_context(elements: List[Dict]) -> str:
-    """Generate IFS-specific context"""
-    parts = [elem for elem in elements if elem.get('type') in ['ifs_part', 'manager', 'firefighter', 'exile']]
-    self_presence = [elem for elem in elements if elem.get('type') == 'ifs_self']
-    
-    context_parts = []
-    if parts:
-        part_types = [elem.get('subtype', elem.get('type', '')) for elem in parts[:2]]
-        context_parts.append(f"IFS部分活跃：{', '.join(part_types)}")
-    
-    if self_presence:
-        context_parts.append("检测到自我能量存在")
-    
-    return "；".join(context_parts)
-
-
-def _get_cbt_context(elements: List[Dict]) -> str:
-    """Generate CBT-specific context"""
-    distortions = [elem for elem in elements if elem.get('type') == 'cognitive_distortion']
-    behaviors = [elem for elem in elements if elem.get('type') == 'behavioral_pattern']
-    
-    context_parts = []
-    if distortions:
-        distortion_types = [elem.get('subtype', '') for elem in distortions[:2]]
-        context_parts.append(f"认知扭曲模式：{', '.join(distortion_types)}")
-    
-    if behaviors:
-        behavior_types = [elem.get('subtype', '') for elem in behaviors[:2]]
-        context_parts.append(f"行为模式：{', '.join(behavior_types)}")
-    
-    return "；".join(context_parts)
-
-
-def _get_jungian_context(elements: List[Dict]) -> str:
-    """Generate Jungian-specific context"""
-    archetypes = [elem for elem in elements if elem.get('type') == 'archetype']
-    dreams = [elem for elem in elements if elem.get('type') == 'dream_symbol']
-    individuation = [elem for elem in elements if elem.get('type') == 'individuation_marker']
-    
-    context_parts = []
-    if archetypes:
-        archetype_types = [elem.get('subtype', '') for elem in archetypes[:2]]
-        context_parts.append(f"原型内容：{', '.join(archetype_types)}")
-    
-    if dreams:
-        context_parts.append("梦境或象征性内容")
-    
-    if individuation:
-        context_parts.append("个体化过程指标")
-    
-    return "；".join(context_parts)
-
-
-def _get_narrative_context(elements: List[Dict]) -> str:
-    """Generate Narrative therapy-specific context"""
-    externalization = [elem for elem in elements if elem.get('type') == 'externalization']
-    reauthoring = [elem for elem in elements if elem.get('type') == 'preferred_identity']
-    unique_outcomes = [elem for elem in elements if elem.get('type') == 'unique_outcome']
-    
-    context_parts = []
-    if externalization:
-        context_parts.append("问题外化语言")
-    
-    if reauthoring:
-        context_parts.append("重新创作身份")
-    
-    if unique_outcomes:
-        context_parts.append("独特结果或例外")
-    
-    return "；".join(context_parts)
-
-
-def _get_attachment_context(elements: List[Dict]) -> str:
-    """Generate Attachment theory-specific context"""
-    styles = [elem for elem in elements if elem.get('type') == 'attachment_style']
-    regulation = [elem for elem in elements if elem.get('type') == 'emotional_regulation']
-    relational = [elem for elem in elements if elem.get('type') == 'relational_pattern']
-    
-    context_parts = []
-    if styles:
-        style_types = [elem.get('attachment_style', elem.get('subtype', '')) for elem in styles[:2]]
-        context_parts.append(f"依恋模式：{', '.join(style_types)}")
-    
-    if regulation:
-        regulation_types = [elem.get('subtype', 'emotional_regulation') for elem in regulation[:2]]
-        context_parts.append(f"情绪调节：{', '.join(regulation_types)}")
-    
-    if relational:
-        relational_types = [elem.get('subtype', 'relational_pattern') for elem in relational[:2]]
-        context_parts.append(f"关系模式：{', '.join(relational_types)}")
-    
-    return "；".join(context_parts)
 
 
 def build_message_history(db_messages) -> List[Dict[str, str]]:

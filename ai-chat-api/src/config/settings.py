@@ -16,88 +16,103 @@ API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
 
 # CORS
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8080,null").split(",")
 
 # Multi-Psychology Detection Settings
 PSYCHOLOGY_DETECTION_ENABLED = os.getenv("PSYCHOLOGY_DETECTION_ENABLED", "true").lower() == "true"
 
-# Individual Framework Settings
-IFS_DETECTION_ENABLED = os.getenv("IFS_DETECTION_ENABLED", "true").lower() == "true"
-CBT_DETECTION_ENABLED = os.getenv("CBT_DETECTION_ENABLED", "true").lower() == "true"
-JUNGIAN_DETECTION_ENABLED = os.getenv("JUNGIAN_DETECTION_ENABLED", "true").lower() == "true"
-NARRATIVE_DETECTION_ENABLED = os.getenv("NARRATIVE_DETECTION_ENABLED", "true").lower() == "true"
-ATTACHMENT_DETECTION_ENABLED = os.getenv("ATTACHMENT_DETECTION_ENABLED", "true").lower() == "true"
+# Pattern Recognition Settings (NEW)
+PATTERN_RECOGNITION_ENABLED = os.getenv("PATTERN_RECOGNITION_ENABLED", "true").lower() == "true"
+PATTERN_LLM_THRESHOLD = float(os.getenv("PATTERN_LLM_THRESHOLD", "0.5"))  # Depth threshold for LLM analysis
+PATTERN_MIN_MESSAGES = int(os.getenv("PATTERN_MIN_MESSAGES", "5"))  # Minimum messages for pattern detection
+PATTERN_MIN_CONFIDENCE = float(os.getenv("PATTERN_MIN_CONFIDENCE", "0.6"))  # Minimum confidence for pattern detection
 
-# Framework Analysis Intervals (analyze every N messages)
-IFS_ANALYSIS_INTERVAL = int(os.getenv("IFS_ANALYSIS_INTERVAL", "3"))
-CBT_ANALYSIS_INTERVAL = int(os.getenv("CBT_ANALYSIS_INTERVAL", "2"))
-JUNGIAN_ANALYSIS_INTERVAL = int(os.getenv("JUNGIAN_ANALYSIS_INTERVAL", "4"))
-NARRATIVE_ANALYSIS_INTERVAL = int(os.getenv("NARRATIVE_ANALYSIS_INTERVAL", "3"))
-ATTACHMENT_ANALYSIS_INTERVAL = int(os.getenv("ATTACHMENT_ANALYSIS_INTERVAL", "3"))
+# Emotional Progression Tracking Settings (NEW)
+PROGRESSION_TRACKING_ENABLED = os.getenv("PROGRESSION_TRACKING_ENABLED", "true").lower() == "true"
+PROGRESSION_STATE_LIMIT = int(os.getenv("PROGRESSION_STATE_LIMIT", "20"))  # Max emotional states to store
+PROGRESSION_MIN_STATES = int(os.getenv("PROGRESSION_MIN_STATES", "2"))  # Min states for progression analysis
 
-# Framework Window Sizes (number of recent messages to analyze)
-IFS_WINDOW_SIZE = int(os.getenv("IFS_WINDOW_SIZE", "10"))
-CBT_WINDOW_SIZE = int(os.getenv("CBT_WINDOW_SIZE", "8"))
-JUNGIAN_WINDOW_SIZE = int(os.getenv("JUNGIAN_WINDOW_SIZE", "12"))
-NARRATIVE_WINDOW_SIZE = int(os.getenv("NARRATIVE_WINDOW_SIZE", "10"))
-ATTACHMENT_WINDOW_SIZE = int(os.getenv("ATTACHMENT_WINDOW_SIZE", "10"))
+# Individual Indicator Settings (New 5-Indicator System)
+EMOTIONAL_AWARENESS_ENABLED = os.getenv("EMOTIONAL_AWARENESS_ENABLED", "true").lower() == "true"
+COGNITIVE_PATTERNS_ENABLED = os.getenv("COGNITIVE_PATTERNS_ENABLED", "true").lower() == "true"
+RELATIONAL_PATTERNS_ENABLED = os.getenv("RELATIONAL_PATTERNS_ENABLED", "true").lower() == "true"
+PERSONALITY_TYPES_ENABLED = os.getenv("PERSONALITY_TYPES_ENABLED", "true").lower() == "true"
+IFS_ENABLED = os.getenv("IFS_ENABLED", "true").lower() == "true"
 
-# Framework Confidence Thresholds
-IFS_MIN_CONFIDENCE = float(os.getenv("IFS_MIN_CONFIDENCE", "0.6"))
-CBT_MIN_CONFIDENCE = float(os.getenv("CBT_MIN_CONFIDENCE", "0.7"))
-JUNGIAN_MIN_CONFIDENCE = float(os.getenv("JUNGIAN_MIN_CONFIDENCE", "0.6"))
-NARRATIVE_MIN_CONFIDENCE = float(os.getenv("NARRATIVE_MIN_CONFIDENCE", "0.6"))
-ATTACHMENT_MIN_CONFIDENCE = float(os.getenv("ATTACHMENT_MIN_CONFIDENCE", "0.6"))
+# Indicator Analysis Intervals (analyze every N messages)
+EMOTIONAL_AWARENESS_INTERVAL = int(os.getenv("EMOTIONAL_AWARENESS_INTERVAL", "2"))
+COGNITIVE_PATTERNS_INTERVAL = int(os.getenv("COGNITIVE_PATTERNS_INTERVAL", "2"))
+RELATIONAL_PATTERNS_INTERVAL = int(os.getenv("RELATIONAL_PATTERNS_INTERVAL", "3"))
+PERSONALITY_TYPES_INTERVAL = int(os.getenv("PERSONALITY_TYPES_INTERVAL", "3"))
+IFS_INTERVAL = int(os.getenv("IFS_INTERVAL", "3"))
+
+# Indicator Window Sizes (number of recent messages to analyze)
+EMOTIONAL_AWARENESS_WINDOW = int(os.getenv("EMOTIONAL_AWARENESS_WINDOW", "10"))
+COGNITIVE_PATTERNS_WINDOW = int(os.getenv("COGNITIVE_PATTERNS_WINDOW", "10"))
+RELATIONAL_PATTERNS_WINDOW = int(os.getenv("RELATIONAL_PATTERNS_WINDOW", "10"))
+PERSONALITY_TYPES_WINDOW = int(os.getenv("PERSONALITY_TYPES_WINDOW", "10"))
+IFS_WINDOW = int(os.getenv("IFS_WINDOW", "10"))
+
+# Indicator Confidence Thresholds
+EMOTIONAL_AWARENESS_MIN_CONFIDENCE = float(os.getenv("EMOTIONAL_AWARENESS_MIN_CONFIDENCE", "0.5"))
+COGNITIVE_PATTERNS_MIN_CONFIDENCE = float(os.getenv("COGNITIVE_PATTERNS_MIN_CONFIDENCE", "0.5"))
+RELATIONAL_PATTERNS_MIN_CONFIDENCE = float(os.getenv("RELATIONAL_PATTERNS_MIN_CONFIDENCE", "0.5"))
+PERSONALITY_TYPES_MIN_CONFIDENCE = float(os.getenv("PERSONALITY_TYPES_MIN_CONFIDENCE", "0.5"))
+IFS_MIN_CONFIDENCE = float(os.getenv("IFS_MIN_CONFIDENCE", "0.5"))
 
 # LLM Models for Analysis
 PSYCHOLOGY_LLM_MODEL = os.getenv("PSYCHOLOGY_LLM_MODEL", "gpt-3.5-turbo")
-IFS_LLM_MODEL = os.getenv("IFS_LLM_MODEL", PSYCHOLOGY_LLM_MODEL)
-CBT_LLM_MODEL = os.getenv("CBT_LLM_MODEL", PSYCHOLOGY_LLM_MODEL)
-JUNGIAN_LLM_MODEL = os.getenv("JUNGIAN_LLM_MODEL", PSYCHOLOGY_LLM_MODEL)
-NARRATIVE_LLM_MODEL = os.getenv("NARRATIVE_LLM_MODEL", PSYCHOLOGY_LLM_MODEL)
-ATTACHMENT_LLM_MODEL = os.getenv("ATTACHMENT_LLM_MODEL", PSYCHOLOGY_LLM_MODEL)
 
-# Framework Configuration Helper
-def get_framework_config():
-    """Get complete framework configuration from environment variables."""
+# Indicator Configuration Helper
+def get_indicator_config():
+    """Get complete indicator configuration from environment variables."""
     return {
+        'emotional_awareness': {
+            'enabled': EMOTIONAL_AWARENESS_ENABLED,
+            'analysis_interval': EMOTIONAL_AWARENESS_INTERVAL,
+            'window_size': EMOTIONAL_AWARENESS_WINDOW,
+            'confidence_threshold': EMOTIONAL_AWARENESS_MIN_CONFIDENCE,
+            'llm_model': PSYCHOLOGY_LLM_MODEL
+        },
+        'cognitive_patterns': {
+            'enabled': COGNITIVE_PATTERNS_ENABLED,
+            'analysis_interval': COGNITIVE_PATTERNS_INTERVAL,
+            'window_size': COGNITIVE_PATTERNS_WINDOW,
+            'confidence_threshold': COGNITIVE_PATTERNS_MIN_CONFIDENCE,
+            'llm_model': PSYCHOLOGY_LLM_MODEL
+        },
+        'relational_patterns': {
+            'enabled': RELATIONAL_PATTERNS_ENABLED,
+            'analysis_interval': RELATIONAL_PATTERNS_INTERVAL,
+            'window_size': RELATIONAL_PATTERNS_WINDOW,
+            'confidence_threshold': RELATIONAL_PATTERNS_MIN_CONFIDENCE,
+            'llm_model': PSYCHOLOGY_LLM_MODEL
+        },
+        'personality_types': {
+            'enabled': PERSONALITY_TYPES_ENABLED,
+            'analysis_interval': PERSONALITY_TYPES_INTERVAL,
+            'window_size': PERSONALITY_TYPES_WINDOW,
+            'confidence_threshold': PERSONALITY_TYPES_MIN_CONFIDENCE,
+            'llm_model': PSYCHOLOGY_LLM_MODEL
+        },
         'ifs': {
-            'enabled': IFS_DETECTION_ENABLED,
-            'analysis_interval': IFS_ANALYSIS_INTERVAL,
-            'window_size': IFS_WINDOW_SIZE,
+            'enabled': IFS_ENABLED,
+            'analysis_interval': IFS_INTERVAL,
+            'window_size': IFS_WINDOW,
             'confidence_threshold': IFS_MIN_CONFIDENCE,
-            'llm_model': IFS_LLM_MODEL
-        },
-        'cbt': {
-            'enabled': CBT_DETECTION_ENABLED,
-            'analysis_interval': CBT_ANALYSIS_INTERVAL,
-            'window_size': CBT_WINDOW_SIZE,
-            'confidence_threshold': CBT_MIN_CONFIDENCE,
-            'llm_model': CBT_LLM_MODEL
-        },
-        'jungian': {
-            'enabled': JUNGIAN_DETECTION_ENABLED,
-            'analysis_interval': JUNGIAN_ANALYSIS_INTERVAL,
-            'window_size': JUNGIAN_WINDOW_SIZE,
-            'confidence_threshold': JUNGIAN_MIN_CONFIDENCE,
-            'llm_model': JUNGIAN_LLM_MODEL
-        },
-        'narrative': {
-            'enabled': NARRATIVE_DETECTION_ENABLED,
-            'analysis_interval': NARRATIVE_ANALYSIS_INTERVAL,
-            'window_size': NARRATIVE_WINDOW_SIZE,
-            'confidence_threshold': NARRATIVE_MIN_CONFIDENCE,
-            'llm_model': NARRATIVE_LLM_MODEL
-        },
-        'attachment': {
-            'enabled': ATTACHMENT_DETECTION_ENABLED,
-            'analysis_interval': ATTACHMENT_ANALYSIS_INTERVAL,
-            'window_size': ATTACHMENT_WINDOW_SIZE,
-            'confidence_threshold': ATTACHMENT_MIN_CONFIDENCE,
-            'llm_model': ATTACHMENT_LLM_MODEL
+            'llm_model': PSYCHOLOGY_LLM_MODEL
         }
     }
+
+# Backward compatibility alias
+get_framework_config = get_indicator_config
 
 # AI Response Language Settings
 AI_RESPONSE_LANGUAGE = os.getenv("AI_RESPONSE_LANGUAGE", "chinese")  # Default to Chinese
 AI_FORCE_LANGUAGE = os.getenv("AI_FORCE_LANGUAGE", "true").lower() == "true"  # Force language regardless of input
+
+# AI Response Control Settings
+AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.7"))  # Creativity vs consistency (0.0-2.0)
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "1500"))  # Max response length (increased for better responses)
+AI_PRESENCE_PENALTY = float(os.getenv("AI_PRESENCE_PENALTY", "0.3"))  # Reduce repetition (0.0-2.0)
+AI_FREQUENCY_PENALTY = float(os.getenv("AI_FREQUENCY_PENALTY", "0.3"))  # Encourage word diversity (0.0-2.0)

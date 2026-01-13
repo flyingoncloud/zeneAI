@@ -1,1 +1,0 @@
-"""Psychology framework detectors."""

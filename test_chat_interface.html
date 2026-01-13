@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeneAI · 心理咨询助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Chat Section */
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .chat-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .session-info {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .module-recommendation {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+        }
+
+        .module-recommendation .module-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .module-recommendation .module-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .module-recommendation .module-guidance {
+            font-size: 14px;
+            color: #555;
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        .input-area {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-area textarea {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            resize: none;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .input-area textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-area button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .input-area button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Insights Section */
+        .insights-section {
+            width: 400px;
+            background: #fafbfc;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .insights-header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .insights-header h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .insights-header p {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .insights-content {
+            padding: 20px;
+        }
+
+        .insight-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .insight-card h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .insight-card h3::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #667eea;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .metric-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .pattern-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .pattern-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .pattern-detail {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .trajectory {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .trajectory.escalating {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .trajectory.de-escalating {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .trajectory.stabilizing {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-size: 14px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Chat Section -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <h1>ZeneAI · 心理咨询助手</h1>
+                <div class="session-info" id="sessionInfo">新会话</div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    👋 嘿，我在这儿呢<br>
+                    想聊什么都可以，我听着~
+                </div>
+            </div>
+
+            <div class="input-area">
+                <textarea
+                    id="messageInput"
+                    placeholder="分享你的感受..."
+                    rows="2"
+                    onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                ></textarea>
+                <button id="sendButton" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="insights-section">
+            <div class="insights-header">
+                <h2>状态看板</h2>
+                <p>看看你现在的感受</p>
+            </div>
+
+            <div class="insights-content" id="insightsContent">
+                <div class="empty-state">
+                    聊起来后，这里会显示你的状态
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let conversationId = null;
+        const API_BASE = 'http://localhost:8000';
+
+        function addMessage(role, content, moduleRecommendations = null) {
+            const container = document.getElementById('messagesContainer');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            // Add module recommendations if present
+            if (role === 'assistant' && moduleRecommendations && moduleRecommendations.length > 0) {
+                moduleRecommendations.forEach(module => {
+                    const moduleDiv = document.createElement('div');
+                    moduleDiv.className = 'module-recommendation';
+                    moduleDiv.innerHTML = `
+                        <div class="module-header">
+                            <span class="module-icon">${module.icon}</span>
+                            <span>${module.name}</span>
+                        </div>
+                        <div class="module-guidance">${module.guidance}</div>
+                    `;
+                    contentDiv.appendChild(moduleDiv);
+                });
+            }
+
+            messageDiv.appendChild(contentDiv);
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateInsights(data) {
+            const insightsContent = document.getElementById('insightsContent');
+
+            if (!data.psychological_state) {
+                return;
+            }
+
+            const state = data.psychological_state;
+            const patterns = data.patterns || {};
+            const progression = data.progression || {};
+
+            let html = '';
+
+            // Psychological State Metrics
+            html += `
+                <div class="insight-card">
+                    <h3>心理状态维度</h3>
+                    ${createMetric('情绪强度', state.emotional_intensity)}
+                    ${createMetric('情绪清晰度', state.emotional_clarity)}
+                    ${createMetric('表达复杂度', state.expression_complexity)}
+                    ${createMetric('自我觉察', state.self_awareness)}
+                    ${createMetric('对话深度', state.conversation_depth)}
+                </div>
+            `;
+
+            // Pattern Recognition
+            if (patterns.defense_mechanisms && patterns.defense_mechanisms.detected && patterns.defense_mechanisms.detected.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🛡️ 防御机制识别</h3>
+                        ${patterns.defense_mechanisms.detected.map(mechanism => `
+                            <div class="pattern-item">
+                                <div class="pattern-label">${translateDefenseMechanism(mechanism)}</div>
+                                <div class="pattern-detail">置信度: ${(patterns.defense_mechanisms.confidence * 100).toFixed(0)}%</div>
+                            </div>
+                        `).join('')}
+                        ${patterns.defense_mechanisms.impact ? `
+                            <div class="pattern-detail" style="margin-top: 10px;">
+                                <strong>影响:</strong> ${patterns.defense_mechanisms.impact}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // Attachment Patterns
+            if (patterns.attachment_patterns && patterns.attachment_patterns.primary_pattern) {
+                html += `
+                    <div class="insight-card">
+                        <h3>💕 依恋模式</h3>
+                        <div class="pattern-item">
+                            <div class="pattern-label">${translateAttachmentPattern(patterns.attachment_patterns.primary_pattern)}</div>
+                            <div class="pattern-detail">置信度: ${(patterns.attachment_patterns.confidence * 100).toFixed(0)}%</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Emotional Progression
+            if (progression.trajectory && progression.trajectory !== 'unknown' && progression.trajectory !== 'insufficient_data') {
+                html += `
+                    <div class="insight-card">
+                        <h3>📊 情绪走向</h3>
+                        <div style="margin-bottom: 15px;">
+                            <span class="trajectory ${progression.trajectory}">${translateTrajectory(progression.trajectory)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">强度趋势</span>
+                            <span class="metric-value">${progression.intensity_trend > 0 ? '↑' : '↓'} ${Math.abs(progression.intensity_trend).toFixed(2)}</span>
+                        </div>
+                        ${progression.clarity_trend !== undefined ? `
+                            <div class="metric">
+                                <span class="metric-label">清晰度趋势</span>
+                                <span class="metric-value">${progression.clarity_trend > 0 ? '↑' : '↓'} ${Math.abs(progression.clarity_trend).toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            // Module Recommendations
+            if (data.module_recommendations && data.module_recommendations.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🎯 推荐模块</h3>
+                        ${data.module_recommendations.map(module => `
+                            <div class="pattern-item">
+                                <div class="pattern-label">${module.icon} ${module.name}</div>
+                                <div class="pattern-detail">
+                                    优先级: ${module.priority} | 评分: ${module.score.toFixed(2)}<br>
+                                    原因: ${module.reasons.join(', ')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            insightsContent.innerHTML = html;
+        }
+
+        function createMetric(label, value) {
+            const percentage = (value * 100).toFixed(0);
+            return `
+                <div class="metric">
+                    <span class="metric-label">${label}</span>
+                    <span class="metric-value">${percentage}%</span>
+                </div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+            `;
+        }
+
+        function translateDefenseMechanism(mechanism) {
+            const translations = {
+                'avoidance': '回避',
+                'projection': '投射',
+                'rationalization': '合理化',
+                'denial': '否认',
+                'displacement': '置换',
+                'intellectualization': '理智化'
+            };
+            return translations[mechanism] || mechanism;
+        }
+
+        function translateAttachmentPattern(pattern) {
+            const translations = {
+                'anxious': '焦虑型依恋',
+                'avoidant': '回避型依恋',
+                'disorganized': '混乱型依恋',
+                'secure': '安全型依恋'
+            };
+            return translations[pattern] || pattern;
+        }
+
+        function translateTrajectory(trajectory) {
+            const translations = {
+                'escalating': '情绪升级中',
+                'de-escalating': '情绪缓和中',
+                'stabilizing': '情绪稳定中'
+            };
+            return translations[trajectory] || trajectory;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Disable input while processing
+            input.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message to UI
+            addMessage('user', message);
+            input.value = '';
+
+            try {
+                // Send to API
+                const response = await fetch(`${API_BASE}/chat/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Update session info
+                if (!sessionId) {
+                    sessionId = data.session_id;
+                    conversationId = data.conversation_id;
+                    document.getElementById('sessionInfo').textContent = `会话: ${sessionId.substring(0, 8)}...`;
+                }
+
+                // Add assistant message with recommendations
+                const assistantMessage = data.assistant_message.content;
+                const moduleRecommendations = data.assistant_message.extra_data?.module_recommendations || [];
+
+                addMessage('assistant', assistantMessage, moduleRecommendations);
+
+                // Update insights panel
+                updateInsights(data.assistant_message.extra_data || {});
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('assistant', '抱歉，发生了错误。请稍后再试。');
+            } finally {
+                // Re-enable input
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            document.getElementById('messageInput').focus();
+        });
+    </script>
+</body>
+</html>
