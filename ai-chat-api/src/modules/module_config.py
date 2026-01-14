@@ -118,8 +118,8 @@ MODULES = {
         "is_sub_module": False,
         "icon": "🎨",
         "priority": 3,
-        "description_zh": "绘制或选择一幅能够表达内心世界或当下情绪状态的图像",
-        "description_en": "Draw or select an image that expresses your inner world or current emotional state",
+        "description_zh": "绘制一幅能够表达内心世界或当下情绪状态的图像",
+        "description_en": "Draw an image that expresses your inner world or current emotional state",
         # 探索 · 不提"分析" · 不说"心理" · 强调"代表"而非"解释"
         "guidance_template_zh": [
             "有些东西不一定适合用语言说。「内视涂鸦」提供了一种不用说清楚、也能表达的方式。",
@@ -134,14 +134,14 @@ MODULES = {
         "tags": ["creative", "symbolic", "nonverbal", "jungian", "parts_work", "conflict"],
         # 回流引导 - 基于图像结果继续探索（模块不是结束，而是对话的新支点）
         "followup_template_zh": [
-            "你选的这张图，有什么地方特别吸引你？",
+            "你画的这幅图，有什么地方特别想让我注意的吗？",
             "看着这幅画，你觉得哪个部分最像你现在的感受？",
-            "这张图里，如果有一个地方能说话，你觉得它会说什么？"
+            "这幅画里，如果有一个地方能说话，你觉得它会说什么？"
         ],
         "followup_template_en": [
-            "What about this image particularly drew you to it?",
+            "Looking at what you drew, is there anything you'd particularly like me to notice?",
             "Looking at this drawing, which part feels most like what you're experiencing?",
-            "If one part of this image could speak, what do you think it would say?"
+            "If one part of this drawing could speak, what do you think it would say?"
         ]
     },
 

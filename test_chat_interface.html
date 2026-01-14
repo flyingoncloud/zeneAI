@@ -32,12 +32,83 @@
             overflow: hidden;
         }
 
+        /* Module Status Sidebar */
+        .module-sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .sidebar-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .module-status-item {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+
+        .module-status-item:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .module-status-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .module-status-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .module-status-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            flex: 1;
+        }
+
+        .module-status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .module-status-badge.not-started {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .module-status-badge.recommended {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .module-status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
         /* Chat Section */
         .chat-section {
             flex: 1;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #e0e0e0;
         }
 
         .chat-header {
@@ -102,34 +173,224 @@
             border-bottom-left-radius: 4px;
         }
 
-        .module-recommendation {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f7ff;
-            border-left: 4px solid #667eea;
-            border-radius: 8px;
+        /* AI Recommendation Banner */
+        .ai-recommendation-banner {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            animation: pulse 2s infinite;
         }
 
-        .module-recommendation .module-header {
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .ai-recommendation-banner .icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+
+        /* Module Recommendation Card */
+        .module-recommendation {
+            margin-top: 15px;
+            padding: 18px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+            border-left: 5px solid #667eea;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            animation: slideInModule 0.5s ease-out;
+        }
+
+        @keyframes slideInModule {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .module-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 8px;
+        }
+
+        .module-title {
+            display: flex;
+            align-items: center;
             font-weight: 600;
             color: #667eea;
         }
 
-        .module-recommendation .module-icon {
+        .module-icon {
             font-size: 24px;
             margin-right: 10px;
         }
 
-        .module-recommendation .module-guidance {
+        .module-description {
             font-size: 14px;
             color: #555;
-            margin-top: 5px;
-            line-height: 1.5;
+            margin: 8px 0;
+            line-height: 1.6;
+            font-style: italic;
         }
 
+        .module-reasoning {
+            font-size: 12px;
+            color: #667eea;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .module-action-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .module-action-btn:hover {
+            background: #5568d3;
+        }
+
+        .module-action-btn.completed {
+            background: #28a745;
+            cursor: default;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        /* Breathing Exercise */
+        .breathing-circle {
+            width: 200px;
+            height: 200px;
+            margin: 30px auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            animation: breathe 8s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+
+        .breathing-instructions {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #666;
+        }
+
+        /* Emotion Labeling */
+        .emotion-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .emotion-btn {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .emotion-btn:hover {
+            border-color: #667eea;
+            background: #f0f7ff;
+        }
+
+        .emotion-btn.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .emotion-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .emotion-label {
+            font-size: 14px;
+        }
+
+        /* Input Area */
         .input-area {
             padding: 20px 30px;
             background: white;
@@ -154,199 +415,38 @@
             border-color: #667eea;
         }
 
-        .input-area button {
+        .send-button {
             padding: 15px 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
 
-        .input-area button:hover {
+        .send-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .input-area button:disabled {
-            opacity: 0.5;
+        .send-button:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-        }
-
-        /* Insights Section */
-        .insights-section {
-            width: 400px;
-            background: #fafbfc;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .insights-header {
-            padding: 20px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .insights-header h2 {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .insights-header p {
-            font-size: 13px;
-            color: #888;
-        }
-
-        .insights-content {
-            padding: 20px;
-        }
-
-        .insight-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .insight-card h3 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .insight-card h3::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            background: #667eea;
-            margin-right: 10px;
-            border-radius: 2px;
-        }
-
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .metric-label {
-            color: #666;
-        }
-
-        .metric-value {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .metric-bar {
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-
-        .metric-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 3px;
-            transition: width 0.5s ease;
-        }
-
-        .pattern-item {
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .pattern-label {
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .pattern-detail {
-            color: #666;
-            font-size: 13px;
-        }
-
-        .trajectory {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .trajectory.escalating {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .trajectory.de-escalating {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .trajectory.stabilizing {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #667eea;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 30px;
-            font-size: 14px;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #999;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Module Status Sidebar -->
+        <div class="module-sidebar">
+            <div class="sidebar-header">📊 模块进度</div>
+            <div id="moduleSidebarContent">
+                <!-- Module status items will be dynamically inserted here -->
+            </div>
+        </div>
+
         <!-- Chat Section -->
         <div class="chat-section">
             <div class="chat-header">
@@ -354,50 +454,127 @@
                 <div class="session-info" id="sessionInfo">新会话</div>
             </div>
 
-            <div class="messages-container" id="messagesContainer">
-                <div class="empty-state">
-                    👋 嘿，我在这儿呢<br>
-                    想聊什么都可以，我听着~
-                </div>
-            </div>
+            <div class="messages-container" id="messagesContainer"></div>
 
             <div class="input-area">
                 <textarea
                     id="messageInput"
                     placeholder="分享你的感受..."
-                    rows="2"
-                    onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                    rows="3"
+                    onkeypress="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
                 ></textarea>
-                <button id="sendButton" onclick="sendMessage()">发送</button>
+                <button id="sendButton" class="send-button" onclick="sendMessage()">发送</button>
             </div>
         </div>
+    </div>
 
-        <!-- Insights Section -->
-        <div class="insights-section">
-            <div class="insights-header">
-                <h2>状态看板</h2>
-                <p>看看你现在的感受</p>
+    <!-- Breathing Exercise Modal -->
+    <div id="breathingModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeBreathingModal()">&times;</span>
+            <div class="modal-header">
+                <span class="module-icon">🫁</span>
+                <span>呼吸训练</span>
             </div>
+            <div class="breathing-circle" id="breathingCircle">
+                <span id="breathingText">跟随节奏呼吸</span>
+            </div>
+            <div class="breathing-instructions">
+                圆圈变大时吸气，变小时呼气<br>
+                完成后会自动保存
+            </div>
+        </div>
+    </div>
 
-            <div class="insights-content" id="insightsContent">
-                <div class="empty-state">
-                    聊起来后，这里会显示你的状态
+    <!-- Emotion Labeling Modal -->
+    <div id="emotionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEmotionModal()">&times;</span>
+            <div class="modal-header">
+                <span class="module-icon">🏷️</span>
+                <span>情绪命名</span>
+            </div>
+            <p style="color: #666; margin-bottom: 20px;">选择最接近你当下感受的情绪：</p>
+            <div class="emotion-grid" id="emotionGrid">
+                <div class="emotion-btn" onclick="selectEmotion('焦虑')">
+                    <div class="emotion-icon">😰</div>
+                    <div class="emotion-label">焦虑</div>
+                </div>
+                <div class="emotion-btn" onclick="selectEmotion('疲惫')">
+                    <div class="emotion-icon">😔</div>
+                    <div class="emotion-label">疲惫</div>
+                </div>
+                <div class="emotion-btn" onclick="selectEmotion('愤怒')">
+                    <div class="emotion-icon">😠</div>
+                    <div class="emotion-label">愤怒</div>
+                </div>
+                <div class="emotion-btn" onclick="selectEmotion('困惑')">
+                    <div class="emotion-icon">😕</div>
+                    <div class="emotion-label">困惑</div>
+                </div>
+                <div class="emotion-btn" onclick="selectEmotion('难过')">
+                    <div class="emotion-icon">😢</div>
+                    <div class="emotion-label">难过</div>
+                </div>
+                <div class="emotion-btn" onclick="selectEmotion('平静')">
+                    <div class="emotion-icon">😌</div>
+                    <div class="emotion-label">平静</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Configuration
+        const API_BASE = 'http://localhost:8000';
         let sessionId = null;
         let conversationId = null;
-        const API_BASE = 'http://localhost:8000';
+        let completedModules = new Set();
+        let moduleStatus = {
+            breathing_exercise: { name: '呼吸训练', icon: '🫁', status: 'not-started' },
+            emotion_labeling: { name: '情绪命名', icon: '🏷️', status: 'not-started' },
+            inner_doodling: { name: '内视涂鸦', icon: '🎨', status: 'not-started' },
+            quick_assessment: { name: '内视快测', icon: '📋', status: 'not-started' }
+        };
 
-        function addMessage(role, content, moduleRecommendations = null) {
+        console.log('🚀 ZeneAI Chat Interface Initialized');
+        console.log('📍 API Base:', API_BASE);
+
+        // Update module status sidebar
+        function updateModuleSidebar() {
+            console.log('📊 Updating module sidebar...');
+            const sidebarContent = document.getElementById('moduleSidebarContent');
+            sidebarContent.innerHTML = '';
+
+            Object.keys(moduleStatus).forEach(moduleId => {
+                const module = moduleStatus[moduleId];
+                const statusClass = module.status || 'not-started';
+                const statusText = {
+                    'not-started': '未开始',
+                    'recommended': '已推荐',
+                    'completed': '已完成'
+                }[statusClass] || '未开始';
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'module-status-item';
+                itemDiv.innerHTML = `
+                    <div class="module-status-header">
+                        <span class="module-status-icon">${module.icon}</span>
+                        <span class="module-status-name">${module.name}</span>
+                    </div>
+                    <span class="module-status-badge ${statusClass}">${statusText}</span>
+                `;
+                sidebarContent.appendChild(itemDiv);
+            });
+
+            console.log('✓ Module sidebar updated');
+        }
+
+        // Add message to chat
+        function addMessage(role, content, moduleRecommendations = []) {
+            console.log(`💬 Adding ${role} message:`, content.substring(0, 100) + '...');
+
             const container = document.getElementById('messagesContainer');
-            const emptyState = container.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
@@ -408,18 +585,47 @@
 
             // Add module recommendations if present
             if (role === 'assistant' && moduleRecommendations && moduleRecommendations.length > 0) {
+                console.log(`🤖 AI recommended ${moduleRecommendations.length} module(s):`, moduleRecommendations.map(m => m.module_id));
+
+                // Add AI recommendation banner
+                const bannerDiv = document.createElement('div');
+                bannerDiv.className = 'ai-recommendation-banner';
+                bannerDiv.innerHTML = '<span class="icon">🤖</span> AI 推荐以下模块';
+                contentDiv.appendChild(bannerDiv);
+
                 moduleRecommendations.forEach(module => {
+                    const isCompleted = completedModules.has(module.module_id);
+                    console.log(`  - ${module.name} (${module.module_id}): ${isCompleted ? 'completed' : 'available'}`);
+
+                    // Update module status
+                    if (!isCompleted && moduleStatus[module.module_id]) {
+                        moduleStatus[module.module_id].status = 'recommended';
+                    }
+
                     const moduleDiv = document.createElement('div');
                     moduleDiv.className = 'module-recommendation';
                     moduleDiv.innerHTML = `
                         <div class="module-header">
-                            <span class="module-icon">${module.icon}</span>
-                            <span>${module.name}</span>
+                            <div class="module-title">
+                                <span class="module-icon">${module.icon}</span>
+                                <span>${module.name}</span>
+                            </div>
+                            <button
+                                class="module-action-btn ${isCompleted ? 'completed' : ''}"
+                                onclick="${isCompleted ? '' : `startModule('${module.module_id}')`}"
+                                ${isCompleted ? 'disabled' : ''}
+                            >
+                                ${isCompleted ? '✓ 已完成' : '开始'}
+                            </button>
                         </div>
-                        <div class="module-guidance">${module.guidance}</div>
+                        <div class="module-description">${module.description}</div>
+                        ${module.reasoning ? `<div class="module-reasoning">💡 ${module.reasoning}</div>` : ''}
                     `;
                     contentDiv.appendChild(moduleDiv);
                 });
+
+                // Update sidebar after adding recommendations
+                updateModuleSidebar();
             }
 
             messageDiv.appendChild(contentDiv);
@@ -427,157 +633,120 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function updateInsights(data) {
-            const insightsContent = document.getElementById('insightsContent');
+        // Start module interaction
+        function startModule(moduleId) {
+            console.log(`🎯 Starting module: ${moduleId}`);
+            switch(moduleId) {
+                case 'breathing_exercise':
+                    startBreathingExercise();
+                    break;
+                case 'emotion_labeling':
+                    startEmotionLabeling();
+                    break;
+                case 'inner_doodling':
+                    alert('内视涂鸦功能开发中...');
+                    break;
+                case 'quick_assessment':
+                    alert('内视快测功能开发中...');
+                    break;
+            }
+        }
 
-            if (!data.psychological_state) {
+        // Breathing Exercise
+        function startBreathingExercise() {
+            document.getElementById('breathingModal').style.display = 'block';
+
+            // Auto-complete after 30 seconds
+            setTimeout(() => {
+                completeModule('breathing_exercise', { duration: 30 });
+                closeBreathingModal();
+                addMessage('assistant', '呼吸训练完成了。现在感觉怎么样？');
+            }, 30000);
+        }
+
+        function closeBreathingModal() {
+            document.getElementById('breathingModal').style.display = 'none';
+        }
+
+        // Emotion Labeling
+        function startEmotionLabeling() {
+            document.getElementById('emotionModal').style.display = 'block';
+
+            // Reset selection
+            document.querySelectorAll('.emotion-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        function selectEmotion(emotion) {
+            // Update UI
+            document.querySelectorAll('.emotion-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.emotion-btn').classList.add('selected');
+
+            // Complete module
+            setTimeout(() => {
+                completeModule('emotion_labeling', { emotion: emotion });
+                closeEmotionModal();
+                addMessage('assistant', `你选择了"${emotion}"。这个词准确地表达了你的感受吗？`);
+            }, 500);
+        }
+
+        function closeEmotionModal() {
+            document.getElementById('emotionModal').style.display = 'none';
+        }
+
+        // Complete module and notify backend
+        async function completeModule(moduleId, completionData = {}) {
+            console.log(`✅ Completing module: ${moduleId}`, completionData);
+
+            if (!conversationId) {
+                console.error('❌ No active conversation');
                 return;
             }
 
-            const state = data.psychological_state;
-            const patterns = data.patterns || {};
-            const progression = data.progression || {};
+            try {
+                const response = await fetch(`${API_BASE}/conversations/${conversationId}/modules/${moduleId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        completion_data: completionData
+                    })
+                });
 
-            let html = '';
+                if (response.ok) {
+                    const data = await response.json();
+                    completedModules.add(moduleId);
 
-            // Psychological State Metrics
-            html += `
-                <div class="insight-card">
-                    <h3>心理状态维度</h3>
-                    ${createMetric('情绪强度', state.emotional_intensity)}
-                    ${createMetric('情绪清晰度', state.emotional_clarity)}
-                    ${createMetric('表达复杂度', state.expression_complexity)}
-                    ${createMetric('自我觉察', state.self_awareness)}
-                    ${createMetric('对话深度', state.conversation_depth)}
-                </div>
-            `;
+                    // Update module status
+                    if (moduleStatus[moduleId]) {
+                        moduleStatus[moduleId].status = 'completed';
+                    }
 
-            // Pattern Recognition
-            if (patterns.defense_mechanisms && patterns.defense_mechanisms.detected && patterns.defense_mechanisms.detected.length > 0) {
-                html += `
-                    <div class="insight-card">
-                        <h3>🛡️ 防御机制识别</h3>
-                        ${patterns.defense_mechanisms.detected.map(mechanism => `
-                            <div class="pattern-item">
-                                <div class="pattern-label">${translateDefenseMechanism(mechanism)}</div>
-                                <div class="pattern-detail">置信度: ${(patterns.defense_mechanisms.confidence * 100).toFixed(0)}%</div>
-                            </div>
-                        `).join('')}
-                        ${patterns.defense_mechanisms.impact ? `
-                            <div class="pattern-detail" style="margin-top: 10px;">
-                                <strong>影响:</strong> ${patterns.defense_mechanisms.impact}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
+                    updateModuleSidebar();
+
+                    console.log(`✓ Module ${moduleId} completed successfully`);
+                    console.log('  Response:', data);
+                } else {
+                    console.error('❌ Failed to complete module:', response.statusText);
+                }
+            } catch (error) {
+                console.error('❌ Error completing module:', error);
             }
-
-            // Attachment Patterns
-            if (patterns.attachment_patterns && patterns.attachment_patterns.primary_pattern) {
-                html += `
-                    <div class="insight-card">
-                        <h3>💕 依恋模式</h3>
-                        <div class="pattern-item">
-                            <div class="pattern-label">${translateAttachmentPattern(patterns.attachment_patterns.primary_pattern)}</div>
-                            <div class="pattern-detail">置信度: ${(patterns.attachment_patterns.confidence * 100).toFixed(0)}%</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Emotional Progression
-            if (progression.trajectory && progression.trajectory !== 'unknown' && progression.trajectory !== 'insufficient_data') {
-                html += `
-                    <div class="insight-card">
-                        <h3>📊 情绪走向</h3>
-                        <div style="margin-bottom: 15px;">
-                            <span class="trajectory ${progression.trajectory}">${translateTrajectory(progression.trajectory)}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">强度趋势</span>
-                            <span class="metric-value">${progression.intensity_trend > 0 ? '↑' : '↓'} ${Math.abs(progression.intensity_trend).toFixed(2)}</span>
-                        </div>
-                        ${progression.clarity_trend !== undefined ? `
-                            <div class="metric">
-                                <span class="metric-label">清晰度趋势</span>
-                                <span class="metric-value">${progression.clarity_trend > 0 ? '↑' : '↓'} ${Math.abs(progression.clarity_trend).toFixed(2)}</span>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }
-
-            // Module Recommendations
-            if (data.module_recommendations && data.module_recommendations.length > 0) {
-                html += `
-                    <div class="insight-card">
-                        <h3>🎯 推荐模块</h3>
-                        ${data.module_recommendations.map(module => `
-                            <div class="pattern-item">
-                                <div class="pattern-label">${module.icon} ${module.name}</div>
-                                <div class="pattern-detail">
-                                    优先级: ${module.priority} | 评分: ${module.score.toFixed(2)}<br>
-                                    原因: ${module.reasons.join(', ')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            insightsContent.innerHTML = html;
         }
 
-        function createMetric(label, value) {
-            const percentage = (value * 100).toFixed(0);
-            return `
-                <div class="metric">
-                    <span class="metric-label">${label}</span>
-                    <span class="metric-value">${percentage}%</span>
-                </div>
-                <div class="metric-bar">
-                    <div class="metric-bar-fill" style="width: ${percentage}%"></div>
-                </div>
-            `;
-        }
-
-        function translateDefenseMechanism(mechanism) {
-            const translations = {
-                'avoidance': '回避',
-                'projection': '投射',
-                'rationalization': '合理化',
-                'denial': '否认',
-                'displacement': '置换',
-                'intellectualization': '理智化'
-            };
-            return translations[mechanism] || mechanism;
-        }
-
-        function translateAttachmentPattern(pattern) {
-            const translations = {
-                'anxious': '焦虑型依恋',
-                'avoidant': '回避型依恋',
-                'disorganized': '混乱型依恋',
-                'secure': '安全型依恋'
-            };
-            return translations[pattern] || pattern;
-        }
-
-        function translateTrajectory(trajectory) {
-            const translations = {
-                'escalating': '情绪升级中',
-                'de-escalating': '情绪缓和中',
-                'stabilizing': '情绪稳定中'
-            };
-            return translations[trajectory] || trajectory;
-        }
-
+        // Send message to API
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const sendButton = document.getElementById('sendButton');
             const message = input.value.trim();
 
             if (!message) return;
+
+            console.log('📤 Sending message:', message);
 
             // Disable input while processing
             input.disabled = true;
@@ -589,6 +758,7 @@
 
             try {
                 // Send to API
+                console.log('🌐 Making API request to /chat/...');
                 const response = await fetch(`${API_BASE}/chat/`, {
                     method: 'POST',
                     headers: {
@@ -605,25 +775,48 @@
                 }
 
                 const data = await response.json();
+                console.log('📥 API Response received:', data);
 
                 // Update session info
                 if (!sessionId) {
                     sessionId = data.session_id;
                     conversationId = data.conversation_id;
                     document.getElementById('sessionInfo').textContent = `会话: ${sessionId.substring(0, 8)}...`;
+                    console.log('✓ New session created:', sessionId);
+                }
+
+                // Update completed modules from backend
+                if (data.module_status) {
+                    console.log('📊 Module status from backend:', data.module_status);
+                    Object.keys(data.module_status).forEach(moduleId => {
+                        if (data.module_status[moduleId].completed_at) {
+                            completedModules.add(moduleId);
+                            if (moduleStatus[moduleId]) {
+                                moduleStatus[moduleId].status = 'completed';
+                            }
+                        } else if (data.module_status[moduleId].recommended_at) {
+                            if (moduleStatus[moduleId] && moduleStatus[moduleId].status === 'not-started') {
+                                moduleStatus[moduleId].status = 'recommended';
+                            }
+                        }
+                    });
+                    updateModuleSidebar();
                 }
 
                 // Add assistant message with recommendations
                 const assistantMessage = data.assistant_message.content;
-                const moduleRecommendations = data.assistant_message.extra_data?.module_recommendations || [];
+                const moduleRecommendations = data.recommended_modules || [];
+
+                console.log('🤖 Assistant message length:', assistantMessage.length);
+                console.log('📋 Module recommendations count:', moduleRecommendations.length);
+                if (moduleRecommendations.length > 0) {
+                    console.log('📋 Recommended modules:', moduleRecommendations);
+                }
 
                 addMessage('assistant', assistantMessage, moduleRecommendations);
 
-                // Update insights panel
-                updateInsights(data.assistant_message.extra_data || {});
-
             } catch (error) {
-                console.error('Error sending message:', error);
+                console.error('❌ Error sending message:', error);
                 addMessage('assistant', '抱歉，发生了错误。请稍后再试。');
             } finally {
                 // Re-enable input
@@ -635,8 +828,18 @@
 
         // Focus input on load
         window.addEventListener('load', () => {
+            console.log('✓ Page loaded, initializing...');
+            updateModuleSidebar();
             document.getElementById('messageInput').focus();
+            console.log('✓ Ready to chat!');
         });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

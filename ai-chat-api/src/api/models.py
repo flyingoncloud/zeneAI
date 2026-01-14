@@ -46,8 +46,23 @@ class ImageAnalysisResponse(BaseModel):
     analysis: str
 
 
+class ModuleCompletionRequest(BaseModel):
+    completion_data: Optional[Dict[str, Any]] = None  # e.g., {"emotion": "anxious", "duration": 180}
+
+
+class ModuleRecommendation(BaseModel):
+    module_id: str
+    name: str
+    icon: str
+    description: str
+    reasoning: Optional[str] = None
+    priority: Optional[int] = None
+
+
 class ChatResponse(BaseModel):
     session_id: str
     conversation_id: int
     user_message: MessageResponse
     assistant_message: MessageResponse
+    recommended_modules: Optional[List[ModuleRecommendation]] = []
+    module_status: Optional[Dict[str, Any]] = {}

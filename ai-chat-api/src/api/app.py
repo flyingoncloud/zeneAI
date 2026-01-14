@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -9,7 +10,7 @@ import logging
 import base64
 import os
 
-from src.config.settings import CORS_ORIGINS
+from src.config.settings import CORS_ORIGINS, AI_RESPONSE_LANGUAGE
 from src.database.database import get_db, init_db
 from src.database import models as db_models
 from src.api import models as api_models
@@ -22,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Chat API - Basic Version", version="1.0.0")
+app = FastAPI(title="AI Chat API with Module Recommendations", version="2.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -49,9 +50,14 @@ async def startup_event():
 def root():
     """Root endpoint"""
     return {
-        "message": "AI Chat API - Basic Version",
-        "version": "1.0.0",
-        "note": "Database tables are automatically created on startup"
+        "message": "AI Chat API with Natural Module Recommendations",
+        "version": "2.0.0",
+        "features": [
+            "AI-driven module recommendations via function calling",
+            "Frontend-driven module completion tracking",
+            "Dynamic system prompts with module status",
+            "4 psychology support modules"
+        ]
     }
 
 
@@ -69,7 +75,12 @@ def create_conversation(
     if existing:
         raise HTTPException(status_code=400, detail="Session ID already exists")
 
-    db_conversation = db_models.Conversation(**conversation.dict())
+    # Initialize conversation with empty module status
+    db_conversation = db_models.Conversation(
+        session_id=conversation.session_id,
+        user_id=conversation.user_id,
+        extra_data={"module_status": {}}
+    )
     db.add(db_conversation)
     db.commit()
     db.refresh(db_conversation)
@@ -114,13 +125,13 @@ def chat(
     db: Session = Depends(get_db)
 ):
     """
-    Send a message and get AI response
+    Send a message and get AI response with natural module recommendations
 
-    If session_id is provided, add to existing conversation.
-    Otherwise, create a new conversation with a generated session_id.
+    The AI uses function calling to detect when it recommends modules.
+    Module recommendations are tracked in conversation metadata.
     """
     logger.info(f"Received chat request: {chat_request.message[:100]}...")
-    
+
     # Get or create conversation
     if chat_request.session_id:
         conversation = db.query(db_models.Conversation).filter(
@@ -133,11 +144,20 @@ def chat(
         session_id = str(uuid.uuid4())
         conversation = db_models.Conversation(
             session_id=session_id,
-            user_id=user_id
+            user_id=user_id,
+            extra_data={"module_status": {}}
         )
         db.add(conversation)
         db.commit()
         db.refresh(conversation)
+
+    # Ensure module_status exists in metadata
+    if not conversation.extra_data:
+        conversation.extra_data = {}
+    if "module_status" not in conversation.extra_data:
+        conversation.extra_data["module_status"] = {}
+        flag_modified(conversation, "extra_data")
+        db.commit()
 
     # Save user message
     user_message = db_models.Message(
@@ -158,41 +178,55 @@ def chat(
     message_history = build_message_history(messages)
     logger.info(f"Built message history with {len(message_history)} messages")
 
-    # Get AI response with module recommendations (enhanced with patterns + progression)
+    # Detect language from settings
+    language = "chinese" if AI_RESPONSE_LANGUAGE.lower() == "chinese" else "english"
+
+    # Get AI response with module recommendations
     try:
         ai_response_data = get_ai_response(
             messages=message_history,
-            current_user_message=chat_request.message,
-            conversation_id=conversation.id,  # NEW: Pass for progression tracking
-            db_session=db,  # NEW: Pass for database access
-            enable_module_recommendations=True
+            conversation_id=conversation.id,
+            db_session=db,
+            language=language
         )
 
         ai_content = ai_response_data["content"]
-        module_recommendations = ai_response_data.get("module_recommendations", [])
-        psychological_state = ai_response_data.get("psychological_state", {})
-        patterns = ai_response_data.get("patterns", {})  # NEW
-        progression = ai_response_data.get("progression", {})  # NEW
+        recommended_modules = ai_response_data.get("recommended_modules", [])
 
         logger.info(f"AI response: {ai_content[:100]}...")
-        logger.info(f"Module recommendations: {len(module_recommendations)} modules")
-        logger.info(f"Patterns detected: {patterns.get('defense_mechanisms', {}).get('detected', [])}")
-        logger.info(f"Emotional trajectory: {progression.get('trajectory', 'unknown')}")
+        logger.info(f"Module recommendations: {len(recommended_modules)} modules")
+
+        # Update conversation metadata with new recommendations
+        if recommended_modules:
+            module_status = conversation.extra_data.get("module_status", {})
+
+            for module in recommended_modules:
+                module_id = module["module_id"]
+                # Only mark as recommended if not already completed
+                if module_id not in module_status or not module_status[module_id].get("completed_at"):
+                    if module_id not in module_status:
+                        module_status[module_id] = {}
+                    if not module_status[module_id].get("recommended_at"):
+                        module_status[module_id]["recommended_at"] = datetime.utcnow().isoformat()
+                        logger.info(f"Marked module {module_id} as recommended")
+
+            conversation.extra_data["module_status"] = module_status
+            flag_modified(conversation, "extra_data")
+            db.commit()
+            db.refresh(conversation)
 
     except Exception as e:
         logger.error(f"Error getting AI response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Save assistant message with enhanced metadata
+    # Save assistant message with metadata
     assistant_message = db_models.Message(
         conversation_id=conversation.id,
         role="assistant",
         content=ai_content,
         extra_data={
-            "module_recommendations": module_recommendations,
-            "psychological_state": psychological_state,
-            "patterns": patterns,  # NEW: Store pattern recognition results
-            "progression": progression  # NEW: Store emotional progression
+            "recommended_modules": recommended_modules,
+            "function_calls": ai_response_data.get("function_calls", [])
         }
     )
     db.add(assistant_message)
@@ -204,21 +238,129 @@ def chat(
         "conversation_id": conversation.id,
         "user_message": user_message,
         "assistant_message": assistant_message,
-        "module_recommendations": module_recommendations  # Include in API response
+        "recommended_modules": recommended_modules,  # Include at top level
+        "module_status": conversation.extra_data.get("module_status", {})  # Include current status
     }
     logger.info(f"Returning response for session {conversation.session_id}")
     return response
 
 
+@app.post("/conversations/{conversation_id}/modules/{module_id}/complete")
+def complete_module(
+    conversation_id: int,
+    module_id: str,
+    completion_request: api_models.ModuleCompletionRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Mark a module as completed
+
+    This endpoint is called by the frontend when the user finishes a module interaction
+    (e.g., completes breathing exercise, selects an emotion, uploads a doodle, submits assessment)
+    """
+    logger.info(f"Marking module {module_id} as complete for conversation {conversation_id}")
+
+    # Validate module_id
+    valid_modules = ["breathing_exercise", "emotion_labeling", "inner_doodling", "quick_assessment"]
+    if module_id not in valid_modules:
+        raise HTTPException(status_code=400, detail=f"Invalid module_id. Must be one of: {valid_modules}")
+
+    # Get conversation
+    conversation = db.query(db_models.Conversation).filter(
+        db_models.Conversation.id == conversation_id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Ensure metadata structure exists
+    if not conversation.extra_data:
+        conversation.extra_data = {}
+    if "module_status" not in conversation.extra_data:
+        conversation.extra_data["module_status"] = {}
+
+    # Update module status
+    module_status = conversation.extra_data["module_status"]
+
+    if module_id not in module_status:
+        module_status[module_id] = {}
+
+    module_status[module_id]["completed_at"] = datetime.utcnow().isoformat()
+
+    if completion_request.completion_data:
+        module_status[module_id]["completion_data"] = completion_request.completion_data
+
+    conversation.extra_data["module_status"] = module_status
+    flag_modified(conversation, "extra_data")
+    db.commit()
+    db.refresh(conversation)
+
+    logger.info(f"Successfully marked module {module_id} as complete")
+
+    return {
+        "status": "completed",
+        "module_id": module_id,
+        "completed_at": module_status[module_id]["completed_at"],
+        "module_status": module_status
+    }
+
+
+@app.get("/conversations/{conversation_id}/modules")
+def get_module_status(
+    conversation_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get module completion status for a conversation
+
+    Returns the status of all 4 modules (recommended, completed, etc.)
+    """
+    conversation = db.query(db_models.Conversation).filter(
+        db_models.Conversation.id == conversation_id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    module_status = {}
+    if conversation.extra_data and isinstance(conversation.extra_data, dict):
+        module_status = conversation.extra_data.get("module_status", {})
+
+    # Add module metadata for frontend
+    from src.modules.module_config import get_module_by_id
+
+    result = {}
+    for module_id in ["breathing_exercise", "emotion_labeling", "inner_doodling", "quick_assessment"]:
+        module_config = get_module_by_id(module_id)
+        status = module_status.get(module_id, {})
+
+        result[module_id] = {
+            "module_id": module_id,
+            "name": module_config.get("name_zh") if module_config else module_id,
+            "icon": module_config.get("icon") if module_config else "📦",
+            "status": status,
+            "is_completed": bool(status.get("completed_at")),
+            "is_recommended": bool(status.get("recommended_at")),
+        }
+
+    return result
+
+
 @app.post("/analyze-image-uri/")
 def analyze_image_uri(
     image_uri: str = Form(...),
-    prompt: str = Form("Analyze this image and describe what you see. Focus on the mood, emotions, and insights it might evoke.")
+    prompt: str = Form("Analyze this image and describe what you see. Focus on the mood, emotions, and insights it might evoke."),
+    conversation_id: Optional[int] = Form(None)
 ):
-    """Analyze image from URI (local file or S3) using OpenAI Vision API"""
+    """
+    Analyze image from URI (local file or S3) using OpenAI Vision API
+
+    If conversation_id is provided and the image is for Inner Doodling,
+    automatically mark the module as completed.
+    """
     logger.info(f"Received image analysis request - URI: {image_uri}")
     logger.info(f"Prompt: {prompt[:100]}...")
-    
+
     try:
         # Get image bytes based on URI type
         if image_uri.startswith("http://") or image_uri.startswith("https://"):
@@ -247,13 +389,49 @@ def analyze_image_uri(
         else:
             logger.error(f"Unsupported URI format: {image_uri}")
             raise HTTPException(status_code=400, detail=f"Unsupported URI format: {image_uri}")
-        
+
         # Convert to base64 and analyze
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         logger.info(f"Converted to base64, length: {len(base64_image)}")
-        
-        analysis = get_ai_response_with_image(prompt, base64_image)
+
+        # Detect language
+        language = "chinese" if AI_RESPONSE_LANGUAGE.lower() == "chinese" else "english"
+
+        analysis = get_ai_response_with_image(prompt, base64_image, language=language)
         logger.info(f"AI analysis completed: {analysis[:100]}...")
+
+        # If conversation_id provided, auto-complete Inner Doodling module
+        if conversation_id:
+            try:
+                db = next(get_db())
+                conversation = db.query(db_models.Conversation).filter(
+                    db_models.Conversation.id == conversation_id
+                ).first()
+
+                if conversation:
+                    if not conversation.extra_data:
+                        conversation.extra_data = {}
+                    if "module_status" not in conversation.extra_data:
+                        conversation.extra_data["module_status"] = {}
+
+                    module_status = conversation.extra_data["module_status"]
+                    if "inner_doodling" not in module_status:
+                        module_status["inner_doodling"] = {}
+
+                    module_status["inner_doodling"]["completed_at"] = datetime.utcnow().isoformat()
+                    module_status["inner_doodling"]["completion_data"] = {
+                        "image_uri": image_uri,
+                        "analysis": analysis
+                    }
+
+                    conversation.extra_data["module_status"] = module_status
+                    flag_modified(conversation, "extra_data")
+                    db.commit()
+
+                    logger.info("Auto-marked Inner Doodling as complete")
+            except Exception as e:
+                logger.warning(f"Failed to auto-complete Inner Doodling: {e}")
+
         return {"analysis": analysis}
     except Exception as e:
         logger.error(f"Error in image analysis: {str(e)}")
