@@ -178,16 +178,14 @@ def chat(
     message_history = build_message_history(messages)
     logger.info(f"Built message history with {len(message_history)} messages")
 
-    # Detect language from settings
-    language = "chinese" if AI_RESPONSE_LANGUAGE.lower() == "chinese" else "english"
-
     # Get AI response with module recommendations
+    # Language is auto-detected from the user's message
     try:
         ai_response_data = get_ai_response(
             messages=message_history,
             conversation_id=conversation.id,
             db_session=db,
-            language=language
+            language=None  # Auto-detect language from user's message
         )
 
         ai_content = ai_response_data["content"]
@@ -394,8 +392,12 @@ def analyze_image_uri(
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         logger.info(f"Converted to base64, length: {len(base64_image)}")
 
-        # Detect language
-        language = "chinese" if AI_RESPONSE_LANGUAGE.lower() == "chinese" else "english"
+        # Import language detection from chat_service
+        from src.api.chat_service import detect_language
+
+        # Auto-detect language from prompt
+        language = detect_language(prompt)
+        logger.info(f"Auto-detected language for image analysis: {language}")
 
         analysis = get_ai_response_with_image(prompt, base64_image, language=language)
         logger.info(f"AI analysis completed: {analysis[:100]}...")

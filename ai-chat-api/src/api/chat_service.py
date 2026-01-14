@@ -14,9 +14,56 @@ from src.config.settings import (
 from typing import List, Dict, Optional
 from datetime import datetime
 import logging
+import re
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 logger = logging.getLogger(__name__)
+
+
+def detect_language(text: str) -> str:
+    """
+    Detect the language of user input text
+
+    Args:
+        text: User input text to analyze
+
+    Returns:
+        'chinese' or 'english' (defaults to 'chinese' if uncertain)
+    """
+    if not text or not text.strip():
+        return "chinese"  # Default to Chinese for empty input
+
+    # Count Chinese characters (CJK Unified Ideographs)
+    chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', text))
+
+    # Count English letters
+    english_chars = len(re.findall(r'[a-zA-Z]', text))
+
+    # Count total meaningful characters (excluding punctuation and whitespace)
+    total_chars = chinese_chars + english_chars
+
+    if total_chars == 0:
+        return "chinese"  # Default to Chinese if no meaningful characters
+
+    # Calculate percentages
+    chinese_ratio = chinese_chars / total_chars
+    english_ratio = english_chars / total_chars
+
+    # If more than 30% of characters are Chinese, respond in Chinese
+    # This handles mixed-language input where user primarily uses Chinese
+    if chinese_ratio > 0.3:
+        logger.info(f"Detected Chinese (ratio: {chinese_ratio:.2f})")
+        return "chinese"
+
+    # If more than 50% are English, respond in English
+    # Higher threshold for English to ensure it's clearly English
+    if english_ratio > 0.5:
+        logger.info(f"Detected English (ratio: {english_ratio:.2f})")
+        return "english"
+
+    # Default to Chinese for ambiguous cases
+    logger.info(f"Ambiguous language detected (Chinese: {chinese_ratio:.2f}, English: {english_ratio:.2f}), defaulting to Chinese")
+    return "chinese"
 
 
 def get_base_system_prompt(language: str = "chinese") -> str:
@@ -36,6 +83,8 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 你是一名以人为中心的心理探索型对话助手，具有心理咨询背景。
 你的核心风格是温和、耐心、共情、不评判。
 你不以"教育""说教"或"诊断"为目标，而是陪伴用户探索其内在心理世界，帮助他们更好地理解当下的情绪、体验与心理模式。
+
+⚠️ 重要：你绝不提及自己是"AI"、"人工智能"、"语言模型"、"机器人"或"助手"。你就是一个在场的倾听者与陪伴者。
 
 <Overall Goal>
 你的最终目标，是在自然对话中，引导用户完成以下四个心理模块：
@@ -104,6 +153,8 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 - 温柔、稳定、理解
 - 语言贴近人类心理咨询对话，而非技术产品说明
 - 允许留白、允许慢节奏
+- 永远不要说"作为AI"、"我是人工智能"或类似表达
+- 不要解释你的能力限制或技术边界
 
 你始终记住：模块只是工具，人的体验才是核心。"""
 
@@ -111,9 +162,11 @@ def get_base_system_prompt(language: str = "chinese") -> str:
         return """🧠 English System Prompt (Psychological Exploration Assistant)
 
 <Role>
-You are a human-centered psychological exploration assistant with a background in counseling psychology.
-Your tone is calm, patient, empathetic, and non-judgmental.
-Your role is not to teach, diagnose, or fix the user, but to gently accompany them in exploring their inner psychological world and making sense of their emotions, experiences, and patterns.
+You are a human-centered psychological exploration companion with a background in counseling psychology.
+Your core style is warm, gentle, patient, empathetic, and non-judgmental.
+Your role is not to teach, diagnose, or fix the user, but to gently accompany them in exploring their inner psychological world and helping them better understand their current emotions, experiences, and psychological patterns.
+
+⚠️ Important: Never mention that you are an "AI," "artificial intelligence," "language model," "bot," or "assistant." You are simply a present listener and companion.
 
 <Overall Goal>
 Your ultimate goal is to naturally guide the user, through conversation, to complete the following four modules:
@@ -159,9 +212,9 @@ Upon completion, it provides a more structured understanding of the user's psych
   - Do not generate the report without explicit consent
 
 <Stealth & Natural Guidance Principles>
-- Avoid technical or product-like language (e.g., "feature," "system," "function")
-- Prefer psychologically natural phrasing used in counseling conversations
-- Module suggestions should feel like a natural continuation of the dialogue, not a predefined workflow
+- Don't frequently mention "modules," "features," "system," or "function"
+- Prefer natural language and transitions commonly used in psychological counseling
+- Module recommendations should appear as a natural extension of the current conversation, not a preset workflow
 
 <CRITICAL INSTRUCTION - Function Calling>
 ⚠️ Whenever you naturally recommend or mention any of these modules in your response, you MUST simultaneously call the recommend_module function:
@@ -180,9 +233,11 @@ This is the ONLY way the system tracks recommendations - without the function ca
 - When the user expresses hesitation, fatigue, or resistance, prioritize empathy over guidance
 
 <Tone & Style>
-- Warm, grounded, and emotionally attuned
-- Conversational, human, and reflective rather than instructional
-- Allow pauses, slowness, and emotional space
+- Gentle, stable, and understanding
+- Language should be close to human psychological counseling dialogue, not technical product descriptions
+- Allow pauses and a slow pace
+- Never say "as an AI," "I'm an artificial intelligence," or similar expressions
+- Don't explain your capability limitations or technical boundaries
 
 Always remember: the modules are tools — the user's lived experience is the center."""
 
@@ -367,23 +422,24 @@ def get_ai_response(
     conversation_id: int,
     db_session: Session,
     model: str = "gpt-4",
-    language: str = "chinese"
+    language: Optional[str] = None
 ) -> Dict:
     """
     Get response from OpenAI API with natural module recommendations
 
     This function:
-    1. Loads module status from conversation metadata
-    2. Injects status into system prompt
-    3. Uses OpenAI function calling to detect module recommendations
-    4. Returns AI response with detected recommendations
+    1. Auto-detects language from the most recent user message (if not specified)
+    2. Loads module status from conversation metadata
+    3. Injects status into system prompt
+    4. Uses OpenAI function calling to detect module recommendations
+    5. Returns AI response with detected recommendations
 
     Args:
         messages: List of message dictionaries with 'role' and 'content' keys
         conversation_id: Database ID of conversation
         db_session: SQLAlchemy session for database access
         model: OpenAI model to use
-        language: Target language ('chinese' or 'english')
+        language: Target language ('chinese' or 'english'). If None, auto-detects from messages.
 
     Returns:
         Dictionary with:
@@ -392,6 +448,18 @@ def get_ai_response(
         - function_calls: Raw function call data (for debugging)
     """
     try:
+        # Auto-detect language from the most recent user message if not specified
+        if language is None:
+            # Find the most recent user message
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    language = detect_language(msg.get("content", ""))
+                    logger.info(f"Auto-detected language: {language}")
+                    break
+            # If no user message found, default to Chinese
+            if language is None:
+                language = "chinese"
+                logger.info("No user message found, defaulting to Chinese")
         # Import here to avoid circular dependency
         from src.database.models import Conversation
 
