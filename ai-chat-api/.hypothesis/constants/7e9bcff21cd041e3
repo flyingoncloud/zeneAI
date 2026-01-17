@@ -1,4 +1,0 @@
-# file: /Volumes/workplace/zeneAI/ai-chat-api/src/config/settings.py
-# hypothesis_version: 6.148.8
-
-['*', ',', '0.0.0.0', '0.6', '0.7', '10', '12', '2', '3', '4', '8', '8000', 'AI_FORCE_LANGUAGE', 'AI_RESPONSE_LANGUAGE', 'API_HOST', 'API_PORT', 'ATTACHMENT_LLM_MODEL', 'CBT_LLM_MODEL', 'CBT_MIN_CONFIDENCE', 'CBT_WINDOW_SIZE', 'CORS_ORIGINS', 'DATABASE_URL', 'IFS_LLM_MODEL', 'IFS_MIN_CONFIDENCE', 'IFS_WINDOW_SIZE', 'JUNGIAN_LLM_MODEL', 'JUNGIAN_WINDOW_SIZE', 'NARRATIVE_LLM_MODEL', 'OPENAI_API_KEY', 'PSYCHOLOGY_LLM_MODEL', 'analysis_interval', 'attachment', 'cbt', 'chinese', 'confidence_threshold', 'enabled', 'gpt-3.5-turbo', 'ifs', 'jungian', 'llm_model', 'narrative', 'sk-', 'sqlite:///./chat.db', 'true', 'window_size']

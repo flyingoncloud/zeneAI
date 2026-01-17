@@ -1,4 +1,0 @@
-# file: /Volumes/workplace/zeneAI/ai-chat-api/src/psychology/adapters/ifs_adapter.py
-# hypothesis_version: 6.148.8
-
-[0.0, 0.5, 0.6, '; ', 'Part', 'Self-energy presence', 'analysis_interval', 'confidence', 'confidence_score', 'confidence_threshold', 'content', 'detected', 'elements_detected', 'emotions', 'enabled', 'error', 'evidence', 'framework', 'has_parts', 'has_patterns', 'has_self', 'id', 'ifs', 'ifs_original_result', 'ifs_part', 'ifs_self', 'indicators', 'intensity', 'name', 'needs', 'parts_detected', 'patterns_found', 'score', 'self_energy', 'self_presence', 'subtype', 'triggers', 'type', 'unknown', 'window_size']

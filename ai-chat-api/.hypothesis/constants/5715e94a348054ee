@@ -1,4 +1,0 @@
-# file: /Volumes/workplace/zeneAI/ai-chat-api/src/psychology/data_collector.py
-# hypothesis_version: 6.148.8
-
-[0.0, '+00:00', 'Z', 'aggregated_insights', 'analysis', 'analysis_history', 'analysis_summary', 'attachment', 'average_complexity', 'average_confidence', 'cbt', 'cbt_attachment', 'common_themes', 'complexity_score', 'confidence_score', 'conversation_id', 'conversations', 'count', 'created_at', 'date_from', 'date_to', 'description', 'detection_frequency', 'dominant_themes', 'elements_detected', 'export_timestamp', 'framework', 'framework_metrics', 'frameworks', 'frameworks_analyzed', 'ifs', 'ifs_attachment', 'last_updated', 'latest_analysis', 'message_id', 'multiple_frameworks', 'narrative', 'narrative_ifs', 'overlapping_themes', 'primary_themes', 'subtype', 'therapeutic_approach', 'timestamp', 'total_analyses', 'total_conversations', 'total_detections', 'total_elements', 'total_frameworks', 'type']

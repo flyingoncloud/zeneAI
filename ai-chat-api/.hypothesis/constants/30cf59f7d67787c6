@@ -1,4 +1,0 @@
-# file: /Volumes/workplace/zeneAI/ai-chat-api/src/database/models.py
-# hypothesis_version: 6.148.8
-
-[255, 'CASCADE', 'Conversation', 'Message', 'all, delete-orphan', 'conversation', 'conversations', 'conversations.id', 'messages', 'metadata']

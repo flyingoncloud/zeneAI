@@ -1,14 +1,6 @@
-# AI Chat API - Detailed Setup Guide
+# ZeneAI Chat API - Setup Guide
 
-This guide provides step-by-step instructions for setting up the AI Chat API from scratch.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Environment Setup](#environment-setup)
-3. [Database Setup](#database-setup)
-4. [Application Setup](#application-setup)
-5. [Testing](#testing)
+Step-by-step instructions for setting up the API from scratch.
 
 ## Prerequisites
 
@@ -16,7 +8,7 @@ This guide provides step-by-step instructions for setting up the AI Chat API fro
 
 1. **Python 3.10 or higher**
    ```bash
-   python --version  # Should be 3.10+
+   python --version
    ```
 
 2. **PostgreSQL 14+**
@@ -29,12 +21,9 @@ This guide provides step-by-step instructions for setting up the AI Chat API fro
 
 ### Optional Tools
 
-- **Miniconda** (recommended for Python environment management)
-  - Download from https://docs.conda.io/en/latest/miniconda.html
-- Docker and Docker Compose (for easy PostgreSQL setup)
-- Git for version control
-- `curl` or Postman for API testing
-- Your favorite code editor (VS Code, PyCharm, etc.)
+- Miniconda (recommended for Python environment management)
+- Docker and Docker Compose
+- curl or Postman for API testing
 
 ## Environment Setup
 
@@ -46,121 +35,57 @@ cd ai-chat-api
 
 ### Step 2: Create Virtual Environment
 
-**Option A: Using Miniconda (Recommended)**
+**Using Miniconda (Recommended)**
 
 ```bash
-# Create conda environment
 conda create -n ai-chat-api python=3.10
-
-# Activate the environment
 conda activate ai-chat-api
 ```
 
-**Option B: Using Python venv**
+**Using Python venv**
 
 ```bash
-# Create virtual environment
 python -m venv ai-chat-env
-
-# Activate the environment
-# On macOS/Linux:
-source ai-chat-env/bin/activate
-
-# On Windows:
-ai-chat-env\Scripts\activate
+source ai-chat-env/bin/activate  # On Windows: ai-chat-env\Scripts\activate
 ```
 
-You should see `(ai-chat-api)` or `(ai-chat-env)` in your terminal prompt.
-
-### Step 3: Upgrade pip
+### Step 3: Install Dependencies
 
 ```bash
 pip install --upgrade pip
-```
-
-### Step 4: Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-This will install:
-- FastAPI and Uvicorn (web framework)
-- SQLAlchemy and psycopg2-binary (database)
-- OpenAI client (AI integration)
-- Pydantic (data validation)
-
-**Expected installation time**: 1-3 minutes
-
-### Step 5: Configure Environment Variables
+### Step 4: Configure Environment Variables
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration:
+Edit `.env`:
 
 ```env
-# OpenAI API Key (REQUIRED)
 OPENAI_API_KEY=sk-your-actual-key-here
-
-# Database URL
 DATABASE_URL=postgresql://chat_user:chat_pass@localhost:5432/chat_db
-
-# API Settings
 API_HOST=0.0.0.0
 API_PORT=8000
-
-# CORS (adjust for production)
 CORS_ORIGINS=*
 ```
-
-**Important**:
-- Replace `OPENAI_API_KEY` with your actual OpenAI API key
-- Update `DATABASE_URL` if using different credentials
 
 ## Database Setup
 
 ### Option A: Using Docker (Recommended)
 
-The project includes a `docker-compose.yml` file for easy PostgreSQL setup.
-
-#### Step 1: Start PostgreSQL
-
 ```bash
 docker-compose up -d
 ```
 
-This will:
-- Pull the PostgreSQL 16 image
-- Start PostgreSQL on port 5432
-- Create the database `chat_db` with user `chat_user`
-
-#### Step 2: Verify Database is Running
-
+Verify:
 ```bash
 docker-compose ps
 ```
 
-Expected output:
-```
-NAME                 COMMAND                  SERVICE    STATUS
-ai-chat-postgres     "docker-entrypoint.s…"   postgres   Up
-```
-
-#### Step 3: Test Connection (Optional)
-
-```bash
-docker-compose exec postgres psql -U chat_user -d chat_db -c "SELECT version();"
-```
-
-You should see PostgreSQL version information.
-
-### Option B: Local PostgreSQL Installation
-
-If you prefer not to use Docker:
-
-#### Step 1: Install PostgreSQL
+### Option B: Local PostgreSQL
 
 **macOS (Homebrew):**
 ```bash
@@ -175,56 +100,21 @@ sudo apt install postgresql-16
 sudo systemctl start postgresql
 ```
 
-**Windows:**
-Download installer from https://www.postgresql.org/download/windows/
-
-#### Step 2: Create Database and User
-
-```bash
-# Connect as postgres superuser
-sudo -u postgres psql  # Linux
-psql postgres  # macOS
-```
-
-In psql, run:
+Create database:
 ```sql
 CREATE USER chat_user WITH PASSWORD 'chat_pass';
 CREATE DATABASE chat_db OWNER chat_user;
-\q
 ```
 
-#### Step 3: Update Connection String
+## Running the API
 
-In `.env`, update if using different credentials:
-```env
-DATABASE_URL=postgresql://chat_user:chat_pass@localhost:5432/chat_db
-```
-
-### Database Tables
-
-**Important**: The application automatically creates the required tables on first run! You don't need to manually create any tables.
-
-The following tables will be created automatically:
-- `conversations` - Stores conversation sessions
-- `messages` - Stores chat messages
-
-## Application Setup
-
-### Step 1: Verify Configuration
-
-Test your configuration:
-
-```bash
-python -c "from src.config.settings import *; print('✓ Configuration loaded successfully')"
-```
-
-### Step 2: Start the API Server
+### Start the Server
 
 ```bash
 python run.py
 ```
 
-Or use uvicorn directly:
+Or with auto-reload:
 ```bash
 uvicorn src.api.app:app --reload
 ```
@@ -232,144 +122,51 @@ uvicorn src.api.app:app --reload
 Expected output:
 ```
 INFO - Starting up AI Chat API...
-INFO - Initializing database...
-INFO - ✓ Database tables created/verified successfully
-INFO - ✓ Available tables: ['conversations', 'messages']
 INFO - ✓ Database initialized successfully
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://0.0.0.0:8000
 ```
 
-**The tables are automatically created on startup!** You should see the initialization messages in the logs.
-
-Keep this terminal window open.
+Database tables are created automatically on startup.
 
 ## Testing
 
-### Step 1: Test Health Endpoint
-
-In a new terminal:
+### Test Health Endpoint
 
 ```bash
 curl http://localhost:8000/
 ```
 
-Expected response:
-```json
-{
-  "message": "AI Chat API - Basic Version",
-  "version": "1.0.0",
-  "note": "Database tables are automatically created on startup"
-}
-```
-
-### Step 2: Test API Documentation
-
-Open in your browser:
-```
-http://localhost:8000/docs
-```
-
-You should see the interactive Swagger UI with all endpoints.
-
-### Step 3: Run Test Suite
-
-The project includes comprehensive tests organized by category:
+### Test Chat Endpoint
 
 ```bash
-# Run all tests
+curl -X POST "http://localhost:8000/chat/" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "你好"}'
+```
+
+### View API Documentation
+
+Open http://localhost:8000/docs in your browser.
+
+### Run Test Suite
+
+```bash
 python -m pytest tests/ -v
-
-# Run specific test categories
-python -m pytest tests/api/ -v          # API endpoint tests
-python -m pytest tests/framework/ -v    # Framework-specific tests
-python -m pytest tests/unit/ -v         # Unit tests
-python -m pytest tests/integration/ -v  # Integration tests
-
-# Run property-based tests
-python -m pytest tests/test_*_property.py -v
 ```
 
-### Step 4: Run Demo Scripts
+## Troubleshooting
 
-Test the system functionality with demo scripts:
+### Database Connection Failed
 
-```bash
-# Report generation demos
-python demos/reports/demo_working_report.py
-python demos/reports/demo_chinese_report.py
+- Verify PostgreSQL is running: `docker-compose ps` or `pg_isready`
+- Check DATABASE_URL in `.env`
 
-# Complete system demos
-python demos/system/demo_complete_system.py
-python demos/system/demo_final_chinese_system.py
+### OpenAI API Error
 
-# General demos
-python demos/demo_chinese_working.py
-```
+- Verify OPENAI_API_KEY is set correctly
+- Check API key has sufficient credits
 
-### Step 5: Test Chat Endpoint (New Conversation)
+### Import Errors
 
-```bash
-curl -X POST "http://localhost:8000/chat/" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello! What can you help me with?"}'
-```
-
-Expected response (session_id will be different):
-```json
-{
-  "session_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "conversation_id": 1,
-  "user_message": {
-    "id": 1,
-    "role": "user",
-    "content": "Hello! What can you help me with?",
-    "created_at": "2025-11-01T12:00:00",
-    "extra_data": {}
-  },
-  "assistant_message": {
-    "id": 2,
-    "role": "assistant",
-    "content": "Hello! I'm here to help you...",
-    "created_at": "2025-11-01T12:00:01",
-    "extra_data": {}
-  }
-}
-```
-
-**Save the `session_id` from the response for the next step!**
-
-### Step 6: Test Continuing a Conversation
-
-Replace `YOUR_SESSION_ID` with the session_id from the previous response:
-
-```bash
-curl -X POST "http://localhost:8000/chat/" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Tell me a joke", "session_id": "YOUR_SESSION_ID"}'
-```
-
-### Step 7: Get Conversation History
-
-Replace `YOUR_SESSION_ID`:
-
-```bash
-curl "http://localhost:8000/conversations/session/YOUR_SESSION_ID"
-```
-
-This will return the full conversation with all messages.
-
-### Step 8: Test with User ID
-
-```bash
-curl -X POST "http://localhost:8000/chat/?user_id=user123" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello!"}'
-```
-
-### Step 9: Get All Conversations for a User
-
-```bash
-curl "http://localhost:8000/conversations/user/user123"
-```
-
-That's it! You're ready to use the AI Chat API.
+- Ensure virtual environment is activated
+- Run `pip install -r requirements.txt` again
