@@ -1,0 +1,419 @@
+/**
+ * API Client for ZeneAI Backend
+ *
+ * This module handles all API calls to the ai-chat-api Python FastAPI server.
+ */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export interface ChatRequest {
+  message: string;
+  session_id?: string;
+}
+
+export interface Message {
+  id: number;
+  role: string;
+  content: string;
+  created_at: string;
+  extra_data?: any;
+}
+
+export interface ModuleRecommendation {
+  module_id: string;
+  name: string;
+  icon: string;
+  description: string;
+  reasoning?: string;
+  priority?: number;
+}
+
+export interface ChatResponse {
+  session_id: string;
+  conversation_id: number;
+  user_message: Message;
+  assistant_message: Message;
+  recommended_modules?: ModuleRecommendation[];
+  module_status?: Record<string, any>;
+}
+
+export interface UploadResponse {
+  ok: boolean;
+  url?: string;
+  mime?: string;
+  size?: number;
+  error?: string;
+}
+
+export interface TranscribeResponse {
+  text?: string;
+  error?: string;
+}
+
+export interface RiskCheckRequest {
+  text: string;
+  imageSummary?: string;
+}
+
+export interface RiskCheckResponse {
+  triggered: boolean;
+  level?: 'strong' | 'weak';
+  signals?: string[];
+  cooldownSec?: number;
+}
+
+export interface AnalyzeImageRequest {
+  imageUrl: string;
+}
+
+export interface AnalyzeImageResponse {
+  ok: boolean;
+  analysis?: string;
+  error?: string;
+}
+
+/**
+ * Send a chat message to the backend
+ */
+export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    throw error;
+  }
+}
+
+/**
+ * Upload a file (image) to the backend
+ */
+export async function uploadFile(file: File): Promise<UploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/zene/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+}
+
+/**
+ * Transcribe audio to text
+ */
+export async function transcribeAudio(audioFile: File): Promise<TranscribeResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('audio', audioFile);
+
+    const response = await fetch(`${API_BASE_URL}/api/zene/transcribe`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error transcribing audio:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check for risk signals in text/image
+ */
+export async function checkRisk(request: RiskCheckRequest): Promise<RiskCheckResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/zene/risk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error checking risk:', error);
+    throw error;
+  }
+}
+
+/**
+ * Analyze an image with AI
+ */
+export async function analyzeImage(request: AnalyzeImageRequest): Promise<AnalyzeImageResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/zene/analyze-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get gallery images
+ */
+export async function getGallery(): Promise<{ ok: boolean; items: Array<{ id: string; url: string }> }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/zene/gallery`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting gallery:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get greeting message
+ */
+export async function getGreeting(): Promise<{ ok: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/zene/greeting`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting greeting:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get suggestions based on conversation
+ */
+export async function getSuggestions(request: {
+  transcript: string[];
+  self: string[];
+  parts: string[];
+}): Promise<{ ok: boolean; suggestions: string[] }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/zene/suggest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting suggestions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Complete a module in a conversation
+ */
+export async function completeModule(
+  conversationId: number,
+  moduleId: string,
+  completionData?: Record<string, any>
+): Promise<{ ok: boolean; module_status?: Record<string, any>; error?: string }> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/conversations/${conversationId}/modules/${moduleId}/complete`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ completion_data: completionData || {} }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { ok: true, module_status: data.module_status };
+  } catch (error) {
+    console.error('Error completing module:', error);
+    return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Complete a module with retry logic
+ */
+export async function completeModuleWithRetry(
+  conversationId: number,
+  moduleId: string,
+  completionData?: Record<string, any>
+): Promise<{ ok: boolean; module_status?: Record<string, any>; error?: string }> {
+  // First attempt
+  const result = await completeModule(conversationId, moduleId, completionData);
+
+  if (result.ok) {
+    return result;
+  }
+
+  // Retry once on failure
+  console.log('Retrying module completion...');
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+  return await completeModule(conversationId, moduleId, completionData);
+}
+
+
+/**
+ * Generate psychology report for a conversation
+ */
+export async function generateConversationReport(
+  conversationId: number,
+  language: string = 'zh'
+): Promise<{
+  ok: boolean;
+  report?: {
+    content: string;
+    format: string;
+    generated_at: string;
+    completed_modules: string[];
+    module_count: number;
+    message_count: number;
+  };
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/conversations/${conversationId}/generate-report?language=${language}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error generating report:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      message: '生成报告时出现错误'
+    };
+  }
+}
+
+/**
+ * Check if conversation is ready for report generation
+ */
+export async function getReportStatus(
+  conversationId: number
+): Promise<{
+  ready: boolean;
+  completed_modules: string[];
+  required_modules: number;
+  message_count: number;
+  last_report?: any;
+}> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/conversations/${conversationId}/report-status`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting report status:', error);
+    return {
+      ready: false,
+      completed_modules: [],
+      required_modules: 2,
+      message_count: 0
+    };
+  }
+}

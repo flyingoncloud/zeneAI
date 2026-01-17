@@ -36,3 +36,39 @@ uploads/
 
 ### Logs ###
 *.log
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+.pytest_cache/
+.env
+.venv
+env/
+venv/
+*.db
+*.sqlite
+*.sqlite3
+
+### Node.js ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+out/
+.cache/
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### Reports and demos ###
+**/chinese_demo_reports/
+**/demos/reports/
