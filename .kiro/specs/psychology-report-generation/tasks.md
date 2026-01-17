@@ -246,8 +246,8 @@ This implementation plan breaks down the psychology report generation system int
 - [ ] 10. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Implement report generation API endpoints
-  - [ ] 11.1 Create Pydantic request/response models
+- [x] 11. Implement report generation API endpoints
+  - [x] 11.1 Create Pydantic request/response models
     - Define ReportGenerationRequest
     - Define ReportGenerationResponse
     - Define ReportStatusResponse
@@ -255,7 +255,7 @@ This implementation plan breaks down the psychology report generation system int
     - Define AnalysisGenerationResponse
     - _Requirements: 8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 10.1, 10.2, 10.3, 10.6_
 
-  - [ ] 11.2 Implement `POST /api/psychology/report/generate`
+  - [x] 11.2 Implement `POST /api/psychology/report/generate`
     - Validate assessment_id exists
     - Check assessment completeness (>= 70%)
     - Create psychology_reports record with status "pending"
@@ -263,7 +263,7 @@ This implementation plan breaks down the psychology report generation system int
     - Return report_id and status
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.7_
 
-  - [ ] 11.3 Implement report generation background task
+  - [x] 11.3 Implement report generation background task
     - Identify dominant elements
     - Generate analysis texts
     - Classify personality style
@@ -273,7 +273,7 @@ This implementation plan breaks down the psychology report generation system int
     - Handle errors and update status to "failed"
     - _Requirements: 8.5, 8.6, 13.2, 13.3, 13.4_
 
-  - [ ] 11.4 Implement `GET /api/psychology/report/{report_id}/status`
+  - [x] 11.4 Implement `GET /api/psychology/report/{report_id}/status`
     - Query psychology_reports table
     - Return current status and progress
     - Return download URL if completed
@@ -281,7 +281,7 @@ This implementation plan breaks down the psychology report generation system int
     - Calculate estimated time remaining
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-  - [ ] 11.5 Implement `POST /api/psychology/analysis/generate`
+  - [x] 11.5 Implement `POST /api/psychology/analysis/generate`
     - Validate assessment_id exists
     - Identify dominant elements
     - Generate requested analysis types
