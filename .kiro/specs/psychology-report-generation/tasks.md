@@ -180,25 +180,25 @@ This implementation plan breaks down the psychology report generation system int
 - [ ] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement report data assembly
-  - [ ] 9.1 Implement `get_user_info_section()`
+- [x] 9. Implement report data assembly
+  - [x] 9.1 Implement `get_user_info_section()`
     - Query user_profiles table
     - Format user info with name, gender, age
     - Add current date as report_date
     - _Requirements: 7.2_
 
-  - [ ] 9.2 Implement `get_mind_indices_section()`
+  - [x] 9.2 Implement `get_mind_indices_section()`
     - Extract five core dimension scores from assessment
     - Return dictionary with dimension names and scores
     - _Requirements: 7.3_
 
-  - [ ] 9.3 Implement `get_emotional_insight_section()`
+  - [x] 9.3 Implement `get_emotional_insight_section()`
     - Get emotional regulation score
     - Calculate status labels from sub-scores
     - Combine into emotional insight structure
     - _Requirements: 7.4_
 
-  - [ ] 9.4 Implement `get_cognitive_insight_section()`
+  - [x] 9.4 Implement `get_cognitive_insight_section()`
     - Get cognitive flexibility score
     - Get inner system (dominant IFS part + impact analysis)
     - Get automatic thought (dominant cognitive pattern + impact)
@@ -207,7 +207,7 @@ This implementation plan breaks down the psychology report generation system int
     - Combine into cognitive insight structure
     - _Requirements: 7.5_
 
-  - [ ] 9.5 Implement `get_relational_insight_section()`
+  - [x] 9.5 Implement `get_relational_insight_section()`
     - Get relationship sensitivity score
     - Get relational details (triggers, empathy, conflict)
     - Get attachment pattern (boolean flags + scores)
@@ -215,18 +215,18 @@ This implementation plan breaks down the psychology report generation system int
     - Combine into relational insight structure
     - _Requirements: 7.6_
 
-  - [ ] 9.6 Implement `get_personality_style_section()`
+  - [x] 9.6 Implement `get_personality_style_section()`
     - Query personality_styles table
     - Return personality type and name
     - _Requirements: 7.7_
 
-  - [ ] 9.7 Implement `get_growth_potential_section()`
+  - [x] 9.7 Implement `get_growth_potential_section()`
     - Get growth potential total score
     - Get breakdown scores (insight depth, plasticity, resilience)
     - Combine into growth potential structure
     - _Requirements: 7.8_
 
-  - [ ] 9.8 Implement `assemble_report_data()`
+  - [x] 9.8 Implement `assemble_report_data()`
     - Call all section functions
     - Combine into complete report structure
     - Validate all required sections present
