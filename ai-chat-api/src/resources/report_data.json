@@ -1,0 +1,74 @@
+{
+  "user_info": {
+    "name": "Emma",
+    "gender": "女",
+    "age": 25,
+    "report_date": "2025 年 12 月"
+  },
+  "mind_indices": {
+    "emotional_regulation": 52,
+    "cognitive_flexibility": 61,
+    "relational_sensitivity": 70,
+    "inner_conflict": 67,
+    "growth_potential": 78
+  },
+  "emotional_insight": {
+    "score": 52,
+    "status": {
+      "recognition_expression": "基础",
+      "regulation_recovery": "一般",
+      "tendency_risk": "敏感"
+    }
+  },
+  "cognitive_insight": {
+    "flexibility_score": 61,
+    "inner_system": {
+      "current_status": "小护士 (迎合者)",
+      "impact_analysis": "你目前的内在家庭系统状态显示出较强的迎合者特征，这有助于维系关系，但容易忽略自身需求。"
+    },
+    "automatic_thought": {
+      "pattern": "自我责备",
+      "impact": "当事情不顺时，你倾向于把原因往自己身上揽，这会增加你的心理压力。"
+    },
+    "perspective_shifting": {
+      "summary": "中等",
+      "stars": "⭐⭐⭐",
+      "details": {
+        "self_other": 65,
+        "spatial": 40,
+        "cognitive_frame": 55,
+        "emotional": 70
+      }
+    },
+    "narrative_structure": {
+      "type": "受害者型特征",
+      "summary": "你的故事多围绕遭遇困境和寻求帮助，这可能限制了你的灵活性。"
+    }
+  },
+  "relational_insight": {
+    "sensitivity_score": 70,
+    "details": {
+      "relational_triggers": 75,
+      "empathy_index": 82,
+      "inner_conflict_level": 67
+    },
+    "attachment_pattern": {
+      "anxious": true,
+      "disorganized": true,
+      "secure": false,
+      "avoidant": false
+    },
+    "conflict_triggers": {
+      "status": "当关系中出现忽视、拒绝或情感断联的情境时，你的依恋系统容易被激活。"
+    }
+  },
+  "personality_style": {
+    "type": "感性驱动型人格（Emotion–Dominant Type）"
+  },
+  "growth_potential": {
+    "total_score": 78,
+    "insight_depth": 88,
+    "psychological_plasticity": 67,
+    "resilience": 80
+  }
+}

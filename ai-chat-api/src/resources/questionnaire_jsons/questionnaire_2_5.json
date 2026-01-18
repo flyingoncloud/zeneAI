@@ -1,0 +1,88 @@
+{
+  "section": "2.5",
+  "title": "成长指数与变化潜能 (Growth & Transformation Potential)",
+  "marking_criteria": {
+    "option_scores": {"A": 1, "B": 3, "C": 5},
+    "standardization_formula": "(Q1 + Q2) / 10 * 100"
+  },
+  "dimensions": [
+    {
+      "id": "2.5.1",
+      "name": "洞察深度 (Insight Depth)",
+      "questions": [
+        {
+          "id": 1,
+          "scenario": "深夜的“复盘”",
+          "text": "你突然想起一件三年前尴尬的小事，你的第一反应是？",
+          "options": [
+            {"label": "A", "text": "赶紧刷手机盖过去，太丢人了。", "score": 1},
+            {"label": "B", "text": "思考为什么这件事至今还让我耿耿于怀，它触动了我哪根神经？", "score": 3},
+            {"label": "C", "text": "意识到这反映了我当时对认同感的渴望，并觉得当时的自己很可爱。", "score": 5}
+          ]
+        },
+        {
+          "id": 2,
+          "scenario": "重复的“坑”",
+          "text": "你发现自己总是陷入同一种糟糕的人际关系模式中，你会？",
+          "options": [
+            {"label": "A", "text": "抱怨运气不好，总是遇到奇葩。", "score": 1},
+            {"label": "B", "text": "意识到这可能跟我性格有关，但不知道怎么改。", "score": 3},
+            {"label": "C", "text": "停下来分析：我是在通过这种模式满足某种潜意识需求吗？", "score": 5}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.5.2",
+      "name": "内在可塑性 (Psychological Plasticity)",
+      "questions": [
+        {
+          "id": 3,
+          "scenario": "突如其来的“新规则”",
+          "text": "你习惯的软件突然大改版，或者公司换了全新的工作流程，你会？",
+          "options": [
+            {"label": "A", "text": "极度崩溃，疯狂吐槽旧版有多好，拒绝学习新版。", "score": 1},
+            {"label": "B", "text": "慢慢摸索，虽然不情愿但还是会跟上进度。", "score": 3},
+            {"label": "C", "text": "兴奋地研究新功能，寻找能让效率翻倍的“骚操作”。", "score": 5}
+          ]
+        },
+        {
+          "id": 4,
+          "scenario": "观念的“地震”",
+          "text": "你一直坚信的某个观点（比如“努力一定有回报”）被现实狠狠打脸时，你会？",
+          "options": [
+            {"label": "A", "text": "陷入虚无主义，觉得世界都是骗人的。", "score": 1},
+            {"label": "B", "text": "感到迷茫，试图寻找折中方案来修补旧观点。", "score": 3},
+            {"label": "C", "text": "升级认知系统，接受世界的复杂性，建立更灵活的信念。", "score": 5}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2.5.3",
+      "name": "心灵韧性 (Resilience)",
+      "questions": [
+        {
+          "id": 5,
+          "scenario": "暴雨中的“断弦”",
+          "text": "你精心准备了一个月的项目突然因为不可抗力夭折了，你的状态是？",
+          "options": [
+            {"label": "A", "text": "彻底摆烂，一周不想下床。", "score": 1},
+            {"label": "B", "text": "难过几天，然后机械地开始做下一件事。", "score": 3},
+            {"label": "C", "text": "允许自己难过一小时，然后复盘：这次经历给我留下了什么“弹药”？", "score": 5}
+          ]
+        },
+        {
+          "id": 6,
+          "scenario": "压力山大的“高光时刻”",
+          "text": "当多项任务同时压过来，且容错率为零时，你通常？",
+          "options": [
+            {"label": "A", "text": "脑回路烧掉，直接宕机。", "score": 1},
+            {"label": "B", "text": "焦虑地心跳加速，硬着头皮一件件熬过去。", "score": 3},
+            {"label": "C", "text": "开启“心流”模式，把压力当成通关游戏的背景音乐。", "score": 5}
+          ]
+        }
+      ]
+    }
+  ]
+}
