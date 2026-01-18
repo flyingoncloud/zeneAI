@@ -3,12 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from datetime import datetime
+from pathlib import Path
 import uuid
 import logging
 import base64
 import os
+import json
 
 from src.config.settings import CORS_ORIGINS, AI_RESPONSE_LANGUAGE
 from src.database.database import get_db, init_db
@@ -456,3 +459,180 @@ def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
     db.delete(conversation)
     db.commit()
     return {"message": "Conversation deleted successfully"}
+
+
+# ============================================================================
+# Questionnaire Endpoints
+# ============================================================================
+
+@app.get("/questionnaires")
+def get_all_questionnaires():
+    """
+    Get all available questionnaires from the resources folder
+    Returns a list of questionnaire metadata
+    """
+    try:
+        questionnaires_dir = Path(__file__).parent.parent / "resources" / "questionnaire_jsons"
+        questionnaires = []
+
+        if not questionnaires_dir.exists():
+            logger.warning(f"Questionnaires directory not found: {questionnaires_dir}")
+            return {"questionnaires": []}
+
+        for json_file in sorted(questionnaires_dir.glob("questionnaire_*.json")):
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    questionnaires.append({
+                        "id": json_file.stem,  # e.g., "questionnaire_2_1"
+                        "section": data.get("section"),
+                        "title": data.get("title"),
+                        "total_questions": len(data.get("questions", [])),
+                        "marking_criteria": data.get("marking_criteria")
+                    })
+            except Exception as e:
+                logger.error(f"Error loading questionnaire {json_file}: {e}")
+                continue
+
+        logger.info(f"Loaded {len(questionnaires)} questionnaires")
+        return {"questionnaires": questionnaires}
+
+    except Exception as e:
+        logger.error(f"Error getting questionnaires: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/questionnaires/{questionnaire_id}")
+def get_questionnaire(questionnaire_id: str):
+    """
+    Get a specific questionnaire by ID
+    Returns the full questionnaire including all questions
+    """
+    try:
+        questionnaires_dir = Path(__file__).parent.parent / "resources" / "questionnaire_jsons"
+        questionnaire_file = questionnaires_dir / f"{questionnaire_id}.json"
+
+        if not questionnaire_file.exists():
+            raise HTTPException(status_code=404, detail=f"Questionnaire {questionnaire_id} not found")
+
+        with open(questionnaire_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        logger.info(f"Loaded questionnaire: {questionnaire_id}")
+        return {
+            "id": questionnaire_id,
+            **data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting questionnaire {questionnaire_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class QuestionnaireResponse(BaseModel):
+    questionnaire_id: str
+    answers: Dict[str, int]  # question_id -> answer value
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@app.post("/conversations/{conversation_id}/questionnaires/submit")
+def submit_questionnaire_response(
+    conversation_id: int,
+    response: QuestionnaireResponse,
+    db: Session = Depends(get_db)
+):
+    """
+    Submit questionnaire responses and save them to the conversation
+    Also marks the quick_assessment module as completed
+    """
+    try:
+        # Get conversation
+        conversation = db.query(db_models.Conversation).filter(
+            db_models.Conversation.id == conversation_id
+        ).first()
+
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        # Initialize extra_data if needed
+        if not conversation.extra_data:
+            conversation.extra_data = {}
+
+        # Store questionnaire responses
+        if "questionnaire_responses" not in conversation.extra_data:
+            conversation.extra_data["questionnaire_responses"] = {}
+
+        conversation.extra_data["questionnaire_responses"][response.questionnaire_id] = {
+            "answers": response.answers,
+            "submitted_at": datetime.utcnow().isoformat(),
+            "metadata": response.metadata or {}
+        }
+
+        # Mark quick_assessment module as completed
+        if "module_status" not in conversation.extra_data:
+            conversation.extra_data["module_status"] = {}
+
+        module_status = conversation.extra_data["module_status"]
+        if "quick_assessment" not in module_status:
+            module_status["quick_assessment"] = {}
+
+        module_status["quick_assessment"]["completed_at"] = datetime.utcnow().isoformat()
+        module_status["quick_assessment"]["completion_data"] = {
+            "questionnaire_id": response.questionnaire_id,
+            "total_questions": len(response.answers),
+            "answers": response.answers
+        }
+
+        conversation.extra_data["module_status"] = module_status
+
+        # Mark the field as modified for SQLAlchemy
+        flag_modified(conversation, "extra_data")
+        db.commit()
+        db.refresh(conversation)
+
+        logger.info(f"Saved questionnaire response for conversation {conversation_id}: {response.questionnaire_id}")
+
+        return {
+            "message": "Questionnaire response saved successfully",
+            "conversation_id": conversation_id,
+            "questionnaire_id": response.questionnaire_id,
+            "module_completed": "quick_assessment"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting questionnaire response: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/conversations/{conversation_id}/questionnaires")
+def get_conversation_questionnaire_responses(
+    conversation_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all questionnaire responses for a conversation
+    """
+    try:
+        conversation = db.query(db_models.Conversation).filter(
+            db_models.Conversation.id == conversation_id
+        ).first()
+
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        responses = conversation.extra_data.get("questionnaire_responses", {}) if conversation.extra_data else {}
+
+        return {
+            "conversation_id": conversation_id,
+            "responses": responses
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting questionnaire responses: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

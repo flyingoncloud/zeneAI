@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import {
   Radar,
@@ -12,7 +12,12 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from 'recharts';
-import { completeModuleWithRetry } from '../../../lib/api';
+import {
+  getAllQuestionnaires,
+  getQuestionnaire,
+  submitQuestionnaireResponse,
+  type QuestionnaireDetail
+} from '../../../lib/api';
 import { toast } from 'sonner';
 
 type IconLikeProps = {
@@ -43,54 +48,101 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
   return <Icon {...props} />;
 };
 
-type Question = {
-  id: number;
-  text: string;
-  type: 'scale' | 'choice';
-  options?: string[];
-};
-
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId } = useZenemeStore();
   const [started, setStarted] = useState(false);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [finished, setFinished] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [questionnaire, setQuestionnaire] = useState<QuestionnaireDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Dynamic questions based on language
-  const questions: Question[] = useMemo(() => {
-    return t.test.questions.map((text, index) => ({
-      id: index + 1,
-      text,
-      type: 'scale'
-    }));
-  }, [t.test.questions]);
+  // Fetch questionnaire on component mount
+  useEffect(() => {
+    const fetchQuestionnaire = async () => {
+      setLoading(true);
+      try {
+        // First, get all questionnaires
+        const allResult = await getAllQuestionnaires();
+        if (!allResult.ok || !allResult.questionnaires || allResult.questionnaires.length === 0) {
+          throw new Error('无法加载问卷列表');
+        }
 
-  const totalQuestions = questions.length;
+        // Use the first questionnaire (or you can let user choose)
+        const firstQuestionnaireId = allResult.questionnaires[0].id;
+
+        // Fetch the full questionnaire
+        const result = await getQuestionnaire(firstQuestionnaireId);
+        if (!result.ok || !result.questionnaire) {
+          throw new Error('无法加载问卷详情');
+        }
+
+        setQuestionnaire(result.questionnaire);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading questionnaire:', err);
+        setError(err instanceof Error ? err.message : '加载问卷失败');
+        toast.error('加载问卷失败，请刷新页面重试');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestionnaire();
+  }, []);
+
+  const totalQuestions = questionnaire?.questions.length || 0;
 
   const handleStart = () => setStarted(true);
 
   const handleAnswer = async (value: number) => {
+    if (!questionnaire) return;
+
     setAnswers((prev) => ({ ...prev, [currentQIndex]: value }));
+
     if (currentQIndex < totalQuestions - 1) {
       setTimeout(() => setCurrentQIndex((prev) => prev + 1), 200);
     } else {
-      // Complete the test and call completion API
+      // Complete the test and submit to backend
       if (conversationId) {
-        const result = await completeModuleWithRetry(
-          conversationId,
-          'quick_assessment',
-          { answers, total_questions: totalQuestions }
-        );
-
-        if (result.ok) {
-          console.log('[Module Completed]', {
-            module_id: 'quick_assessment',
-            conversation_id: conversationId,
-            timestamp: new Date().toISOString()
+        setLoading(true);
+        try {
+          // Convert answers to the format expected by backend
+          const formattedAnswers: Record<string, number> = {};
+          Object.entries(answers).forEach(([index, value]) => {
+            const questionId = questionnaire.questions[parseInt(index)].id;
+            formattedAnswers[questionId.toString()] = value;
           });
-        } else {
-          toast.error('保存测试结果失败，但您的测试已完成');
+          // Add the last answer
+          const lastQuestionId = questionnaire.questions[currentQIndex].id;
+          formattedAnswers[lastQuestionId.toString()] = value;
+
+          const result = await submitQuestionnaireResponse(conversationId, {
+            questionnaire_id: questionnaire.id,
+            answers: formattedAnswers,
+            metadata: {
+              total_questions: totalQuestions,
+              completed_at: new Date().toISOString()
+            }
+          });
+
+          if (result.ok) {
+            console.log('[Questionnaire Submitted]', {
+              questionnaire_id: questionnaire.id,
+              conversation_id: conversationId,
+              module_completed: result.module_completed,
+              timestamp: new Date().toISOString()
+            });
+            toast.success('问卷已成功提交！');
+          } else {
+            toast.error('保存测试结果失败，但您的测试已完成');
+          }
+        } catch (error) {
+          console.error('Error submitting questionnaire:', error);
+          toast.error('提交问卷时出错');
+        } finally {
+          setLoading(false);
         }
       }
       setFinished(true);
@@ -113,6 +165,39 @@ export const InnerQuickTest: React.FC = () => {
     { subject: t.test.labels.social, A: 85, fullMark: 150 },
     { subject: t.test.labels.focus, A: 65, fullMark: 150 },
   ], [t.test.labels]);
+
+  // Show loading state
+  if (loading && !questionnaire) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-violet-400" />
+          <p className="text-slate-400">加载问卷中...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !questionnaire) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-400 mb-4 border border-red-500/20">
+            <ClipboardList size={40} strokeWidth={2} />
+          </div>
+          <h2 className="text-2xl font-bold text-white">加载失败</h2>
+          <p className="text-slate-400">{error || '无法加载问卷'}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
+          >
+            重新加载
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (!started) {
     return (
@@ -205,8 +290,7 @@ export const InnerQuickTest: React.FC = () => {
 
   // Quiz View
   const progress = ((currentQIndex + 1) / totalQuestions) * 100;
-  // Rotate through simulated questions
-  const currentQuestion = questions[currentQIndex % questions.length];
+  const currentQuestion = questionnaire.questions[currentQIndex];
 
   return (
     <div className="flex flex-col h-full bg-transparent">
@@ -235,6 +319,7 @@ export const InnerQuickTest: React.FC = () => {
                 <button
                   key={val}
                   onClick={() => handleAnswer(val)}
+                  disabled={loading}
                   className={`
                     w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-xl font-bold transition-all
                     ${
@@ -242,6 +327,7 @@ export const InnerQuickTest: React.FC = () => {
                         ? 'bg-violet-600 border-violet-500 text-white scale-110 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
                         : 'border-white/10 text-slate-500 hover:border-violet-500 hover:text-violet-400 bg-slate-900/40 hover:bg-slate-900/60'
                     }
+                    ${loading ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
                   {val}

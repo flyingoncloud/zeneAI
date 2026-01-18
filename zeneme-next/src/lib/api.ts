@@ -417,3 +417,188 @@ export async function getReportStatus(
     };
   }
 }
+
+// ============================================================================
+// Questionnaire API Methods
+// ============================================================================
+
+export interface Questionnaire {
+  id: string;
+  section: string;
+  title: string;
+  total_questions: number;
+  marking_criteria: {
+    scale: string;
+    total_score_range: number[];
+    interpretation: Array<{
+      range: number[];
+      level: string;
+      description: string;
+    }>;
+  };
+}
+
+export interface QuestionnaireDetail extends Questionnaire {
+  questions: Array<{
+    id: number;
+    text: string;
+  }>;
+}
+
+export interface QuestionnaireResponse {
+  questionnaire_id: string;
+  answers: Record<string, number>;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Get all available questionnaires
+ */
+export async function getAllQuestionnaires(): Promise<{
+  ok: boolean;
+  questionnaires?: Questionnaire[];
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/questionnaires`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      ok: true,
+      questionnaires: data.questionnaires
+    };
+  } catch (error) {
+    console.error('Error fetching questionnaires:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get a specific questionnaire by ID
+ */
+export async function getQuestionnaire(questionnaireId: string): Promise<{
+  ok: boolean;
+  questionnaire?: QuestionnaireDetail;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/questionnaires/${questionnaireId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      ok: true,
+      questionnaire: data
+    };
+  } catch (error) {
+    console.error('Error fetching questionnaire:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Submit questionnaire responses
+ */
+export async function submitQuestionnaireResponse(
+  conversationId: number,
+  response: QuestionnaireResponse
+): Promise<{
+  ok: boolean;
+  message?: string;
+  module_completed?: string;
+  error?: string;
+}> {
+  try {
+    const apiResponse = await fetch(
+      `${API_BASE_URL}/conversations/${conversationId}/questionnaires/submit`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(response),
+      }
+    );
+
+    if (!apiResponse.ok) {
+      throw new Error(`HTTP error! status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    return {
+      ok: true,
+      message: data.message,
+      module_completed: data.module_completed
+    };
+  } catch (error) {
+    console.error('Error submitting questionnaire response:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get questionnaire responses for a conversation
+ */
+export async function getQuestionnaireResponses(conversationId: number): Promise<{
+  ok: boolean;
+  responses?: Record<string, any>;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/conversations/${conversationId}/questionnaires`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      ok: true,
+      responses: data.responses
+    };
+  } catch (error) {
+    console.error('Error fetching questionnaire responses:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
