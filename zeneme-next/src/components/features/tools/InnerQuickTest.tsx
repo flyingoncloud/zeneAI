@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
-import { ClipboardList, Loader2 } from 'lucide-react';
+import { ClipboardList, Loader2, ChevronRight } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import {
   Radar,
@@ -16,7 +16,8 @@ import {
   getAllQuestionnaires,
   getQuestionnaire,
   submitQuestionnaireResponse,
-  type QuestionnaireDetail
+  type QuestionnaireDetail,
+  type Questionnaire
 } from '../../../lib/api';
 import { toast } from 'sonner';
 
@@ -50,38 +51,28 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId } = useZenemeStore();
-  const [started, setStarted] = useState(false);
+  const [view, setView] = useState<'selection' | 'test' | 'result'>('selection');
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [questionnaire, setQuestionnaire] = useState<QuestionnaireDetail | null>(null);
+  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<QuestionnaireDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch questionnaire on component mount
+  // Fetch all questionnaires on component mount
   useEffect(() => {
-    const fetchQuestionnaire = async () => {
+    const fetchQuestionnaires = async () => {
       setLoading(true);
       try {
-        // First, get all questionnaires
-        const allResult = await getAllQuestionnaires();
-        if (!allResult.ok || !allResult.questionnaires || allResult.questionnaires.length === 0) {
+        const result = await getAllQuestionnaires();
+        if (!result.ok || !result.questionnaires || result.questionnaires.length === 0) {
           throw new Error('无法加载问卷列表');
         }
 
-        // Use the first questionnaire (or you can let user choose)
-        const firstQuestionnaireId = allResult.questionnaires[0].id;
-
-        // Fetch the full questionnaire
-        const result = await getQuestionnaire(firstQuestionnaireId);
-        if (!result.ok || !result.questionnaire) {
-          throw new Error('无法加载问卷详情');
-        }
-
-        setQuestionnaire(result.questionnaire);
+        setQuestionnaires(result.questionnaires);
         setError(null);
       } catch (err) {
-        console.error('Error loading questionnaire:', err);
+        console.error('Error loading questionnaires:', err);
         setError(err instanceof Error ? err.message : '加载问卷失败');
         toast.error('加载问卷失败，请刷新页面重试');
       } finally {
@@ -89,15 +80,35 @@ export const InnerQuickTest: React.FC = () => {
       }
     };
 
-    fetchQuestionnaire();
+    fetchQuestionnaires();
   }, []);
 
-  const totalQuestions = questionnaire?.questions.length || 0;
+  const totalQuestions = selectedQuestionnaire?.questions.length || 0;
 
-  const handleStart = () => setStarted(true);
+  const handleSelectQuestionnaire = async (questionnaireId: string) => {
+    setLoading(true);
+    try {
+      const result = await getQuestionnaire(questionnaireId);
+      if (!result.ok || !result.questionnaire) {
+        throw new Error('无法加载问卷详情');
+      }
+
+      setSelectedQuestionnaire(result.questionnaire);
+      setView('test');
+      setCurrentQIndex(0);
+      setAnswers({});
+      setError(null);
+    } catch (err) {
+      console.error('Error loading questionnaire:', err);
+      setError(err instanceof Error ? err.message : '加载问卷失败');
+      toast.error('加载问卷失败，请重试');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAnswer = async (value: number) => {
-    if (!questionnaire) return;
+    if (!selectedQuestionnaire) return;
 
     setAnswers((prev) => ({ ...prev, [currentQIndex]: value }));
 
@@ -111,15 +122,15 @@ export const InnerQuickTest: React.FC = () => {
           // Convert answers to the format expected by backend
           const formattedAnswers: Record<string, number> = {};
           Object.entries(answers).forEach(([index, value]) => {
-            const questionId = questionnaire.questions[parseInt(index)].id;
+            const questionId = selectedQuestionnaire.questions[parseInt(index)].id;
             formattedAnswers[questionId.toString()] = value;
           });
           // Add the last answer
-          const lastQuestionId = questionnaire.questions[currentQIndex].id;
+          const lastQuestionId = selectedQuestionnaire.questions[currentQIndex].id;
           formattedAnswers[lastQuestionId.toString()] = value;
 
           const result = await submitQuestionnaireResponse(conversationId, {
-            questionnaire_id: questionnaire.id,
+            questionnaire_id: selectedQuestionnaire.id,
             answers: formattedAnswers,
             metadata: {
               total_questions: totalQuestions,
@@ -129,7 +140,7 @@ export const InnerQuickTest: React.FC = () => {
 
           if (result.ok) {
             console.log('[Questionnaire Submitted]', {
-              questionnaire_id: questionnaire.id,
+              questionnaire_id: selectedQuestionnaire.id,
               conversation_id: conversationId,
               module_completed: result.module_completed,
               timestamp: new Date().toISOString()
@@ -145,15 +156,15 @@ export const InnerQuickTest: React.FC = () => {
           setLoading(false);
         }
       }
-      setFinished(true);
+      setView('result');
     }
   };
 
   const resetTest = () => {
-    setStarted(false);
+    setView('selection');
     setCurrentQIndex(0);
     setAnswers({});
-    setFinished(false);
+    setSelectedQuestionnaire(null);
   };
 
   // Mock data for the chart based on "results" using translated labels
@@ -167,19 +178,19 @@ export const InnerQuickTest: React.FC = () => {
   ], [t.test.labels]);
 
   // Show loading state
-  if (loading && !questionnaire) {
+  if (loading && questionnaires.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-violet-400" />
-          <p className="text-slate-400">加载问卷中...</p>
+          <p className="text-slate-400">加载问卷列表中...</p>
         </Card>
       </div>
     );
   }
 
   // Show error state
-  if (error || !questionnaire) {
+  if (error && questionnaires.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
@@ -187,7 +198,7 @@ export const InnerQuickTest: React.FC = () => {
             <ClipboardList size={40} strokeWidth={2} />
           </div>
           <h2 className="text-2xl font-bold text-white">加载失败</h2>
-          <p className="text-slate-400">{error || '无法加载问卷'}</p>
+          <p className="text-slate-400">{error}</p>
           <Button
             onClick={() => window.location.reload()}
             className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
@@ -199,34 +210,53 @@ export const InnerQuickTest: React.FC = () => {
     );
   }
 
-  if (!started) {
+  // Questionnaire Selection View
+  if (view === 'selection') {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
-        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
-          <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto text-violet-400 mb-4 border border-violet-500/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
-            <ClipboardList size={40} strokeWidth={2} />
-          </div>
-          <h2 className="text-3xl font-bold text-white tracking-wide">{t.test.title}</h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            {t.test.subtitle}
-          </p>
-          <div className="space-y-2 pt-4">
-            <div className="flex items-center gap-2 text-slate-400 text-sm justify-center">
-              <SafeIcon icon={Icons.Check} size={16} className="text-violet-400" /> {t.test.duration}
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent overflow-y-auto">
+        <div className="max-w-4xl w-full space-y-6">
+          <div className="text-center space-y-4 mb-8">
+            <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto text-violet-400 mb-4 border border-violet-500/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+              <ClipboardList size={40} strokeWidth={2} />
             </div>
-            <div className="flex items-center gap-2 text-slate-400 text-sm justify-center">
-              <SafeIcon icon={Icons.Check} size={16} className="text-violet-400" /> {t.test.scientific}
-            </div>
+            <h2 className="text-3xl font-bold text-white tracking-wide">{t.test.title}</h2>
+            <p className="text-slate-400 text-lg leading-relaxed">
+              请选择您想要完成的问卷
+            </p>
           </div>
-          <Button onClick={handleStart} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-lg h-12 rounded-xl mt-4 border border-white/10 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all">
-            {t.test.start}
-          </Button>
-        </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {questionnaires.map((q) => (
+              <Card
+                key={q.id}
+                className="p-6 space-y-4 bg-slate-900/40 border-white/5 backdrop-blur-md shadow-lg hover:bg-slate-900/60 hover:border-violet-500/30 transition-all cursor-pointer group"
+                onClick={() => handleSelectQuestionnaire(q.id)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="text-xs text-violet-400 font-semibold mb-2">
+                      {q.section}
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-violet-400 transition-colors">
+                      {q.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <ClipboardList size={16} />
+                      <span>{q.total_questions} 道题目</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-slate-500 group-hover:text-violet-400 transition-colors" size={24} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (finished) {
+  // Result View
+  if (view === 'result') {
     return (
       <div className="h-full overflow-y-auto bg-transparent p-6">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -288,9 +318,20 @@ export const InnerQuickTest: React.FC = () => {
     );
   }
 
-  // Quiz View
+  // Test View
+  if (!selectedQuestionnaire) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-violet-400" />
+          <p className="text-slate-400">加载问卷中...</p>
+        </Card>
+      </div>
+    );
+  }
+
   const progress = ((currentQIndex + 1) / totalQuestions) * 100;
-  const currentQuestion = questionnaire.questions[currentQIndex];
+  const currentQuestion = selectedQuestionnaire.questions[currentQIndex];
 
   return (
     <div className="flex flex-col h-full bg-transparent">
