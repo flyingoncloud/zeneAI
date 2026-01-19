@@ -1,22 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-} from 'recharts';
-import {
   getAllQuestionnaires,
   getQuestionnaire,
   submitQuestionnaireResponse,
-  type QuestionnaireDetail
+  sendChatMessage,
+  type QuestionnaireDetail,
+  type QuestionOption,
+  type QuestionnaireSubmissionResult
 } from '../../../lib/api';
 import { toast } from 'sonner';
 
@@ -49,39 +44,117 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 };
 
 export const InnerQuickTest: React.FC = () => {
-  const { t, conversationId } = useZenemeStore();
-  const [started, setStarted] = useState(false);
+  const { t, conversationId, sessionId, setSessionId, setConversationId } = useZenemeStore();
+  const [view, setView] = useState<'test' | 'result'>('test');
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [questionnaire, setQuestionnaire] = useState<QuestionnaireDetail | null>(null);
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<QuestionnaireDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scoringResults, setScoringResults] = useState<Array<{
+    questionnaire_id: string;
+    title: string;
+    section: string;
+    total_score: number;
+    category_scores?: Record<string, number | { sub_section?: string; category?: string; score?: number; count?: number }>;
+    interpretation?: string | { level?: string; description?: string; score_range?: number[] } | null;
+  }>>([]);
 
-  // Fetch questionnaire on component mount
+  // Debug: Log conversationId
   useEffect(() => {
-    const fetchQuestionnaire = async () => {
+    console.log('[InnerQuickTest] conversationId:', conversationId);
+    console.log('[InnerQuickTest] sessionId:', sessionId);
+  }, [conversationId, sessionId]);
+
+  // Auto-create conversation if it doesn't exist
+  useEffect(() => {
+    const createConversationIfNeeded = async () => {
+      // Only create if conversationId is missing (sessionId can exist from previous session)
+      if (!conversationId) {
+        try {
+          // Generate or reuse session ID
+          let currentSessionId = sessionId;
+          if (!currentSessionId) {
+            currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            setSessionId(currentSessionId);
+          }
+
+          console.log('[InnerQuickTest] Creating conversation with session:', currentSessionId);
+
+          // Create a conversation via the chat API
+          const response = await sendChatMessage({
+            message: '开始心理评估',
+            session_id: currentSessionId
+          });
+
+          if (response.conversation_id) {
+            setConversationId(response.conversation_id);
+            console.log('[InnerQuickTest] Auto-created conversation:', response.conversation_id);
+          } else {
+            throw new Error('未能获取会话ID');
+          }
+        } catch (error) {
+          console.error('[InnerQuickTest] Failed to create conversation:', error);
+          setError('无法创建会话，请刷新页面重试');
+          toast.error('无法创建会话，请刷新页面重试');
+        }
+      }
+    };
+
+    createConversationIfNeeded();
+  }, [conversationId, sessionId, setSessionId, setConversationId]);
+
+  // Fetch all questionnaires on component mount and combine them
+  useEffect(() => {
+    const fetchAndCombineQuestionnaires = async () => {
       setLoading(true);
       try {
-        // First, get all questionnaires
-        const allResult = await getAllQuestionnaires();
-        if (!allResult.ok || !allResult.questionnaires || allResult.questionnaires.length === 0) {
+        const result = await getAllQuestionnaires();
+        if (!result.ok || !result.questionnaires || result.questionnaires.length === 0) {
           throw new Error('无法加载问卷列表');
         }
 
-        // Use the first questionnaire (or you can let user choose)
-        const firstQuestionnaireId = allResult.questionnaires[0].id;
+        // Fetch all questionnaires and combine their questions
+        const allQuestions: any[] = [];
+        const questionnaireMetadata: Array<{ id: string; start: number; end: number; section: string; title: string }> = [];
 
-        // Fetch the full questionnaire
-        const result = await getQuestionnaire(firstQuestionnaireId);
-        if (!result.ok || !result.questionnaire) {
-          throw new Error('无法加载问卷详情');
+        for (const q of result.questionnaires) {
+          const detailResult = await getQuestionnaire(q.id);
+          if (detailResult.ok && detailResult.questionnaire) {
+            const startIndex = allQuestions.length;
+            allQuestions.push(...detailResult.questionnaire.questions);
+            const endIndex = allQuestions.length - 1;
+            questionnaireMetadata.push({
+              id: q.id,
+              start: startIndex,
+              end: endIndex,
+              section: q.section,
+              title: q.title
+            });
+          }
         }
 
-        setQuestionnaire(result.questionnaire);
+        // Create a combined questionnaire
+        const combinedQuestionnaire: QuestionnaireDetail = {
+          id: 'combined_all',
+          section: '综合',
+          title: '完整心理评估 (Complete Psychological Assessment)',
+          total_questions: allQuestions.length,
+          marking_criteria: {
+            scale: "综合评估",
+            total_score_range: [0, 0],
+            interpretation: []
+          },
+          questions: allQuestions
+        };
+
+        // Store metadata for splitting answers later
+        (combinedQuestionnaire as any).metadata = { questionnaireMetadata };
+
+        setSelectedQuestionnaire(combinedQuestionnaire);
         setError(null);
       } catch (err) {
-        console.error('Error loading questionnaire:', err);
+        console.error('Error loading questionnaires:', err);
         setError(err instanceof Error ? err.message : '加载问卷失败');
         toast.error('加载问卷失败，请刷新页面重试');
       } finally {
@@ -89,15 +162,13 @@ export const InnerQuickTest: React.FC = () => {
       }
     };
 
-    fetchQuestionnaire();
+    fetchAndCombineQuestionnaires();
   }, []);
 
-  const totalQuestions = questionnaire?.questions.length || 0;
-
-  const handleStart = () => setStarted(true);
+  const totalQuestions = selectedQuestionnaire?.questions.length || 0;
 
   const handleAnswer = async (value: number) => {
-    if (!questionnaire) return;
+    if (!selectedQuestionnaire) return;
 
     setAnswers((prev) => ({ ...prev, [currentQIndex]: value }));
 
@@ -105,69 +176,131 @@ export const InnerQuickTest: React.FC = () => {
       setTimeout(() => setCurrentQIndex((prev) => prev + 1), 200);
     } else {
       // Complete the test and submit to backend
-      if (conversationId) {
-        setLoading(true);
+      if (!conversationId) {
+        console.error('[InnerQuickTest] No conversationId available for submission');
+        toast.error('无法提交：未找到会话ID。请刷新页面重试。');
+
+        // Try to create conversation one more time
         try {
-          // Convert answers to the format expected by backend
-          const formattedAnswers: Record<string, number> = {};
-          Object.entries(answers).forEach(([index, value]) => {
-            const questionId = questionnaire.questions[parseInt(index)].id;
-            formattedAnswers[questionId.toString()] = value;
+          const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+          if (!sessionId) {
+            setSessionId(currentSessionId);
+          }
+
+          const response = await sendChatMessage({
+            message: '开始心理评估',
+            session_id: currentSessionId
           });
-          // Add the last answer
-          const lastQuestionId = questionnaire.questions[currentQIndex].id;
-          formattedAnswers[lastQuestionId.toString()] = value;
+
+          if (response.conversation_id) {
+            setConversationId(response.conversation_id);
+            toast.success('会话已创建，请再次点击提交');
+          }
+        } catch (error) {
+          console.error('[InnerQuickTest] Failed to create conversation on retry:', error);
+        }
+        return;
+      }
+
+      setLoading(true);
+      setView('result'); // Show result view immediately to display loading state
+
+      try {
+        // Add the last answer
+        const allAnswers = { ...answers, [currentQIndex]: value };
+
+        // Get questionnaire metadata to split answers
+        const metadata = (selectedQuestionnaire as any).metadata?.questionnaireMetadata || [];
+
+        const results: Array<{
+          questionnaire_id: string;
+          title: string;
+          section: string;
+          total_score: number;
+          category_scores?: Record<string, number | { sub_section?: string; category?: string; score?: number; count?: number }>;
+          interpretation?: string | { level?: string; description?: string; score_range?: number[] } | null;
+        }> = [];
+
+        // Submit each questionnaire separately and collect results
+        for (const qMeta of metadata) {
+          const questionnaireAnswers: Record<string, number> = {};
+
+          // Extract answers for this questionnaire
+          for (let i = qMeta.start; i <= qMeta.end; i++) {
+            if (allAnswers[i] !== undefined) {
+              const questionId = selectedQuestionnaire.questions[i].id;
+              questionnaireAnswers[questionId.toString()] = allAnswers[i];
+            }
+          }
+
+          // Submit this questionnaire's responses
+          console.log(`[Submitting Questionnaire ${qMeta.id}]`, {
+            questionnaire_id: qMeta.id,
+            conversation_id: conversationId,
+            question_count: Object.keys(questionnaireAnswers).length,
+            answers_sample: Object.keys(questionnaireAnswers).slice(0, 3)
+          });
 
           const result = await submitQuestionnaireResponse(conversationId, {
-            questionnaire_id: questionnaire.id,
-            answers: formattedAnswers,
+            questionnaire_id: qMeta.id,
+            answers: questionnaireAnswers,
             metadata: {
-              total_questions: totalQuestions,
-              completed_at: new Date().toISOString()
+              total_questions: qMeta.end - qMeta.start + 1,
+              completed_at: new Date().toISOString(),
+              part_of_combined: true,
+              section: qMeta.section,
+              title: qMeta.title
             }
           });
 
-          if (result.ok) {
-            console.log('[Questionnaire Submitted]', {
-              questionnaire_id: questionnaire.id,
-              conversation_id: conversationId,
-              module_completed: result.module_completed,
-              timestamp: new Date().toISOString()
+          if (result.ok && result.scoring) {
+            console.log(`[Questionnaire ${qMeta.id} Submitted Successfully]`, {
+              questionnaire_id: qMeta.id,
+              total_score: result.scoring.total_score,
+              category_scores: result.scoring.category_scores
             });
-            toast.success('问卷已成功提交！');
+
+            // Store the scoring result
+            results.push({
+              questionnaire_id: qMeta.id,
+              title: qMeta.title,
+              section: qMeta.section,
+              total_score: result.scoring.total_score,
+              category_scores: result.scoring.category_scores,
+              interpretation: result.scoring.interpretation
+            });
           } else {
-            toast.error('保存测试结果失败，但您的测试已完成');
+            console.error(`[Questionnaire ${qMeta.id} Submission Failed]`, result);
+            toast.error(`问卷 ${qMeta.section} 提交失败: ${result.error || '未知错误'}`);
           }
-        } catch (error) {
-          console.error('Error submitting questionnaire:', error);
-          toast.error('提交问卷时出错');
-        } finally {
-          setLoading(false);
         }
+
+        // Store all scoring results
+        setScoringResults(results);
+
+        if (results.length > 0) {
+          toast.success(`成功提交 ${results.length} 个问卷并计算分数！`);
+        } else {
+          toast.error('所有问卷提交失败，请重试');
+        }
+      } catch (error) {
+        console.error('Error submitting questionnaires:', error);
+        toast.error('提交问卷时出错: ' + (error instanceof Error ? error.message : '未知错误'));
+      } finally {
+        setLoading(false);
       }
-      setFinished(true);
     }
   };
 
   const resetTest = () => {
-    setStarted(false);
+    setView('test');
     setCurrentQIndex(0);
     setAnswers({});
-    setFinished(false);
+    setScoringResults([]);
   };
 
-  // Mock data for the chart based on "results" using translated labels
-  const data = useMemo(() => [
-    { subject: t.test.labels.stability, A: 120, fullMark: 150 },
-    { subject: t.test.labels.selfAwareness, A: 98, fullMark: 150 },
-    { subject: t.test.labels.resilience, A: 86, fullMark: 150 },
-    { subject: t.test.labels.optimism, A: 99, fullMark: 150 },
-    { subject: t.test.labels.social, A: 85, fullMark: 150 },
-    { subject: t.test.labels.focus, A: 65, fullMark: 150 },
-  ], [t.test.labels]);
-
   // Show loading state
-  if (loading && !questionnaire) {
+  if (loading && !selectedQuestionnaire) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
@@ -179,7 +312,7 @@ export const InnerQuickTest: React.FC = () => {
   }
 
   // Show error state
-  if (error || !questionnaire) {
+  if (error && !selectedQuestionnaire) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
@@ -187,7 +320,7 @@ export const InnerQuickTest: React.FC = () => {
             <ClipboardList size={40} strokeWidth={2} />
           </div>
           <h2 className="text-2xl font-bold text-white">加载失败</h2>
-          <p className="text-slate-400">{error || '无法加载问卷'}</p>
+          <p className="text-slate-400">{error}</p>
           <Button
             onClick={() => window.location.reload()}
             className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
@@ -199,98 +332,132 @@ export const InnerQuickTest: React.FC = () => {
     );
   }
 
-  if (!started) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
-        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
-          <div className="w-20 h-20 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto text-violet-400 mb-4 border border-violet-500/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
-            <ClipboardList size={40} strokeWidth={2} />
-          </div>
-          <h2 className="text-3xl font-bold text-white tracking-wide">{t.test.title}</h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            {t.test.subtitle}
-          </p>
-          <div className="space-y-2 pt-4">
-            <div className="flex items-center gap-2 text-slate-400 text-sm justify-center">
-              <SafeIcon icon={Icons.Check} size={16} className="text-violet-400" /> {t.test.duration}
-            </div>
-            <div className="flex items-center gap-2 text-slate-400 text-sm justify-center">
-              <SafeIcon icon={Icons.Check} size={16} className="text-violet-400" /> {t.test.scientific}
-            </div>
-          </div>
-          <Button onClick={handleStart} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-lg h-12 rounded-xl mt-4 border border-white/10 text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all">
-            {t.test.start}
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  if (finished) {
+  // Result View
+  if (view === 'result') {
     return (
       <div className="h-full overflow-y-auto bg-transparent p-6">
         <div className="max-w-4xl mx-auto space-y-8">
           <header className="flex justify-between items-center bg-slate-900/40 p-4 rounded-xl backdrop-blur-md border border-white/5">
-            <h2 className="text-2xl font-bold text-white tracking-wide">{t.test.resultTitle}</h2>
+            <h2 className="text-2xl font-bold text-white tracking-wide">评估结果</h2>
             <div className="flex gap-2">
               <Button variant="outline" onClick={resetTest} className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white backdrop-blur-sm">
-                <SafeIcon icon={Icons.RefreshCcw} className="mr-2 h-4 w-4" /> {t.test.retake}
+                <SafeIcon icon={Icons.RefreshCcw} className="mr-2 h-4 w-4" /> 重新测试
               </Button>
               <Button className="bg-violet-600 hover:bg-violet-500 text-white border-none shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                <SafeIcon icon={Icons.Save} className="mr-2 h-4 w-4" /> {t.test.saveReport}
+                <SafeIcon icon={Icons.Save} className="mr-2 h-4 w-4" /> 保存报告
               </Button>
             </div>
           </header>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="p-6 flex flex-col justify-center min-h-[400px] bg-slate-900/40 border-white/5 backdrop-blur-md shadow-lg">
-              <div className="w-full h-[350px] relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-                    <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                    <Radar
-                      name="My Profile"
-                      dataKey="A"
-                      stroke="#8B5CF6"
-                      strokeWidth={3}
-                      fill="#8B5CF6"
-                      fillOpacity={0.4}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-
+          {scoringResults.length > 0 ? (
             <div className="space-y-6">
+              {/* Overall Summary */}
               <Card className="p-6 space-y-4 border-l-4 border-l-violet-500 bg-slate-900/40 border-t-white/5 border-r-white/5 border-b-white/5 backdrop-blur-md shadow-lg">
-                <h3 className="font-semibold text-lg text-white tracking-wide">{t.test.summary}</h3>
+                <h3 className="font-semibold text-lg text-white tracking-wide">综合评估</h3>
                 <p className="text-slate-300 leading-relaxed">
-                  {t.test.summaryText}
+                  您已完成 {scoringResults.length} 个心理评估问卷，共 {totalQuestions} 道题目。
+                  以下是您的详细评估结果：
                 </p>
               </Card>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-900/40 p-4 rounded-xl shadow-lg border border-white/5 backdrop-blur-md">
-                  <span className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{t.test.stressLevel}</span>
-                  <div className="text-2xl font-bold text-emerald-400 mt-1 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">{t.test.low}</div>
-                </div>
-                <div className="bg-slate-900/40 p-4 rounded-xl shadow-lg border border-white/5 backdrop-blur-md">
-                  <span className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{t.test.primaryEmotion}</span>
-                  <div className="text-2xl font-bold text-violet-400 mt-1 drop-shadow-[0_0_10px_rgba(139,92,246,0.3)]">{t.test.peaceful}</div>
-                </div>
-              </div>
+              {/* Individual Questionnaire Results */}
+              {scoringResults.map((result) => (
+                <Card key={result.questionnaire_id} className="p-6 space-y-4 bg-slate-900/40 border-white/5 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg text-white">{result.title}</h3>
+                      <p className="text-sm text-slate-400">问卷 {result.section}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-violet-400">{result.total_score}</div>
+                      <div className="text-xs text-slate-400">总分</div>
+                    </div>
+                  </div>
+
+                  {/* Category Scores */}
+                  {result.category_scores && Object.keys(result.category_scores).length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-slate-300">分类得分：</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(result.category_scores).map(([category, scoreData]) => {
+                          // Handle both number and object formats
+                          const scoreValue = typeof scoreData === 'number'
+                            ? scoreData
+                            : typeof scoreData === 'object' && scoreData !== null
+                              ? (scoreData as any).score || 0
+                              : 0;
+
+                          return (
+                            <div key={category} className="bg-slate-800/50 p-3 rounded-lg">
+                              <div className="text-xs text-slate-400">{category}</div>
+                              <div className="text-xl font-bold text-white">{scoreValue}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Interpretation */}
+                  {result.interpretation && (
+                    <div className="mt-4 p-4 bg-violet-500/10 rounded-lg border border-violet-500/20">
+                      <h4 className="text-sm font-semibold text-violet-300 mb-2">评估解读：</h4>
+                      <p className="text-sm text-slate-300 leading-relaxed">
+                        {typeof result.interpretation === 'string'
+                          ? result.interpretation
+                          : typeof result.interpretation === 'object' && result.interpretation !== null
+                            ? (result.interpretation as any).description || JSON.stringify(result.interpretation)
+                            : '暂无解读'}
+                      </p>
+                    </div>
+                  )}
+                </Card>
+              ))}
+
+              {/* Next Steps */}
+              <Card className="p-6 space-y-4 bg-gradient-to-br from-violet-900/20 to-purple-900/20 border-white/5 backdrop-blur-md shadow-lg">
+                <h3 className="font-semibold text-lg text-white tracking-wide">下一步建议</h3>
+                <ul className="space-y-2 text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="text-violet-400 mt-1">•</span>
+                    <span>您可以保存此报告以便日后查看和对比</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-violet-400 mt-1">•</span>
+                    <span>建议与心理咨询师分享您的评估结果，获得专业指导</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-violet-400 mt-1">•</span>
+                    <span>定期进行评估可以帮助您追踪心理健康状态的变化</span>
+                  </li>
+                </ul>
+              </Card>
             </div>
-          </div>
+          ) : (
+            <Card className="p-8 text-center space-y-4 bg-slate-900/40 border-white/5 backdrop-blur-md shadow-lg">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto text-violet-400" />
+              <p className="text-slate-400">正在生成评估报告...</p>
+            </Card>
+          )}
         </div>
       </div>
     );
   }
 
-  // Quiz View
+  // Test View
+  if (!selectedQuestionnaire) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-transparent">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-white/10 bg-slate-900/50 backdrop-blur-xl">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-violet-400" />
+          <p className="text-slate-400">加载问卷中...</p>
+        </Card>
+      </div>
+    );
+  }
+
   const progress = ((currentQIndex + 1) / totalQuestions) * 100;
-  const currentQuestion = questionnaire.questions[currentQIndex];
+  const currentQuestion = selectedQuestionnaire.questions[currentQIndex];
 
   return (
     <div className="flex flex-col h-full bg-transparent">
@@ -312,29 +479,111 @@ export const InnerQuickTest: React.FC = () => {
             </h3>
           </div>
 
-          <div className="flex justify-between items-center max-w-xl mx-auto w-full gap-4">
-            <div className="text-slate-500 font-medium text-sm text-left w-20">{t.test.options[0]}</div>
-            <div className="flex gap-3 md:gap-6">
-              {[1, 2, 3, 4, 5].map((val) => (
-                <button
-                  key={val}
-                  onClick={() => handleAnswer(val)}
-                  disabled={loading}
-                  className={`
-                    w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-xl font-bold transition-all
-                    ${
-                      answers[currentQIndex] === val
-                        ? 'bg-violet-600 border-violet-500 text-white scale-110 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
-                        : 'border-white/10 text-slate-500 hover:border-violet-500 hover:text-violet-400 bg-slate-900/40 hover:bg-slate-900/60'
-                    }
-                    ${loading ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
-            <div className="text-slate-500 font-medium text-sm text-right w-20">{t.test.options[4]}</div>
+          <div className="space-y-6 max-w-2xl mx-auto w-full">
+            {currentQuestion?.options && currentQuestion.options.length > 0 ? (
+              // Check if this is a multiple-choice question (has text field) or Likert scale (no text field)
+              currentQuestion.options[0]?.text ? (
+                // Multiple choice with text descriptions (A, B, C format)
+                <div className="space-y-4">
+                  {currentQuestion.options.map((option: QuestionOption) => (
+                    <button
+                      key={option.label}
+                      onClick={() => handleAnswer(option.score)}
+                      disabled={loading}
+                      className={`
+                        w-full p-6 rounded-xl border-2 text-left transition-all
+                        ${
+                          answers[currentQIndex] === option.score
+                            ? 'bg-violet-600/20 border-violet-500 shadow-[0_0_25px_rgba(139,92,246,0.3)]'
+                            : 'border-white/10 hover:border-violet-500 bg-slate-900/40 hover:bg-slate-900/60'
+                        }
+                        ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+                      `}
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className={`
+                          flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-lg
+                          ${
+                            answers[currentQIndex] === option.score
+                              ? 'bg-violet-600 border-violet-500 text-white'
+                              : 'border-white/20 text-slate-400'
+                          }
+                        `}>
+                          {option.label}
+                        </span>
+                        <span className={`
+                          flex-1 text-base leading-relaxed
+                          ${
+                            answers[currentQIndex] === option.score
+                              ? 'text-white font-medium'
+                              : 'text-slate-300'
+                          }
+                        `}>
+                          {option.text}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                // Likert scale with labels (1-5 format or 0-4 format)
+                <div className="flex justify-between items-center gap-4">
+                  <div className="text-slate-500 font-medium text-sm text-left w-24 flex-shrink-0">
+                    {currentQuestion.options[0]?.label || ''}
+                  </div>
+                  <div className="flex gap-3 md:gap-6 flex-1 justify-center">
+                    {currentQuestion.options.map((option: QuestionOption) => (
+                      <button
+                        key={option.value}
+                        onClick={() => handleAnswer(option.value!)}
+                        disabled={loading}
+                        className={`
+                          w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-xl font-bold transition-all
+                          ${
+                            answers[currentQIndex] === option.value
+                              ? 'bg-violet-600 border-violet-500 text-white scale-110 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
+                              : 'border-white/10 text-slate-500 hover:border-violet-500 hover:text-violet-400 bg-slate-900/40 hover:bg-slate-900/60'
+                          }
+                          ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                        title={option.label}
+                      >
+                        {option.value}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-slate-500 font-medium text-sm text-right w-24 flex-shrink-0">
+                    {currentQuestion.options[currentQuestion.options.length - 1]?.label || ''}
+                  </div>
+                </div>
+              )
+            ) : (
+              // Fallback to default 1-5 scale
+              <div className="flex justify-between items-center gap-4">
+                <div className="text-slate-500 font-medium text-sm text-left w-20">{t.test.options[0]}</div>
+                <div className="flex gap-3 md:gap-6">
+                  {[1, 2, 3, 4, 5].map((val) => (
+                    <button
+                      key={val}
+                      onClick={() => handleAnswer(val)}
+                      disabled={loading}
+                      className={`
+                        w-12 h-12 md:w-16 md:h-16 rounded-full border-2 flex items-center justify-center text-xl font-bold transition-all
+                        ${
+                          answers[currentQIndex] === val
+                            ? 'bg-violet-600 border-violet-500 text-white scale-110 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
+                            : 'border-white/10 text-slate-500 hover:border-violet-500 hover:text-violet-400 bg-slate-900/40 hover:bg-slate-900/60'
+                        }
+                        ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+                      `}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-slate-500 font-medium text-sm text-right w-20">{t.test.options[4]}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ import base64
 import os
 import json
 
-from src.config.settings import CORS_ORIGINS, AI_RESPONSE_LANGUAGE
+from src.config.settings import CORS_ORIGINS, AI_RESPONSE_LANGUAGE, DATABASE_URL
 from src.database.database import get_db, init_db
 from src.database import models as db_models
 from src.api import models as api_models
@@ -145,7 +145,16 @@ def chat(
             db_models.Conversation.session_id == chat_request.session_id
         ).first()
         if not conversation:
-            raise HTTPException(status_code=404, detail="Conversation not found")
+            # Create new conversation with provided session_id
+            conversation = db_models.Conversation(
+                session_id=chat_request.session_id,
+                user_id=user_id,
+                extra_data={"module_status": {}}
+            )
+            db.add(conversation)
+            db.commit()
+            db.refresh(conversation)
+            logger.info(f"Created new conversation with session_id: {chat_request.session_id}")
     else:
         # Create new conversation with generated session_id
         session_id = str(uuid.uuid4())
@@ -465,63 +474,88 @@ def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
 # Questionnaire Endpoints
 # ============================================================================
 
+from src.database.questionnaire_models import AssessmentQuestionnaire as DBQuestionnaire, AssessmentQuestion as DBQuestion, AssessmentResponse as DBQuestionnaireResponse, AssessmentAnswer as DBAnswer
+from src.services.questionnaire_scoring import QuestionnaireScorer
+
 @app.get("/questionnaires")
-def get_all_questionnaires():
+def get_all_questionnaires(db: Session = Depends(get_db)):
     """
-    Get all available questionnaires from the resources folder
-    Returns a list of questionnaire metadata
+    Get all available questionnaires from database
+    Returns a list of questionnaire metadata with question counts
     """
     try:
-        questionnaires_dir = Path(__file__).parent.parent / "resources" / "questionnaire_jsons"
-        questionnaires = []
+        # Debug: Check database connection
+        logger.info(f"Database URL: {DATABASE_URL}")
 
-        if not questionnaires_dir.exists():
-            logger.warning(f"Questionnaires directory not found: {questionnaires_dir}")
-            return {"questionnaires": []}
+        # Debug: Check if tables exist
+        from sqlalchemy import inspect
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        logger.info(f"Available tables: {tables}")
 
-        for json_file in sorted(questionnaires_dir.glob("questionnaire_*.json")):
-            try:
-                with open(json_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    questionnaires.append({
-                        "id": json_file.stem,  # e.g., "questionnaire_2_1"
-                        "section": data.get("section"),
-                        "title": data.get("title"),
-                        "total_questions": len(data.get("questions", [])),
-                        "marking_criteria": data.get("marking_criteria")
-                    })
-            except Exception as e:
-                logger.error(f"Error loading questionnaire {json_file}: {e}")
-                continue
+        # Query questionnaires
+        questionnaires = db.query(DBQuestionnaire).all()
+        logger.info(f"Found {len(questionnaires)} questionnaires in database")
 
-        logger.info(f"Loaded {len(questionnaires)} questionnaires")
-        return {"questionnaires": questionnaires}
+        result = []
+        for q in questionnaires:
+            question_count = db.query(DBQuestion).filter(DBQuestion.questionnaire_id == q.id).count()
+            logger.info(f"Questionnaire {q.id}: {q.title} ({question_count} questions)")
+            result.append({
+                "id": q.id,
+                "section": q.section,
+                "title": q.title,
+                "total_questions": question_count,
+                "marking_criteria": q.marking_criteria
+            })
+
+        logger.info(f"Returning {len(result)} questionnaires")
+        return {"questionnaires": result}
 
     except Exception as e:
-        logger.error(f"Error getting questionnaires: {e}")
+        logger.error(f"Error getting questionnaires: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/questionnaires/{questionnaire_id}")
-def get_questionnaire(questionnaire_id: str):
+def get_questionnaire(questionnaire_id: str, db: Session = Depends(get_db)):
     """
-    Get a specific questionnaire by ID
+    Get a specific questionnaire by ID from database
     Returns the full questionnaire including all questions
     """
     try:
-        questionnaires_dir = Path(__file__).parent.parent / "resources" / "questionnaire_jsons"
-        questionnaire_file = questionnaires_dir / f"{questionnaire_id}.json"
+        questionnaire = db.query(DBQuestionnaire).filter(DBQuestionnaire.id == questionnaire_id).first()
 
-        if not questionnaire_file.exists():
+        if not questionnaire:
             raise HTTPException(status_code=404, detail=f"Questionnaire {questionnaire_id} not found")
 
-        with open(questionnaire_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        # Get all questions for this questionnaire
+        questions = db.query(DBQuestion).filter(
+            DBQuestion.questionnaire_id == questionnaire_id
+        ).order_by(DBQuestion.question_number).all()
 
-        logger.info(f"Loaded questionnaire: {questionnaire_id}")
+        # Format questions for frontend
+        formatted_questions = [
+            {
+                "id": q.question_number,
+                "text": q.text,
+                "category": q.category,
+                "sub_section": q.sub_section,
+                "dimension": q.dimension,
+                "options": q.options
+            }
+            for q in questions
+        ]
+
+        logger.info(f"Loaded questionnaire: {questionnaire_id} with {len(formatted_questions)} questions")
+
         return {
-            "id": questionnaire_id,
-            **data
+            "id": questionnaire.id,
+            "section": questionnaire.section,
+            "title": questionnaire.title,
+            "questions": formatted_questions,
+            "total_questions": len(formatted_questions),
+            "marking_criteria": questionnaire.marking_criteria
         }
 
     except HTTPException:
@@ -544,7 +578,7 @@ def submit_questionnaire_response(
     db: Session = Depends(get_db)
 ):
     """
-    Submit questionnaire responses and save them to the conversation
+    Submit questionnaire responses, calculate scores, and save to database
     Also marks the quick_assessment module as completed
     """
     try:
@@ -556,18 +590,69 @@ def submit_questionnaire_response(
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
-        # Initialize extra_data if needed
+        # Get questionnaire from database
+        questionnaire = db.query(DBQuestionnaire).filter(
+            DBQuestionnaire.id == response.questionnaire_id
+        ).first()
+
+        if not questionnaire:
+            raise HTTPException(status_code=404, detail=f"Questionnaire {response.questionnaire_id} not found")
+
+        # Get questions for this questionnaire
+        questions = db.query(DBQuestion).filter(
+            DBQuestion.questionnaire_id == response.questionnaire_id
+        ).all()
+
+        # Convert string keys to integers for scoring
+        answers_int = {int(k): v for k, v in response.answers.items()}
+
+        # Calculate scores using scoring service
+        scoring_result = QuestionnaireScorer.calculate_score(
+            questionnaire_id=response.questionnaire_id,
+            marking_criteria=questionnaire.marking_criteria,
+            answers=answers_int,
+            questions=questions
+        )
+
+        # Create questionnaire response record
+        db_response = DBQuestionnaireResponse(
+            conversation_id=conversation_id,
+            questionnaire_id=response.questionnaire_id,
+            total_score=scoring_result.get("total_score"),
+            category_scores=scoring_result.get("category_scores"),
+            interpretation=scoring_result.get("interpretation"),
+            extra_data=response.metadata or {}
+        )
+        db.add(db_response)
+        db.flush()  # Get the response ID
+
+        # Save individual answers
+        for question_number, answer_value in answers_int.items():
+            # Find the question in database
+            question = next((q for q in questions if q.question_number == question_number), None)
+            if question:
+                answer = DBAnswer(
+                    response_id=db_response.id,
+                    question_id=question.id,
+                    answer_value=answer_value
+                )
+                db.add(answer)
+
+        db.commit()
+        db.refresh(db_response)
+
+        # Also save to conversation extra_data for backward compatibility
         if not conversation.extra_data:
             conversation.extra_data = {}
 
-        # Store questionnaire responses
         if "questionnaire_responses" not in conversation.extra_data:
             conversation.extra_data["questionnaire_responses"] = {}
 
         conversation.extra_data["questionnaire_responses"][response.questionnaire_id] = {
-            "answers": response.answers,
-            "submitted_at": datetime.utcnow().isoformat(),
-            "metadata": response.metadata or {}
+            "response_id": db_response.id,
+            "total_score": scoring_result.get("total_score"),
+            "submitted_at": db_response.completed_at.isoformat(),
+            "interpretation": scoring_result.get("interpretation")
         }
 
         # Mark quick_assessment module as completed
@@ -582,22 +667,21 @@ def submit_questionnaire_response(
         module_status["quick_assessment"]["completion_data"] = {
             "questionnaire_id": response.questionnaire_id,
             "total_questions": len(response.answers),
-            "answers": response.answers
+            "total_score": scoring_result.get("total_score")
         }
 
         conversation.extra_data["module_status"] = module_status
-
-        # Mark the field as modified for SQLAlchemy
         flag_modified(conversation, "extra_data")
         db.commit()
-        db.refresh(conversation)
 
-        logger.info(f"Saved questionnaire response for conversation {conversation_id}: {response.questionnaire_id}")
+        logger.info(f"Saved questionnaire response for conversation {conversation_id}: {response.questionnaire_id} (score: {scoring_result.get('total_score')})")
 
         return {
             "message": "Questionnaire response saved successfully",
             "conversation_id": conversation_id,
             "questionnaire_id": response.questionnaire_id,
+            "response_id": db_response.id,
+            "scoring": scoring_result,
             "module_completed": "quick_assessment"
         }
 
@@ -605,6 +689,7 @@ def submit_questionnaire_response(
         raise
     except Exception as e:
         logger.error(f"Error submitting questionnaire response: {e}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -614,7 +699,7 @@ def get_conversation_questionnaire_responses(
     db: Session = Depends(get_db)
 ):
     """
-    Get all questionnaire responses for a conversation
+    Get all questionnaire responses with calculated scores for a conversation
     """
     try:
         conversation = db.query(db_models.Conversation).filter(
@@ -624,7 +709,33 @@ def get_conversation_questionnaire_responses(
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
-        responses = conversation.extra_data.get("questionnaire_responses", {}) if conversation.extra_data else {}
+        # Get all questionnaire responses from database
+        db_responses = db.query(DBQuestionnaireResponse).filter(
+            DBQuestionnaireResponse.conversation_id == conversation_id
+        ).all()
+
+        responses = {}
+        for db_response in db_responses:
+            # Get questionnaire details
+            questionnaire = db.query(DBQuestionnaire).filter(
+                DBQuestionnaire.id == db_response.questionnaire_id
+            ).first()
+
+            # Get answers
+            answers = db.query(DBAnswer).filter(
+                DBAnswer.response_id == db_response.id
+            ).all()
+
+            responses[db_response.questionnaire_id] = {
+                "response_id": db_response.id,
+                "questionnaire_title": questionnaire.title if questionnaire else None,
+                "total_score": db_response.total_score,
+                "category_scores": db_response.category_scores,
+                "interpretation": db_response.interpretation,
+                "completed_at": db_response.completed_at.isoformat(),
+                "answer_count": len(answers),
+                "extra_data": db_response.extra_data
+            }
 
         return {
             "conversation_id": conversation_id,
