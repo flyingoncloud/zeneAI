@@ -456,6 +456,105 @@ def analyze_image_uri(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/upload-sketch/")
+async def upload_sketch(
+    file: UploadFile = File(...),
+    conversation_id: Optional[int] = Form(None),
+    prompt: str = Form("请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。")
+):
+    """
+    Upload sketch image, save to disk, analyze with AI, and auto-complete Inner Doodling module
+
+    This endpoint:
+    1. Accepts an uploaded image file (PNG/JPEG)
+    2. Saves it to /uploads/sketches/ directory
+    3. Analyzes it using OpenAI Vision API
+    4. Auto-completes the inner_doodling module if conversation_id is provided
+    5. Returns the analysis result and file URI
+    """
+    logger.info(f"Received sketch upload - filename: {file.filename}, conversation_id: {conversation_id}")
+
+    try:
+        # Create uploads directory if it doesn't exist
+        upload_dir = Path("uploads/sketches")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename
+        file_extension = Path(file.filename).suffix if file.filename else ".png"
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = upload_dir / unique_filename
+
+        # Save uploaded file
+        logger.info(f"Saving file to: {file_path}")
+        contents = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        logger.info(f"Saved {len(contents)} bytes to {file_path}")
+
+        # Convert to base64 for AI analysis
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        logger.info(f"Converted to base64, length: {len(base64_image)}")
+
+        # Import language detection from chat_service
+        from src.api.chat_service import detect_language
+
+        # Auto-detect language from prompt (should be Chinese)
+        language = detect_language(prompt)
+        logger.info(f"Auto-detected language for sketch analysis: {language}")
+
+        # Analyze with AI
+        analysis = get_ai_response_with_image(prompt, base64_image, language=language)
+        logger.info(f"AI analysis completed: {analysis[:100]}...")
+
+        # Generate file URI for frontend
+        file_uri = f"/uploads/sketches/{unique_filename}"
+
+        # If conversation_id provided, auto-complete Inner Doodling module
+        if conversation_id:
+            try:
+                db = next(get_db())
+                conversation = db.query(db_models.Conversation).filter(
+                    db_models.Conversation.id == conversation_id
+                ).first()
+
+                if conversation:
+                    if not conversation.extra_data:
+                        conversation.extra_data = {}
+                    if "module_status" not in conversation.extra_data:
+                        conversation.extra_data["module_status"] = {}
+
+                    module_status = conversation.extra_data["module_status"]
+                    if "inner_doodling" not in module_status:
+                        module_status["inner_doodling"] = {}
+
+                    module_status["inner_doodling"]["completed_at"] = datetime.utcnow().isoformat()
+                    module_status["inner_doodling"]["completion_data"] = {
+                        "image_uri": file_uri,
+                        "analysis": analysis
+                    }
+
+                    conversation.extra_data["module_status"] = module_status
+                    flag_modified(conversation, "extra_data")
+                    db.commit()
+
+                    logger.info(f"Auto-marked Inner Doodling as complete for conversation {conversation_id}")
+                else:
+                    logger.warning(f"Conversation {conversation_id} not found")
+            except Exception as e:
+                logger.warning(f"Failed to auto-complete Inner Doodling: {e}")
+
+        return {
+            "ok": True,
+            "analysis": analysis,
+            "file_uri": file_uri,
+            "message": "涂鸦已上传并分析完成"
+        }
+
+    except Exception as e:
+        logger.error(f"Error uploading sketch: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+
+
 @app.delete("/conversations/{conversation_id}")
 def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
     """Delete a conversation"""

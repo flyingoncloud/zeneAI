@@ -12,7 +12,7 @@ import {
 } from '../../ui/tooltip';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { completeModuleWithRetry } from '../../../lib/api';
+import { uploadSketch } from '../../../lib/api';
 
 type IconProps = {
   size?: number | string;
@@ -197,67 +197,83 @@ export const InnerSketch: React.FC = () => {
 
     setIsSending(true);
 
-    // To save the image correctly (since the canvas is now transparent),
-    // we need to create a temporary canvas that has the dark background,
-    // draw our transparent drawing canvas over it, and then export that.
-    const canvas = canvasRef.current;
-    let dataUrl = '';
+    try {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+            toast.error('无法获取画布');
+            setIsSending(false);
+            return;
+        }
 
-    if (canvas) {
+        // Create a temporary canvas with solid background for export
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
         tempCanvas.height = canvas.height;
         const tCtx = tempCanvas.getContext('2d');
-        if (tCtx) {
-            // 1. Fill background (match app dark theme solid color)
-            // Using a specific dark slate color to match the UI bg-slate-900
-            tCtx.fillStyle = '#0f172a';
-            tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            // 2. Draw the drawing on top
-            tCtx.drawImage(canvas, 0, 0);
-            dataUrl = tempCanvas.toDataURL('image/png');
-        } else {
-            // Fallback
-            dataUrl = canvas.toDataURL('image/png');
+
+        if (!tCtx) {
+            toast.error('无法创建导出画布');
+            setIsSending(false);
+            return;
         }
-    }
 
-    // 1. Simulate network/processing delay (1s)
-    setTimeout(async () => {
-        // Complete module if conversation_id is available
-        if (conversationId) {
-          const result = await completeModuleWithRetry(
-            conversationId,
-            'inner_doodling',
-            { sketch_data: { has_drawing: true } }
-          );
+        // 1. Fill background (match app dark theme solid color)
+        tCtx.fillStyle = '#0f172a';
+        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-          if (result.ok) {
-            console.log('[Module Completed]', {
-              module_id: 'inner_doodling',
-              conversation_id: conversationId,
-              timestamp: new Date().toISOString()
+        // 2. Draw the drawing on top
+        tCtx.drawImage(canvas, 0, 0);
+
+        // Convert canvas to blob
+        const blob: Blob | null = await new Promise((resolve) => {
+            tempCanvas.toBlob(resolve, 'image/png', 0.95);
+        });
+
+        if (!blob) {
+            toast.error('无法生成图片');
+            setIsSending(false);
+            return;
+        }
+
+        // Upload sketch to backend with AI analysis
+        const result = await uploadSketch(blob, conversationId);
+
+        if (result.ok) {
+            console.log('[Sketch Uploaded & Module Completed]', {
+                module_id: 'inner_doodling',
+                conversation_id: conversationId,
+                file_uri: result.file_uri,
+                timestamp: new Date().toISOString()
             });
-          }
+
+            // Create data URL for local display
+            const dataUrl = tempCanvas.toDataURL('image/png');
+
+            // Add AI analysis as assistant message
+            addMessage(
+                result.analysis,
+                'assistant',
+                {
+                    type: 'sketch_analysis',
+                    url: result.file_uri,
+                    preview: dataUrl
+                }
+            );
+
+            toast.success('涂鸦已上传并分析完成');
+
+            // Navigate to Chat View
+            setCurrentView('chat');
+        } else {
+            toast.error('上传失败，请重试');
         }
 
+    } catch (error) {
+        console.error('Error uploading sketch:', error);
+        toast.error('上传失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
         setIsSending(false);
-
-        // 2. Add User Message with REAL canvas dataURL as attachment
-        addMessage(
-            "我想分享这张涂鸦，请帮我分析它。",
-            'user',
-            {
-                type: 'sketch',
-                url: dataUrl,
-                preview: dataUrl
-            }
-        );
-
-        // 3. Navigate to Chat View
-        setCurrentView('chat');
-
-    }, 800);
+    }
   };
 
   const getAnalysisDetail = (step: number) => {

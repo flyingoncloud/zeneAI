@@ -199,6 +199,47 @@ export async function analyzeImage(request: AnalyzeImageRequest): Promise<Analyz
 }
 
 /**
+ * Upload sketch image and get AI analysis
+ * Automatically completes the inner_doodling module if conversation_id is provided
+ */
+export interface UploadSketchResponse {
+  ok: boolean;
+  analysis: string;
+  file_uri: string;
+  message: string;
+}
+
+export async function uploadSketch(
+  blob: Blob,
+  conversationId?: number,
+  prompt: string = "请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。"
+): Promise<UploadSketchResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, 'sketch.png');
+    formData.append('prompt', prompt);
+    if (conversationId) {
+      formData.append('conversation_id', conversationId.toString());
+    }
+
+    const response = await fetch(`${API_BASE_URL}/upload-sketch/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error uploading sketch:', error);
+    throw error;
+  }
+}
+
+/**
  * Get gallery images
  */
 export async function getGallery(): Promise<{ ok: boolean; items: Array<{ id: string; url: string }> }> {
