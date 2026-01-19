@@ -438,10 +438,21 @@ export interface Questionnaire {
   };
 }
 
+export interface QuestionOption {
+  label: string;
+  value?: number;
+  text?: string;
+  score: number;
+}
+
 export interface QuestionnaireDetail extends Questionnaire {
   questions: Array<{
     id: number;
     text: string;
+    category?: string | null;
+    sub_section?: string | null;
+    dimension?: string | null;
+    options?: QuestionOption[];
   }>;
 }
 
@@ -449,6 +460,18 @@ export interface QuestionnaireResponse {
   questionnaire_id: string;
   answers: Record<string, number>;
   metadata?: Record<string, any>;
+}
+
+export interface QuestionnaireSubmissionResult {
+  ok: boolean;
+  message?: string;
+  module_completed?: string;
+  scoring?: {
+    total_score: number;
+    category_scores?: Record<string, number>;
+    interpretation?: string;
+  };
+  error?: string;
 }
 
 /**
@@ -527,12 +550,7 @@ export async function getQuestionnaire(questionnaireId: string): Promise<{
 export async function submitQuestionnaireResponse(
   conversationId: number,
   response: QuestionnaireResponse
-): Promise<{
-  ok: boolean;
-  message?: string;
-  module_completed?: string;
-  error?: string;
-}> {
+): Promise<QuestionnaireSubmissionResult> {
   try {
     const apiResponse = await fetch(
       `${API_BASE_URL}/conversations/${conversationId}/questionnaires/submit`,
@@ -554,7 +572,8 @@ export async function submitQuestionnaireResponse(
     return {
       ok: true,
       message: data.message,
-      module_completed: data.module_completed
+      module_completed: data.module_completed,
+      scoring: data.scoring
     };
   } catch (error) {
     console.error('Error submitting questionnaire response:', error);
