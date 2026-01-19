@@ -1,121 +1,71 @@
 """
 Module configurations for ZeneAI psychology support modules
+
+There are exactly 3 modules that can be recommended and tracked:
+1. emotional_first_aid - Contains two sequential steps: breathing exercise (呼吸训练) and emotion labeling (情绪命名)
+2. inner_doodling - Draw an image expressing inner world
+3. quick_assessment - Self-assessment covering five psychological dimensions
 """
 
 from typing import Dict, List, Optional
 
 # Module definitions with metadata
+# Only 3 modules exist - emotional_first_aid contains two STEPS (not sub-modules)
 MODULES = {
-    # PARENT MODULE: Emotional First Aid (never recommended directly)
+    # MODULE 1: Emotional First Aid (recommended when user has strong emotions)
+    # Contains two sequential steps: breathing exercise followed by emotion labeling
     "emotional_first_aid": {
         "id": "emotional_first_aid",
         "name_zh": "情绪急救",
         "name_en": "Emotional First Aid",
-        "category": "parent",
-        "is_parent": True,
+        "category": "emotional_support",
         "icon": "🚑",
-        "priority": None,  # Parent module is not recommended directly
-        "description_zh": "当情绪强烈或模糊时，提供即时支持的工具组合",
-        "description_en": "Immediate support tools for intense or unclear emotions",
-        "sub_modules": ["breathing_exercise", "emotion_labeling"],
-        "tags": ["emergency", "emotional_support"]
-    },
-
-    # SUB-MODULE 1: Breathing Exercise
-    "breathing_exercise": {
-        "id": "breathing_exercise",
-        "name_zh": "呼吸训练",
-        "name_en": "Breathing Exercise",
-        "category": "emotional_first_aid",
-        "parent_id": "emotional_first_aid",
-        "parent_module": "emotional_first_aid",  # Kept for backward compatibility
-        "is_sub_module": True,
-        "icon": "🫁",
-        "priority": 1,  # 1 = highest (emergency), 4 = lowest (informational)
-        "description_zh": "专注画面中的节奏起伏，让呼吸在几次往复间慢慢放缓、趋于平稳",
-        "description_en": "Focus on the rhythmic flow on screen, letting your breath slow down and stabilize",
+        "priority": 1,  # Highest priority - for emergency emotional support
+        "description_zh": "帮助你快速稳定身心状态，包含呼吸训练和情绪命名两个连续的练习",
+        "description_en": "Help you quickly stabilize your physical and emotional state, includes breathing exercise followed by emotion labeling",
+        # Internal steps (not separate modules, just for reference)
+        "steps": ["breathing_exercise", "emotion_labeling"],
+        "tags": ["emergency", "emotional_support", "emotion_regulation", "somatic"],
         # 低侵入 · 即时 · 非命令 · 保留"不做也可以"的空间 · 不解释原理 · 不承诺效果
         "guidance_template_zh": [
             # 语境A：明显焦虑/紧绷
-            "如果你愿意，我们可以先做一个很短的呼吸训练。它不需要你有任何问题，也不需要改变什么，只是给身体一点缓冲。你随时可以停。",
+            "如果你愿意，我们可以先做一个情绪急救练习。它包含呼吸训练和情绪命名两个部分，可以帮助你稳定当下的状态。你随时可以停。",
             # 语境B：情绪即将失控
-            "在继续之前，如果你愿意，我们可以先一起呼吸几次。什么都不用想，只是跟着节奏走一下。",
+            "在继续之前，如果你愿意，我们可以先做一个情绪急救练习。先通过呼吸让身体慢下来，然后给此刻的感受找个名字。",
             # 语境C：强烈身体反应
-            "不确定你现在身体的感觉如何，但如果有一点紧绷或不舒服，呼吸训练也许能帮身体慢一点。要不要试试？",
+            "不确定你现在身体的感觉如何，但如果有一点紧绷或不舒服，情绪急救也许能帮到你。它包含呼吸训练和情绪命名，要不要试试？",
             # 语境D：用户卡住、无法继续表达
-            "我们可以不用急着说。如果你愿意，先做一个简短的呼吸训练也可以，等感觉合适了再继续。"
+            "我们可以不用急着说。如果你愿意，先做一个情绪急救练习也可以，等感觉合适了再继续。"
         ],
         "guidance_template_en": [
             # Context A: Obvious anxiety/tension
-            "If you'd like, we can try a short breathing exercise. It doesn't assume there's a problem or require you to change anything—just offering your body a bit of space. You can stop anytime.",
+            "If you'd like, we can try an Emotional First Aid exercise. It includes breathing practice and emotion labeling to help stabilize your current state. You can stop anytime.",
             # Context B: Emotions about to lose control
-            "Before we continue, if you're open to it, we could take a few breaths together. Nothing to think about—just following the rhythm for a moment.",
+            "Before we continue, if you're open to it, we could try an Emotional First Aid exercise. First let your body slow down through breathing, then find a name for what you're feeling.",
             # Context C: Strong physical reactions
-            "I'm not sure how your body feels right now, but if there's any tightness or discomfort, a breathing exercise might help slow things down a little. Would you like to try?",
+            "I'm not sure how your body feels right now, but if there's any tightness or discomfort, Emotional First Aid might help. It includes breathing exercise and emotion labeling. Would you like to try?",
             # Context D: User stuck, unable to continue expressing
-            "We don't have to rush. If you want, we can do a brief breathing exercise first and continue when it feels right."
+            "We don't have to rush. If you want, we can do an Emotional First Aid exercise first and continue when it feels right."
         ],
-        "tags": ["emergency", "emotion_regulation", "somatic", "anxiety", "panic", "anger"],
         # 回流引导 - 模块完成后如何继续对话
         "followup_template_zh": [
-            "刚刚呼吸的时候，有什么感觉吗？",
-            "现在身体感觉怎么样？",
-            "这半分钟，有哪怕一点点不一样吗？"
-        ],
-        "followup_template_en": [
-            "How did that feel while you were breathing?",
-            "How does your body feel now?",
-            "Was there even a slight difference in that half minute?"
-        ]
-    },
-
-    # SUB-MODULE 2: Emotion Labeling
-    "emotion_labeling": {
-        "id": "emotion_labeling",
-        "name_zh": "情绪命名",
-        "name_en": "Emotion Labeling",
-        "category": "emotional_first_aid",
-        "parent_id": "emotional_first_aid",
-        "parent_module": "emotional_first_aid",  # Kept for backward compatibility
-        "is_sub_module": True,
-        "icon": "🏷️",
-        "priority": 2,
-        "description_zh": "从多个选项中选出最贴近当下的表情与词语，为此刻的感受留下一枚安静的标记",
-        "description_en": "Select the expression or word that comes closest to your current feeling, leaving a quiet marker for this moment",
-        # 温柔标记 · "不需要解释" · "最接近"而非"最准确" · 把命名当作"标记"，不是定义
-        "guidance_template_zh": [
-            "有时候，不一定要想清楚发生了什么，只是给当下的感受找个名字，就能多一点清晰感。要不要试试「情绪命名」？",
-            '即使现在的感受很模糊，或者像是好几种混在一起，「情绪命名」也可以作为一个起点。选一个"最接近的"就够了。',
-            "如果不想多说，「情绪命名」可能是个轻一点的方式。"
-        ],
-        "guidance_template_en": [
-            "Sometimes you don't need to fully understand what's going on—just naming what you're feeling right now can bring some clarity. Want to try Emotion Labeling?",
-            "Even if the feeling is vague or mixed, Emotion Labeling can still be a starting point. You don't need the perfect word—just the closest one.",
-            "If you don't feel like explaining much, Emotion Labeling might be a lighter option."
-        ],
-        "tags": ["emotional_awareness", "alexithymia", "self_understanding", "clarity"],
-        # 回流引导 - 基于命名结果继续探索（模块不是结束，而是对话的新支点）
-        "followup_template_zh": [
+            "刚刚做完情绪急救，感觉怎么样？",
             "你选了'{emotion}'，这个词很轻，但很准。它更像是一直都有，还是最近才变重的？",
-            "'{emotion}'——这个感觉，是新的，还是老朋友了？",
-            "这个'{emotion}'的感觉，你觉得它在你身体的哪个地方？"
+            "现在身体感觉怎么样？有哪怕一点点不一样吗？"
         ],
         "followup_template_en": [
+            "How do you feel after the Emotional First Aid exercise?",
             "You chose '{emotion}', that word is subtle but accurate. Has it always been there, or did it get heavier recently?",
-            "'{emotion}'—is this feeling new, or an old companion?",
-            "This feeling of '{emotion}', where do you sense it in your body?"
+            "How does your body feel now? Was there even a slight difference?"
         ]
     },
 
-    # STANDALONE MODULE 3: Inner Insight Doodling
+    # MODULE 2: Inner Insight Doodling
     "inner_doodling": {
         "id": "inner_doodling",
         "name_zh": "内视涂鸦",
         "name_en": "Inner Insight Doodling",
         "category": "creative_expression",
-        "parent_id": None,
-        "parent_module": None,  # Kept for backward compatibility
-        "is_sub_module": False,
         "icon": "🎨",
         "priority": 3,
         "description_zh": "绘制一幅能够表达内心世界或当下情绪状态的图像",
@@ -145,15 +95,12 @@ MODULES = {
         ]
     },
 
-    # STANDALONE MODULE 4: Quick Assessment
+    # MODULE 3: Quick Assessment
     "quick_assessment": {
         "id": "quick_assessment",
         "name_zh": "内视快测",
         "name_en": "Inner Insight Quick Assessment",
         "category": "self_assessment",
-        "parent_id": None,
-        "parent_module": None,  # Kept for backward compatibility
-        "is_sub_module": False,
         "icon": "📊",
         "priority": 4,
         "description_zh": "覆盖五大心理维度的自我评估，完成后可对心理特质、情绪模式和行为倾向进行全面分析",
@@ -195,59 +142,6 @@ def get_modules_by_category(category: str) -> List[Dict]:
     return [m for m in MODULES.values() if m['category'] == category]
 
 
-def get_parent_module(module_id: str) -> Optional[str]:
-    """Get parent module name if this is a sub-module"""
-    module = MODULES.get(module_id)
-    if module and module.get('parent_module'):
-        return module['parent_module']
-    return None
-
-
-def get_sub_modules(parent_id: str) -> List[Dict]:
-    """
-    Get all sub-modules of a parent module
-
-    Args:
-        parent_id: Parent module ID (e.g., "emotional_first_aid")
-
-    Returns:
-        List of sub-module configurations
-    """
-    parent = MODULES.get(parent_id)
-    if not parent or not parent.get('is_parent'):
-        return []
-
-    sub_module_ids = parent.get('sub_modules', [])
-    return [MODULES[sid] for sid in sub_module_ids if sid in MODULES]
-
-
-def is_sub_module(module_id: str) -> bool:
-    """
-    Check if a module is a sub-module
-
-    Args:
-        module_id: Module ID to check
-
-    Returns:
-        True if module is a sub-module, False otherwise
-    """
-    module = MODULES.get(module_id)
-    return module.get('is_sub_module', False) if module else False
-
-
-def get_parent_module_info(module_id: str) -> Optional[Dict]:
-    """
-    Get parent module configuration for a sub-module
-
-    Args:
-        module_id: Sub-module ID
-
-    Returns:
-        Parent module configuration, or None if not a sub-module
-    """
-    module = MODULES.get(module_id)
-    if not module or not module.get('is_sub_module'):
-        return None
-
-    parent_id = module.get('parent_id')
-    return MODULES.get(parent_id) if parent_id else None
+def get_all_module_ids() -> List[str]:
+    """Get list of all valid module IDs"""
+    return list(MODULES.keys())

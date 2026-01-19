@@ -6,8 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../ui/textarea';
 import { Label } from '../../ui/label';
 import { useZenemeStore, MoodLog } from '../../../hooks/useZenemeStore';
-import { completeModuleWithRetry } from '../../../lib/api';
-import { toast } from 'sonner';
 
 // NOTE: 不改 imports 的前提下，避免 eslint 报未使用（不影响运行逻辑）
 void DialogTrigger;
@@ -52,7 +50,7 @@ const MOOD_COLORS = {
 type MoodKey = keyof typeof MOOD_COLORS;
 
 export const MoodTracker: React.FC = () => {
-  const { moodLogs, logMood, t, conversationId } = useZenemeStore();
+  const { moodLogs, logMood, t } = useZenemeStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -110,24 +108,9 @@ export const MoodTracker: React.FC = () => {
 
     logMood(payload);
 
-    // Complete module if conversation_id is available
-    if (conversationId) {
-      const result = await completeModuleWithRetry(
-        conversationId,
-        'emotion_labeling',
-        { mood: newMood, date: dateStr, note: newNote }
-      );
-
-      if (result.ok) {
-        console.log('[Module Completed]', {
-          module_id: 'emotion_labeling',
-          conversation_id: conversationId,
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        toast.error('保存完成状态失败，但您的心情已记录');
-      }
-    }
+    // Note: MoodTracker is a standalone mood logging feature.
+    // emotion_labeling is a step within emotional_first_aid module, not a standalone module.
+    // Module completion for emotional_first_aid is handled in EmotionalFirstAid.tsx.
 
     setIsLogModalOpen(false);
   };

@@ -44,7 +44,7 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 
 export const EmotionalFirstAid: React.FC = () => {
   const [step, setStep] = useState<'intro' | 'breathing' | 'naming'>('intro');
-  const { t, setCurrentView, conversationId } = useZenemeStore();
+  const { t, setCurrentView, conversationId, setModuleStatus } = useZenemeStore();
 
   const handleExit = () => {
     setCurrentView('chat');
@@ -55,7 +55,7 @@ export const EmotionalFirstAid: React.FC = () => {
     if (conversationId) {
       const result = await completeModuleWithRetry(
         conversationId,
-        'breathing_exercise',
+        'emotional_first_aid',
         {
           completed_steps: ['breathing', 'emotion_naming'],
           emotion: emotionData.emotion,
@@ -65,8 +65,11 @@ export const EmotionalFirstAid: React.FC = () => {
       );
 
       if (result.ok) {
+        if (result.module_status) {
+          setModuleStatus(result.module_status);
+        }
         console.log('[Module Completed]', {
-          module_id: 'breathing_exercise',
+          module_id: 'emotional_first_aid',
           conversation_id: conversationId,
           emotion: emotionData.emotion,
           intensity: emotionData.intensity,

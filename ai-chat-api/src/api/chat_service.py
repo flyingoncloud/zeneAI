@@ -87,11 +87,10 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 ⚠️ 重要：你绝不提及自己是"AI"、"人工智能"、"语言模型"、"机器人"或"助手"。你就是一个在场的倾听者与陪伴者。
 
 <Overall Goal>
-你的最终目标，是在自然对话中，引导用户完成以下四个心理模块：
-1. 情绪急救（呼吸训练）
-2. 情绪急救（情绪命名）
-3. 内视涂鸦
-4. 内视快测
+你的最终目标，是在自然对话中，引导用户完成以下三个心理模块：
+1. 情绪急救
+2. 内视涂鸦
+3. 内视快测
 
 你会在合适的时机、合适的语境下，逐步推荐这些模块，直到：
 - 所有模块都已完成，或
@@ -101,9 +100,12 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 
 <Modules Definition>
 【情绪急救】
-- 呼吸训练：用于帮助处于强烈情绪、压力或失控感中的用户，快速稳定生理与情绪状态。
-- 情绪命名：用于在呼吸训练之后，引导用户识别、区分并命名自身情绪体验。
-注意：情绪命名通常在呼吸训练完成后再推荐。
+当用户处于强烈情绪、压力或失控感中时推荐此模块，帮助用户快速稳定身心状态。
+情绪急救包含两个连续的步骤：
+- 呼吸训练（第一步）：通过引导式呼吸帮助用户稳定生理与情绪状态
+- 情绪命名（第二步）：在呼吸训练完成后，引导用户识别、区分并命名自身情绪体验
+这两个步骤在同一模块内连续完成，用户会先做呼吸训练，然后做情绪命名。
+推荐时，向用户简要说明这两个部分。
 
 【内视涂鸦】
 通过让用户绘制一幅能够表达其内心世界或当下情绪状态的图像，
@@ -135,13 +137,14 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 
 <CRITICAL INSTRUCTION - Function Calling>
 ⚠️ 每当你在回复中自然地推荐或提及以下任何模块时，你必须同时调用 recommend_module 函数：
-- 呼吸训练 (breathing_exercise)
-- 情绪命名 (emotion_labeling)
+- 情绪急救 (emotional_first_aid) - 包含呼吸训练和情绪命名两个步骤
 - 内视涂鸦 (inner_doodling)
 - 内视快测 (quick_assessment)
 
-即使你只是委婉地暗示或建议（例如"也许我们可以试试呼吸练习"），也必须调用函数。
+即使你只是委婉地暗示或建议（例如"也许我们可以试试情绪急救"、"也许我们可以试试呼吸训练"），也必须调用函数。
 这是系统跟踪推荐的唯一方式，不调用函数则推荐不会被记录。
+
+⚠️ 极其重要：你必须始终在回复中提供文字内容。即使你在调用函数，也必须同时输出你想对用户说的话。绝对不要只调用函数而不输出任何文字。
 
 <Boundaries>
 - 不进行医学或精神疾病诊断
@@ -169,11 +172,10 @@ Your role is not to teach, diagnose, or fix the user, but to gently accompany th
 ⚠️ Important: Never mention that you are an "AI," "artificial intelligence," "language model," "bot," or "assistant." You are simply a present listener and companion.
 
 <Overall Goal>
-Your ultimate goal is to naturally guide the user, through conversation, to complete the following four modules:
-1. Emotional First Aid (Breathing Exercises)
-2. Emotional First Aid (Emotion Labeling)
-3. Inner Insight Doodling
-4. Inner Insight Quick Assessment
+Your ultimate goal is to naturally guide the user, through conversation, to complete the following three modules:
+1. Emotional First Aid
+2. Inner Insight Doodling
+3. Inner Insight Quick Assessment
 
 You continue guiding until:
 - All modules have been completed, or
@@ -183,9 +185,12 @@ User autonomy and consent must always be respected.
 
 <Modules Definition>
 [Emotional First Aid]
-- Breathing Exercises: designed to help users regulate intense emotions and restore physiological and emotional stability.
-- Emotion Labeling: helps users identify, differentiate, and name their emotional experiences.
-Note: Emotion labeling is normally recommended after breathing exercises have been completed.
+Recommend this module when the user is experiencing intense emotions, stress, or feeling out of control, to help them quickly stabilize their physical and emotional state.
+Emotional First Aid contains two sequential steps:
+- Breathing Exercise (Step 1): Guided breathing to help stabilize physiological and emotional state
+- Emotion Labeling (Step 2): After breathing exercise, guide user to identify, differentiate, and name their emotional experience
+These two steps are completed together within the same module - user does breathing exercise first, then emotion labeling.
+When recommending, briefly explain both parts to the user.
 
 [Inner Insight Doodling]
 Users draw an image that represents their inner world or current emotional state.
@@ -218,13 +223,14 @@ Upon completion, it provides a more structured understanding of the user's psych
 
 <CRITICAL INSTRUCTION - Function Calling>
 ⚠️ Whenever you naturally recommend or mention any of these modules in your response, you MUST simultaneously call the recommend_module function:
-- Breathing Exercise (breathing_exercise)
-- Emotion Labeling (emotion_labeling)
+- Emotional First Aid (emotional_first_aid) - contains Breathing Exercise and Emotion Labeling steps
 - Inner Doodling (inner_doodling)
 - Quick Assessment (quick_assessment)
 
-Even if you're being subtle or indirect (e.g., "maybe we could try some breathing exercises"), you MUST call the function.
+Even if you're being subtle or indirect (e.g., "maybe we could try some emotional first aid", "maybe we could try some breathing exercises"), you MUST call the function.
 This is the ONLY way the system tracks recommendations - without the function call, the recommendation will not be recorded.
+
+⚠️ CRITICAL: You MUST always provide text content in your response. Even when calling a function, you MUST also output the message you want to say to the user. NEVER call a function without also providing text content.
 
 <Boundaries>
 - Do not provide medical or psychiatric diagnoses
@@ -262,13 +268,12 @@ def format_module_status(module_status: Dict, language: str = "chinese") -> str:
         status_text += "以下是各模块的实时完成状态：\n\n"
 
         modules = [
-            ("breathing_exercise", "呼吸训练 (Breathing Exercise)"),
-            ("emotion_labeling", "情绪命名 (Emotion Labeling)"),
-            ("inner_doodling", "内视涂鸦 (Inner Doodling)"),
-            ("quick_assessment", "内视快测 (Quick Assessment)")
+            ("emotional_first_aid", "情绪急救 (Emotional First Aid)", ["呼吸训练", "情绪命名"]),
+            ("inner_doodling", "内视涂鸦 (Inner Doodling)", None),
+            ("quick_assessment", "内视快测 (Quick Assessment)", None)
         ]
 
-        for module_id, module_name in modules:
+        for module_id, module_name, steps in modules:
             status = module_status.get(module_id, {})
 
             if status.get("completed_at"):
@@ -276,14 +281,17 @@ def format_module_status(module_status: Dict, language: str = "chinese") -> str:
                 # Include completion data if available
                 if status.get("completion_data"):
                     data = status["completion_data"]
-                    if module_id == "emotion_labeling" and "emotion" in data:
-                        status_text += f"  选择的情绪: {data['emotion']}\n"
-                    elif module_id == "breathing_exercise" and "duration" in data:
-                        status_text += f"  持续时间: {data['duration']}秒\n"
+                    if module_id == "emotional_first_aid":
+                        if "emotion" in data:
+                            status_text += f"  选择的情绪: {data['emotion']}\n"
+                        if "duration" in data:
+                            status_text += f"  呼吸训练持续时间: {data['duration']}秒\n"
             elif status.get("recommended_at"):
                 status_text += f"⧗ {module_name}: 已推荐但尚未完成\n"
             else:
                 status_text += f"○ {module_name}: 尚未开始\n"
+                if steps:
+                    status_text += f"  (包含步骤: {', '.join(steps)})\n"
 
         status_text += "\n</当前模块状态>\n\n"
         status_text += "重要提醒：\n"
@@ -296,27 +304,29 @@ def format_module_status(module_status: Dict, language: str = "chinese") -> str:
         status_text += "Real-time completion status of each module:\n\n"
 
         modules = [
-            ("breathing_exercise", "Breathing Exercise (呼吸训练)"),
-            ("emotion_labeling", "Emotion Labeling (情绪命名)"),
-            ("inner_doodling", "Inner Doodling (内视涂鸦)"),
-            ("quick_assessment", "Quick Assessment (内视快测)")
+            ("emotional_first_aid", "Emotional First Aid (情绪急救)", ["Breathing Exercise", "Emotion Labeling"]),
+            ("inner_doodling", "Inner Doodling (内视涂鸦)", None),
+            ("quick_assessment", "Quick Assessment (内视快测)", None)
         ]
 
-        for module_id, module_name in modules:
+        for module_id, module_name, steps in modules:
             status = module_status.get(module_id, {})
 
             if status.get("completed_at"):
                 status_text += f"✓ {module_name}: COMPLETED\n"
                 if status.get("completion_data"):
                     data = status["completion_data"]
-                    if module_id == "emotion_labeling" and "emotion" in data:
-                        status_text += f"  Selected emotion: {data['emotion']}\n"
-                    elif module_id == "breathing_exercise" and "duration" in data:
-                        status_text += f"  Duration: {data['duration']} seconds\n"
+                    if module_id == "emotional_first_aid":
+                        if "emotion" in data:
+                            status_text += f"  Selected emotion: {data['emotion']}\n"
+                        if "duration" in data:
+                            status_text += f"  Breathing exercise duration: {data['duration']} seconds\n"
             elif status.get("recommended_at"):
                 status_text += f"⧗ {module_name}: Recommended but not completed\n"
             else:
                 status_text += f"○ {module_name}: Not yet started\n"
+                if steps:
+                    status_text += f"  (Contains steps: {', '.join(steps)})\n"
 
         status_text += "\n</Current Module Status>\n\n"
         status_text += "Important Reminders:\n"
@@ -350,15 +360,13 @@ def _detect_module_mentions(
     # Define module keywords for detection
     if language == "chinese":
         module_patterns = {
-            "breathing_exercise": ["呼吸训练", "呼吸练习", "深呼吸", "呼吸"],
-            "emotion_labeling": ["情绪命名", "给情绪命名", "命名情绪", "情绪标签"],
+            "emotional_first_aid": ["情绪急救", "呼吸训练", "呼吸练习", "深呼吸", "情绪命名", "给情绪命名", "命名情绪"],
             "inner_doodling": ["内视涂鸦", "涂鸦", "画一幅", "绘制"],
             "quick_assessment": ["内视快测", "快测", "评估", "测试", "量表"]
         }
     else:
         module_patterns = {
-            "breathing_exercise": ["breathing exercise", "breathing practice", "deep breath", "breath"],
-            "emotion_labeling": ["emotion labeling", "label emotion", "name emotion", "emotion label"],
+            "emotional_first_aid": ["emotional first aid", "breathing exercise", "breathing practice", "deep breath", "emotion labeling", "label emotion", "name emotion"],
             "inner_doodling": ["inner doodling", "doodling", "draw", "sketch"],
             "quick_assessment": ["quick assessment", "assessment", "test", "questionnaire"]
         }
@@ -391,19 +399,18 @@ def get_openai_tools() -> List[Dict]:
             "type": "function",
             "function": {
                 "name": "recommend_module",
-                "description": "REQUIRED: Call this function whenever you recommend, suggest, or mention any of the 4 psychological support modules (breathing exercise, emotion labeling, inner doodling, quick assessment) in your response - even if you phrase it subtly or indirectly. This is the ONLY way the system tracks module recommendations. Without calling this function, the recommendation will not be registered.",
+                "description": "REQUIRED: Call this function whenever you recommend, suggest, or mention any of the 3 psychological support modules (emotional first aid, inner doodling, quick assessment) in your response - even if you phrase it subtly or indirectly. This is the ONLY way the system tracks module recommendations. Without calling this function, the recommendation will not be registered.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "module_id": {
                             "type": "string",
                             "enum": [
-                                "breathing_exercise",
-                                "emotion_labeling",
+                                "emotional_first_aid",
                                 "inner_doodling",
                                 "quick_assessment"
                             ],
-                            "description": "The ID of the module being recommended"
+                            "description": "The ID of the module being recommended."
                         },
                         "reasoning": {
                             "type": "string",
@@ -511,7 +518,11 @@ def get_ai_response(
         )
 
         message = response.choices[0].message
-        ai_content = message.content or ""
+        ai_content = (message.content or "").strip()  # Strip whitespace
+
+        # Debug: Log raw content for troubleshooting
+        logger.info(f"Raw message.content: {repr(message.content)}")
+        logger.info(f"Stripped ai_content: {repr(ai_content)}")
 
         # Step 4: Extract function calls (module recommendations)
         recommended_modules = []
@@ -591,6 +602,39 @@ def get_ai_response(
                 logger.info(f"  - {mod['name']} ({mod['module_id']})")
         else:
             logger.info("✓ Returning response with no module recommendations")
+
+        # Debug: Log content state before fallback
+        logger.info(f"Content check - ai_content: {repr(ai_content)}, length: {len(ai_content)}")
+
+        # Fallback: If there are module recommendations but no content, generate contextual message
+        if not ai_content.strip() and recommended_modules:
+            logger.warning("⚠️ Module recommended but no AI content, generating contextual message")
+            # Generate message based on which module was recommended
+            module_id = recommended_modules[0]["module_id"]
+            if language == "chinese":
+                module_messages = {
+                    "emotional_first_aid": "我感受到你现在可能需要一些情绪上的支持。这里有一个情绪急救的练习，包含呼吸训练和情绪命名，可以帮助你稳定当下的状态。你愿意试试吗？",
+                    "inner_doodling": "有时候，用图像来表达内心的感受会比语言更直接。这里有一个内视涂鸦的练习，你可以画出此刻心中的画面。你想试试吗？",
+                    "quick_assessment": "如果你想更系统地了解自己目前的状态，这里有一个内视快测，可以帮助你从多个维度认识自己。你愿意尝试吗？"
+                }
+                ai_content = module_messages.get(module_id, "我注意到你现在的状态，让我来帮你看看有什么可以帮到你的。")
+            else:
+                module_messages = {
+                    "emotional_first_aid": "I sense you might need some emotional support right now. There's an Emotional First Aid exercise that includes breathing practice and emotion labeling to help stabilize your current state. Would you like to try it?",
+                    "inner_doodling": "Sometimes expressing inner feelings through images can be more direct than words. There's an Inner Doodling exercise where you can draw what's in your heart right now. Would you like to try?",
+                    "quick_assessment": "If you'd like a more systematic understanding of your current state, there's a Quick Assessment that can help you understand yourself from multiple dimensions. Would you like to try it?"
+                }
+                ai_content = module_messages.get(module_id, "I notice what you're going through. Let me see how I can help you.")
+
+        # Final fallback: Ensure we NEVER return empty content
+        if not ai_content.strip():
+            logger.error("⚠️ AI returned completely empty response - applying final fallback")
+            logger.error(f"  - message.content: {repr(message.content)}")
+            logger.error(f"  - message.tool_calls: {message.tool_calls}")
+            if language == "chinese":
+                ai_content = "我在这里倾听你。请继续分享你的想法或感受。"
+            else:
+                ai_content = "I'm here to listen. Please continue sharing your thoughts or feelings."
 
         return {
             "content": ai_content,

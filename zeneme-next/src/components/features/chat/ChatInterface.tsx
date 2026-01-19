@@ -9,14 +9,14 @@ import { ReportPage } from './ReportPage';
 import { ChatInput } from '../../ChatInput';
 import { Heart, PenTool, ClipboardList, Maximize2 } from 'lucide-react';
 import { Dialog, DialogContent } from '../../ui/dialog';
-import { sendChatMessage, generateConversationReport, getReportStatus } from '../../../lib/api';
+import { generateConversationReport, getReportStatus } from '../../../lib/api';
 import { ModuleRecommendationCard } from './ModuleRecommendationCard';
 import { toast } from 'sonner';
 
 // Module ID to View mapping
+// Only 3 modules exist: emotional_first_aid, inner_doodling, quick_assessment
 const MODULE_VIEW_MAP: Record<string, View> = {
-  'breathing_exercise': 'first-aid',
-  'emotion_labeling': 'mood',
+  'emotional_first_aid': 'first-aid',
   'inner_doodling': 'sketch',
   'quick_assessment': 'test'
 };
@@ -254,7 +254,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { t, setCurrentView, addMessage, conversationId, language } = useZenemeStore();
+  const { t, setCurrentView, addMessage, conversationId, language, moduleStatus } = useZenemeStore();
 
   const lastMessage = messages[messages.length - 1];
 
@@ -267,16 +267,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
   const stopRequestedRef = useRef<boolean>(false);
 
   // Effect to trigger AI response workflow
-  // Only trigger if the last message is from user AND we haven't processed it yet
+  // Handle UI state when user sends a message
+  // NOTE: The actual API call is handled by page.tsx via onSendMessage prop
   useEffect(() => {
-    // Cleanup helper for any pending timers
-    const clearAiTimeout = () => {
-      if (aiTimeoutRef.current) {
-        clearTimeout(aiTimeoutRef.current);
-        aiTimeoutRef.current = null;
-      }
-    };
-
     if (lastMessage?.role === 'user' && lastMessage.id !== lastProcessedMessageIdRef.current) {
       // Mark as processed immediately to prevent duplicate triggers
       lastProcessedMessageIdRef.current = lastMessage.id;
@@ -286,59 +279,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAiResponseStopped(false);
 
-      // Ensure no old timer is alive (safety)
-      clearAiTimeout();
-
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsThinking(true);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAiReplying(true); // Lock input immediately when user sends
-
-      // Call the real API instead of simulating
-      aiTimeoutRef.current = setTimeout(async () => {
-        // If user pressed Stop during thinking, do nothing (don't add AI message)
-        if (stopRequestedRef.current) {
-          return;
-        }
-
-        try {
-          // Call the backend API
-          const response = await sendChatMessage({
-            message: lastMessage.content,
-            images: lastMessage.attachment?.url ? [lastMessage.attachment.url] : undefined,
-          });
-
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setIsThinking(false);
-
-          // Add the AI response to messages
-          addMessage(response.reply, 'ai');
-        } catch (error) {
-          console.error('Error getting AI response:', error);
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setIsThinking(false);
-
-          // Fallback response on error
-          const fallbackResponse =
-            '抱歉，我现在遇到了一些技术问题。请稍后再试，或者继续告诉我你的感受，我会尽力帮助你。';
-          addMessage(fallbackResponse, 'ai');
-        }
-      }, 1500); // 1.5s thinking time
     }
+  }, [lastMessage]);
 
-    return () => {
-      // Always clear timer on unmount / re-run to avoid stray callbacks
-      if (aiTimeoutRef.current) {
-        clearTimeout(aiTimeoutRef.current);
-        aiTimeoutRef.current = null;
-      }
-    };
-  }, [lastMessage, messages.length, addMessage]); // Depend on lastMessage and length
-
-  // When a new AI message appears (length increases and last is AI), ensure we track it as replying
+  // When a new AI message appears, stop thinking and start replying animation
   useEffect(() => {
     if (lastMessage?.role === 'ai') {
-      // It's already added, so AIMessageBubble is rendering.
+      // AI message arrived, stop thinking indicator
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsThinking(false);
       // We keep isAiReplying = true until AIMessageBubble calls onComplete.
     }
   }, [lastMessage]);
@@ -564,12 +517,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                 {message.role === 'ai' && message.recommended_modules && message.recommended_modules.length > 0 && (
                   <div className="pl-8 space-y-3">
                     {message.recommended_modules
-                      .filter(module => !isModuleCompleted(module.module_id, message.module_status))
+                      .filter(module => !isModuleCompleted(module.module_id, moduleStatus))
                       .map((module, idx) => (
                         <ModuleRecommendationCard
                           key={module.module_id}
                           module={module}
-                          isCompleted={isModuleCompleted(module.module_id, message.module_status)}
+                          isCompleted={isModuleCompleted(module.module_id, moduleStatus)}
                           onAccess={handleModuleAccess}
                           delay={idx * 0.1}
                         />
