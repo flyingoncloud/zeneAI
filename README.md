@@ -26,3 +26,4 @@ Spring Boot API server for ZeneAI IFS therapy platform.
 - `POST /api/zene/suggest` - Therapy suggestions
 
 Server runs on http://localhost:8080
+# zenedevtest
