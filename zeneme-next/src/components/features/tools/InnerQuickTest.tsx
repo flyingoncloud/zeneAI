@@ -9,6 +9,8 @@ import {
   getQuestionnaire,
   submitQuestionnaireResponse,
   sendChatMessage,
+  getPsychologyReportStatus,
+  downloadPsychologyReport,
   type QuestionnaireDetail,
   type QuestionOption,
   type QuestionnaireSubmissionResult
@@ -68,11 +70,44 @@ export const InnerQuickTest: React.FC = () => {
     };
   }, [setExitAction, clearExitAction]);
 
+  // NEW: Report generation state
+  const [reportId, setReportId] = useState<number | null>(null);
+  const [reportStatus, setReportStatus] = useState<string>('');
+  const [reportProgress, setReportProgress] = useState<number>(0);
+
   // Debug: Log conversationId
   useEffect(() => {
     console.log('[InnerQuickTest] conversationId:', conversationId);
     console.log('[InnerQuickTest] sessionId:', sessionId);
   }, [conversationId, sessionId]);
+
+  // NEW: Poll for report status
+  useEffect(() => {
+    if (!reportId || reportStatus === 'completed' || reportStatus === 'failed') {
+      return;
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const status = await getPsychologyReportStatus(reportId);
+
+        setReportStatus(status.status);
+        setReportProgress(status.progress || 0);
+
+        if (status.status === 'completed') {
+          toast.success('报告生成完成！您可以下载查看。');
+          clearInterval(pollInterval);
+        } else if (status.status === 'failed') {
+          toast.error('报告生成失败，请联系客服。');
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error('Error polling report status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [reportId, reportStatus]);
 
   // Auto-create conversation if it doesn't exist
   useEffect(() => {
@@ -115,6 +150,12 @@ export const InnerQuickTest: React.FC = () => {
   // Fetch all questionnaires on component mount and combine them
   useEffect(() => {
     const fetchAndCombineQuestionnaires = async () => {
+      // Wait for conversation to be created first
+      if (!conversationId) {
+        console.log('[InnerQuickTest] Waiting for conversation to be created before loading questionnaires');
+        return;
+      }
+
       setLoading(true);
       try {
         const result = await getAllQuestionnaires();
@@ -171,7 +212,7 @@ export const InnerQuickTest: React.FC = () => {
     };
 
     fetchAndCombineQuestionnaires();
-  }, []);
+  }, [conversationId]); // Add conversationId as dependency
 
   const totalQuestions = selectedQuestionnaire?.questions.length || 0;
 
@@ -266,7 +307,7 @@ export const InnerQuickTest: React.FC = () => {
             if (result.module_status) {
               setModuleStatus(result.module_status);
             }
-            
+
             console.log(`[Questionnaire ${qMeta.id} Submitted Successfully]`, {
               questionnaire_id: qMeta.id,
               conversation_id: conversationId,
@@ -274,7 +315,7 @@ export const InnerQuickTest: React.FC = () => {
               timestamp: new Date().toISOString()
             });
 
-            // From HEAD: Store the scoring result for display
+            // Store the scoring result for display
             if (result.scoring) {
               results.push({
                 questionnaire_id: qMeta.id,
@@ -283,6 +324,16 @@ export const InnerQuickTest: React.FC = () => {
                 total_score: result.scoring.total_score,
                 category_scores: result.scoring.category_scores,
                 interpretation: result.scoring.interpretation
+              });
+            }
+
+            // NEW: Check if report generation started
+            if (result.report_id) {
+              setReportId(result.report_id);
+              setReportStatus(result.report_status || 'pending');
+              console.log('[Report Generation Started]', {
+                report_id: result.report_id,
+                status: result.report_status
               });
             }
           } else {
@@ -459,6 +510,75 @@ export const InnerQuickTest: React.FC = () => {
                   </li>
                 </ul>
               </Card>
+
+              {/* NEW: Report Generation Status */}
+              {reportStatus === 'pending' && reportId && (
+                <Card className="p-6 space-y-4 bg-blue-900/20 border-blue-500/20 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                    <h3 className="font-semibold text-lg text-blue-300">正在生成专业报告...</h3>
+                  </div>
+                  <p className="text-slate-300">
+                    我们正在为您生成详细的心理报告，包含专业分析和可视化图表。这可能需要30-60秒。
+                  </p>
+                  <div className="w-full bg-blue-900/30 rounded-full h-3">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-violet-500 h-3 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                      style={{ width: `${reportProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-blue-400">
+                    进度: {reportProgress}%
+                  </p>
+                </Card>
+              )}
+
+              {reportStatus === 'completed' && reportId && (
+                <Card className="p-6 space-y-4 bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/20 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">✅</span>
+                    </div>
+                    <h3 className="font-semibold text-lg text-green-300">报告已生成</h3>
+                  </div>
+                  <p className="text-slate-300">
+                    您的专业心理报告已经生成完成！报告包含详细的分析、可视化图表和个性化建议。
+                  </p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const result = await downloadPsychologyReport(reportId);
+                        if (!result.ok) {
+                          toast.error(`下载失败: ${result.error}`);
+                        } else {
+                          toast.success('报告下载成功！');
+                        }
+                      } catch (error) {
+                        console.error('Download error:', error);
+                        toast.error('下载失败，请重试');
+                      }
+                    }}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-500 hover:to-emerald-500 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] font-semibold text-lg flex items-center justify-center gap-2"
+                  >
+                    <span className="text-xl">📥</span>
+                    下载心理报告 (DOCX)
+                  </button>
+                </Card>
+              )}
+
+              {reportStatus === 'failed' && reportId && (
+                <Card className="p-6 space-y-4 bg-red-900/20 border-red-500/20 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">❌</span>
+                    </div>
+                    <h3 className="font-semibold text-lg text-red-300">报告生成失败</h3>
+                  </div>
+                  <p className="text-slate-300">
+                    很抱歉，报告生成过程中出现了问题。请联系客服或稍后重试。
+                  </p>
+                </Card>
+              )}
             </div>
           ) : (
             <Card className="p-8 text-center space-y-4 bg-slate-900/40 border-white/5 backdrop-blur-md shadow-lg">

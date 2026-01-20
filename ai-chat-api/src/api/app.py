@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -465,6 +465,55 @@ def analyze_image_uri(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/analyze-sketch/")
+async def analyze_sketch(
+    image_data: str = Form(...),
+    prompt: str = Form("请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。")
+):
+    """
+    Analyze sketch image from base64 data without saving to disk
+
+    This endpoint is used for the "开始分析" (Analyze) button to provide
+    immediate AI analysis without uploading/saving the image.
+
+    Parameters:
+    - image_data: Base64 encoded image data (with or without data URI prefix)
+    - prompt: Analysis prompt (default: Chinese prompt for Inner Doodling)
+
+    Returns:
+    - analysis: AI analysis text
+    """
+    logger.info(f"Received sketch analysis request")
+    logger.info(f"Prompt: {prompt[:100]}...")
+
+    try:
+        # Remove data URI prefix if present (e.g., "data:image/png;base64,")
+        if image_data.startswith('data:'):
+            image_data = image_data.split(',', 1)[1]
+
+        logger.info(f"Base64 data length: {len(image_data)}")
+
+        # Import language detection from chat_service
+        from src.api.chat_service import detect_language
+
+        # Auto-detect language from prompt (should be Chinese)
+        language = detect_language(prompt)
+        logger.info(f"Auto-detected language for sketch analysis: {language}")
+
+        # Analyze with AI
+        analysis = get_ai_response_with_image(prompt, image_data, language=language)
+        logger.info(f"AI analysis completed: {analysis[:100]}...")
+
+        return {
+            "ok": True,
+            "analysis": analysis
+        }
+
+    except Exception as e:
+        logger.error(f"Error analyzing sketch: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}")
+
+
 @app.post("/upload-sketch/")
 async def upload_sketch(
     file: UploadFile = File(...),
@@ -684,11 +733,13 @@ class QuestionnaireResponse(BaseModel):
 def submit_questionnaire_response(
     conversation_id: int,
     response: QuestionnaireResponse,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
     Submit questionnaire responses, calculate scores, and save to database
     Also marks the quick_assessment module as completed
+    If all 4 questionnaires are completed, triggers psychology report generation
     """
     try:
         # Get conversation
@@ -785,14 +836,175 @@ def submit_questionnaire_response(
 
         logger.info(f"Saved questionnaire response for conversation {conversation_id}: {response.questionnaire_id} (score: {scoring_result.get('total_score')})")
 
+        # NEW: Check if all 4 questionnaires completed and trigger report generation
+        report_id = None
+        report_status = None
+
+        # Count completed questionnaires for this conversation
+        completed_count = db.query(DBQuestionnaireResponse).filter(
+            DBQuestionnaireResponse.conversation_id == conversation_id
+        ).count()
+
+        logger.info(f"Completed questionnaires count: {completed_count}")
+
+        if completed_count >= 4:  # All 4 questionnaires done
+            logger.info(f"All questionnaires completed for conversation {conversation_id}, triggering report generation")
+
+            # Get or create psychology_assessment
+            from src.database.psychology_models import PsychologyAssessment, PsychologyReport
+            from src.api.psychology_report_routes import generate_report_background
+
+            # Get all questionnaire responses for this conversation
+            all_responses = db.query(DBQuestionnaireResponse).filter(
+                DBQuestionnaireResponse.conversation_id == conversation_id
+            ).all()
+
+            # Calculate dimension scores from questionnaire responses
+            # Map questionnaire scores to psychology dimensions
+            dimension_scores = {
+                'emotional_regulation_score': 0,
+                'cognitive_flexibility_score': 0,
+                'relationship_sensitivity_score': 0,
+                'internal_conflict_score': 0,
+                'growth_potential_score': 0
+            }
+
+            # Extract scores from each questionnaire
+            for resp in all_responses:
+                if resp.questionnaire_id == 'questionnaire_2_1':  # Emotional
+                    dimension_scores['emotional_regulation_score'] = int(resp.total_score or 0)
+                elif resp.questionnaire_id == 'questionnaire_2_2':  # Cognitive
+                    dimension_scores['cognitive_flexibility_score'] = int(resp.total_score or 0)
+                elif resp.questionnaire_id == 'questionnaire_2_3':  # Relational
+                    dimension_scores['relationship_sensitivity_score'] = int(resp.total_score or 0)
+                    # Also store attachment scores in sub_dimension_scores
+                elif resp.questionnaire_id == 'questionnaire_2_5':  # Growth
+                    dimension_scores['growth_potential_score'] = int(resp.total_score or 0)
+
+            # Calculate internal conflict score (average of emotional and cognitive)
+            dimension_scores['internal_conflict_score'] = int(
+                (dimension_scores['emotional_regulation_score'] +
+                 dimension_scores['cognitive_flexibility_score']) / 2
+            )
+
+            logger.info(f"Calculated dimension scores: {dimension_scores}")
+
+            # Get user_id (use conversation.user_id or fallback to session_id)
+            user_id = conversation.user_id or conversation.session_id
+            logger.info(f"Using user_id: {user_id}")
+
+            # NEW: Ensure UserProfile exists for this user_id
+            from src.database.psychology_models import UserProfile
+
+            user_profile = db.query(UserProfile).filter(
+                UserProfile.user_id == user_id
+            ).first()
+
+            if not user_profile:
+                # Create a user profile for this session/user
+                user_profile = UserProfile(
+                    user_id=user_id,
+                    username=f"User_{user_id[:8]}",  # Generate a display name
+                    language_preference='zh'
+                )
+                db.add(user_profile)
+                db.commit()
+                db.refresh(user_profile)
+                logger.info(f"Created UserProfile for user_id: {user_id}")
+
+            # Check if assessment already exists for this user
+            assessment = db.query(PsychologyAssessment).filter(
+                PsychologyAssessment.user_id == user_id,
+                PsychologyAssessment.assessment_type == 'questionnaire'
+            ).order_by(PsychologyAssessment.created_at.desc()).first()
+
+            if not assessment:
+                # Create assessment record with calculated scores
+                assessment = PsychologyAssessment(
+                    user_id=user_id,
+                    assessment_type='questionnaire',
+                    completion_percentage=100,
+                    is_complete=True,
+                    completed_at=datetime.utcnow(),
+                    emotional_regulation_score=dimension_scores['emotional_regulation_score'],
+                    cognitive_flexibility_score=dimension_scores['cognitive_flexibility_score'],
+                    relationship_sensitivity_score=dimension_scores['relationship_sensitivity_score'],
+                    internal_conflict_score=dimension_scores['internal_conflict_score'],
+                    growth_potential_score=dimension_scores['growth_potential_score'],
+                    extra_data={'conversation_id': conversation_id}
+                )
+                db.add(assessment)
+                db.commit()
+                db.refresh(assessment)
+                logger.info(f"Created psychology_assessment with id={assessment.id} and dimension scores")
+            else:
+                # Update existing assessment with new scores
+                assessment.completion_percentage = 100
+                assessment.is_complete = True
+                assessment.completed_at = datetime.utcnow()
+                assessment.emotional_regulation_score = dimension_scores['emotional_regulation_score']
+                assessment.cognitive_flexibility_score = dimension_scores['cognitive_flexibility_score']
+                assessment.relationship_sensitivity_score = dimension_scores['relationship_sensitivity_score']
+                assessment.internal_conflict_score = dimension_scores['internal_conflict_score']
+                assessment.growth_potential_score = dimension_scores['growth_potential_score']
+                if not assessment.extra_data:
+                    assessment.extra_data = {}
+                assessment.extra_data['conversation_id'] = conversation_id
+                db.commit()
+                db.refresh(assessment)
+                logger.info(f"Updated existing psychology_assessment with id={assessment.id} and dimension scores")
+
+            # Check if report already exists for this assessment
+            existing_report = db.query(PsychologyReport).filter(
+                PsychologyReport.assessment_id == assessment.id
+            ).first()
+
+            if existing_report:
+                # Report already exists, return its status
+                report_id = existing_report.id
+                report_status = existing_report.generation_status
+                logger.info(f"Report already exists with id={report_id}, status={report_status}")
+            else:
+                # Create psychology_report record
+                report = PsychologyReport(
+                    user_id=user_id,  # Use the same user_id as assessment (with fallback)
+                    assessment_id=assessment.id,
+                    report_type='comprehensive',
+                    language='zh',
+                    format='docx',
+                    report_data={},
+                    generation_status='pending'
+                )
+                db.add(report)
+                db.commit()
+                db.refresh(report)
+
+                report_id = report.id
+                report_status = 'pending'
+
+                logger.info(f"Created psychology_report with id={report_id}, triggering background generation")
+
+                # Trigger background report generation
+                background_tasks.add_task(
+                    generate_report_background,
+                    report_id=report.id,
+                    assessment_id=assessment.id,
+                    user_id=user_id,  # Use the same user_id (with fallback)
+                    language='zh',
+                    db_session=db
+                )
+
         return {
-            "message": "Questionnaire response saved successfully",
+            "ok": True,
+            "message": "问卷提交成功" if not report_id else "所有问卷已完成！正在生成您的心理报告...",
             "conversation_id": conversation_id,
             "questionnaire_id": response.questionnaire_id,
             "response_id": db_response.id,
             "scoring": scoring_result,
             "module_completed": "quick_assessment",
-            "module_status": module_status  # Return full module status for frontend sync
+            "module_status": module_status,  # Return full module status for frontend sync
+            "report_id": report_id,
+            "report_status": report_status
         }
 
     except HTTPException:

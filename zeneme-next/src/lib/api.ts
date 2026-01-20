@@ -248,6 +248,41 @@ export async function uploadSketch(
 }
 
 /**
+ * Analyze sketch image from base64 data without saving
+ * Used for the "开始分析" (Analyze) button to provide immediate analysis
+ */
+export interface AnalyzeSketchResponse {
+  ok: boolean;
+  analysis: string;
+}
+
+export async function analyzeSketch(
+  imageData: string,
+  prompt: string = "请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。"
+): Promise<AnalyzeSketchResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image_data', imageData);
+    formData.append('prompt', prompt);
+
+    const response = await fetch(`${API_BASE_URL}/analyze-sketch/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error analyzing sketch:', error);
+    throw error;
+  }
+}
+
+/**
  * Get gallery images
  */
 export async function getGallery(): Promise<{ ok: boolean; items: Array<{ id: string; url: string }> }> {
@@ -521,6 +556,8 @@ export interface QuestionnaireSubmissionResult {
     interpretation?: string;
   };
   module_status?: Record<string, any>;
+  report_id?: number;        // NEW
+  report_status?: string;    // NEW
   error?: string;
 }
 
@@ -696,3 +733,99 @@ export async function getQuestionnaireResponses(conversationId: number): Promise
     };
   }
 }
+
+// ============================================================================
+// Psychology Report API Methods
+// ============================================================================
+
+export interface PsychologyReportStatus {
+  ok: boolean;
+  report_id: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress?: number;
+  current_step?: string;
+  estimated_time_remaining?: number;
+  report_data?: any;
+  error?: string;
+}
+
+/**
+ * Get psychology report status
+ */
+export async function getPsychologyReportStatus(reportId: number): Promise<PsychologyReportStatus> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching psychology report status:', error);
+    return {
+      ok: false,
+      report_id: reportId,
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Download psychology report as DOCX file
+ */
+export async function downloadPsychologyReport(reportId: number): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/download`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `ZeneMe心理报告_${reportId}.docx`;
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Create blob and download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    return { ok: true };
+  } catch (error) {
+    console.error('Error downloading psychology report:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+

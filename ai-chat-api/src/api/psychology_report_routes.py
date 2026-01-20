@@ -6,8 +6,11 @@ and generating specific analysis texts.
 """
 
 import logging
+import os
+from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
@@ -18,6 +21,13 @@ from src.services.psychology.dominant_elements import identify_all_dominant_elem
 from src.services.psychology.analysis_generator import generate_all_analysis_texts
 from src.services.psychology.personality_classifier import classify_and_save_personality
 from src.services.psychology.report_assembler import assemble_report_data
+from src.services.psychology.docx_generator import generate_psychology_report_docx
+from src.resources.drawing_utils import (
+    draw_radar_chart,
+    draw_perspective_bar_chart,
+    draw_relational_rating_scale,
+    draw_growth_bar_chart
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +97,9 @@ def generate_report_background(
     2. Generate analysis texts
     3. Classify personality style
     4. Assemble report data
-    5. Update report status
+    5. Generate charts
+    6. Generate DOCX report
+    7. Update report status
     """
     try:
         logger.info(f"Starting background report generation for report_id={report_id}")
@@ -140,14 +152,48 @@ def generate_report_background(
             language=language
         )
 
-        # Step 5: Update report status to completed
-        logger.info("Step 5: Updating report status to completed")
+        # Step 5: Generate charts
+        logger.info("Step 5: Generating charts")
+
+        # Create charts directory
+        base_dir = Path(__file__).parent.parent.parent
+        charts_dir = base_dir / "reports" / "charts" / f"report_{report_id}"
+        charts_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate all charts
+        draw_radar_chart(report_data, str(charts_dir / "radar_chart.png"))
+        draw_perspective_bar_chart(report_data, str(charts_dir / "perspective_bar_chart.png"))
+        draw_relational_rating_scale(report_data, str(charts_dir / "relational_rating_scale.png"))
+        draw_growth_bar_chart(report_data, str(charts_dir / "growth_bar_chart.png"))
+
+        logger.info(f"Charts generated in {charts_dir}")
+
+        # Step 6: Generate DOCX report
+        logger.info("Step 6: Generating DOCX report")
+
+        # Create reports directory
+        reports_dir = base_dir / "reports" / "generated"
+        reports_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate DOCX
+        docx_path = generate_psychology_report_docx(
+            report_data=report_data,
+            output_dir=str(reports_dir),
+            report_id=report_id,
+            charts_dir=str(charts_dir)
+        )
+
+        logger.info(f"DOCX report generated: {docx_path}")
+
+        # Step 7: Update report status to completed
+        logger.info("Step 7: Updating report status to completed")
         report = db_session.query(PsychologyReport).filter(
             PsychologyReport.id == report_id
         ).first()
 
         if report:
             report.report_data = report_data
+            report.file_path = docx_path  # Save DOCX file path
             report.generation_status = 'completed'
             report.generated_at = datetime.utcnow()
             db_session.commit()
@@ -403,3 +449,61 @@ async def generate_analysis_texts(
             analyses=[],
             error=str(e)
         )
+
+
+@router.get("/report/{report_id}/download")
+async def download_report(
+    report_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Download psychology report as DOCX file.
+
+    Returns the generated DOCX file for download.
+    """
+    try:
+        logger.info(f"Download request for report {report_id}")
+
+        # Query report
+        report = db.query(PsychologyReport).filter(
+            PsychologyReport.id == report_id
+        ).first()
+
+        if not report:
+            raise HTTPException(status_code=404, detail=f"报告 {report_id} 未找到")
+
+        # Check if report is completed
+        if report.generation_status != 'completed':
+            raise HTTPException(
+                status_code=400,
+                detail=f"报告尚未生成完成，当前状态: {report.generation_status}"
+            )
+
+        # Check if file exists
+        if not report.file_path or not os.path.exists(report.file_path):
+            raise HTTPException(status_code=404, detail="报告文件未找到")
+
+        # Get user info for filename
+        assessment = db.query(PsychologyAssessment).filter(
+            PsychologyAssessment.id == report.assessment_id
+        ).first()
+
+        # Generate friendly filename
+        user_name = "用户"
+        if assessment and assessment.user_id:
+            user_name = assessment.user_id
+
+        filename = f"ZeneMe心理报告_{user_name}_{report_id}.docx"
+
+        # Return file
+        return FileResponse(
+            path=report.file_path,
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            filename=filename
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading report: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"下载报告时出错: {str(e)}")
