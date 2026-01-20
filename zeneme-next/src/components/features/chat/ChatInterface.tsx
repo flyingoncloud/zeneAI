@@ -23,7 +23,17 @@ const MODULE_VIEW_MAP: Record<string, View> = {
 
 // Helper function to check if module is completed
 function isModuleCompleted(moduleId: string, moduleStatus?: ModuleStatus): boolean {
-  return !!(moduleStatus?.[moduleId]?.completed_at);
+  const isCompleted = !!(moduleStatus?.[moduleId]?.completed_at);
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Module Filter]', {
+      moduleId,
+      isCompleted,
+      completedAt: moduleStatus?.[moduleId]?.completed_at,
+      moduleStatus
+    });
+  }
+  return isCompleted;
 }
 
 /**

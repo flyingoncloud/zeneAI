@@ -44,7 +44,7 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 
 export const EmotionalFirstAid: React.FC = () => {
   const [step, setStep] = useState<'intro' | 'breathing' | 'naming'>('intro');
-  const { t, setCurrentView, conversationId, setModuleStatus } = useZenemeStore();
+  const { t, setCurrentView, conversationId, setModuleStatus, setPendingModuleCompletion } = useZenemeStore();
 
   const handleExit = () => {
     setCurrentView('chat');
@@ -68,6 +68,8 @@ export const EmotionalFirstAid: React.FC = () => {
         if (result.module_status) {
           setModuleStatus(result.module_status);
         }
+        // Set pending module completion to trigger continuation message
+        setPendingModuleCompletion('emotional_first_aid');
         console.log('[Module Completed]', {
           module_id: 'emotional_first_aid',
           conversation_id: conversationId,

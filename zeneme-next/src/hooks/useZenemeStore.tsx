@@ -5,12 +5,13 @@ import { translations, Language } from '@/utils/translations';
 
 export type View = 'chat' | 'sketch' | 'test' | 'mood' | 'first-aid' | 'history'| 'new-chat';
 
-export type ChatSession = {
+type ChatSession = {
   id: string;
   title: string;
   messages: Message[];
   updatedAt: Date;
   isDraft: boolean;
+  moduleStatus?: ModuleStatus;
 };
 
 export type RecommendedModule = {
@@ -42,7 +43,6 @@ export type Message = {
   };
   // Module recommendation data
   recommended_modules?: RecommendedModule[];
-  module_status?: ModuleStatus;
 };
 
 export type MoodLog = {
@@ -75,6 +75,14 @@ interface ZenemeContextType {
   currentSessionId: string | null;
   createNewSession: () => void;
   selectSession: (id: string) => void;
+
+  // Module Status
+  moduleStatus?: ModuleStatus;
+  setModuleStatus: (status: ModuleStatus) => void;
+
+  // Pending module completion - triggers a continuation message when returning to chat
+  pendingModuleCompletion: string | null;
+  setPendingModuleCompletion: (moduleId: string | null) => void;
 
   // Conversation tracking for module completion
   sessionId: string | undefined;
@@ -134,6 +142,12 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
+  // Module Status
+  const [moduleStatus, setModuleStatus] = useState<ModuleStatus | undefined>(undefined);
+
+  // Pending module completion - triggers a continuation message when returning to chat
+  const [pendingModuleCompletion, setPendingModuleCompletion] = useState<string | null>(null);
 
   // Conversation tracking for module completion
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
@@ -220,7 +234,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         attachment,
         ...(moduleData && {
           recommended_modules: moduleData.recommended_modules,
-          module_status: moduleData.module_status
+          // No longer storing module_status on the message
         })
       };
 
@@ -232,12 +246,23 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         newTitle = content.slice(0, 30) + (content.length > 30 ? '...' : '');
       }
 
+      // Merge the new module_status with the existing session moduleStatus
+      const newModuleStatus = {
+        ...session.moduleStatus,
+        ...moduleData?.module_status
+      };
+      
+      if (moduleData?.module_status) {
+        setModuleStatus(newModuleStatus);
+      }
+
       return {
         ...session,
         messages: newMessages,
         updatedAt: new Date(),
         isDraft: false, // No longer draft once message added
-        title: newTitle
+        title: newTitle,
+        moduleStatus: newModuleStatus
       };
     }));
   }, [currentSessionId]);
@@ -287,6 +312,10 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currentSessionId,
         createNewSession,
         selectSession,
+        moduleStatus,
+        setModuleStatus,
+        pendingModuleCompletion,
+        setPendingModuleCompletion,
         sessionId,
         conversationId,
         setSessionId,

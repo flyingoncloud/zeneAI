@@ -44,7 +44,7 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon: IconComponent } & IconProps)
 const DEFAULT_COLOR = '#e2e8f0';
 
 export const InnerSketch: React.FC = () => {
-  const { t, setCurrentView, addMessage, conversationId } = useZenemeStore();
+  const { t, setCurrentView, addMessage, conversationId, setModuleStatus, setPendingModuleCompletion } = useZenemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -245,6 +245,12 @@ export const InnerSketch: React.FC = () => {
                 file_uri: result.file_uri,
                 timestamp: new Date().toISOString()
             });
+
+            if (result.module_status) {
+              setModuleStatus(result.module_status);
+            }
+            // Set pending module completion to trigger continuation message
+            setPendingModuleCompletion('inner_doodling');
 
             // Create data URL for local display
             const dataUrl = tempCanvas.toDataURL('image/png');

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
-import { ClipboardList, Loader2 } from 'lucide-react';
+import { ClipboardList, Loader2, MessageCircle } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import {
   getAllQuestionnaires,
@@ -44,7 +44,7 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 };
 
 export const InnerQuickTest: React.FC = () => {
-  const { t, conversationId, sessionId, setSessionId, setConversationId } = useZenemeStore();
+  const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion } = useZenemeStore();
   const [view, setView] = useState<'test' | 'result'>('test');
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -253,22 +253,30 @@ export const InnerQuickTest: React.FC = () => {
             }
           });
 
-          if (result.ok && result.scoring) {
+          if (result.ok) {
+            // From incoming: Update module status in the store
+            if (result.module_status) {
+              setModuleStatus(result.module_status);
+            }
+            
             console.log(`[Questionnaire ${qMeta.id} Submitted Successfully]`, {
               questionnaire_id: qMeta.id,
-              total_score: result.scoring.total_score,
-              category_scores: result.scoring.category_scores
+              conversation_id: conversationId,
+              module_completed: result.module_completed,
+              timestamp: new Date().toISOString()
             });
 
-            // Store the scoring result
-            results.push({
-              questionnaire_id: qMeta.id,
-              title: qMeta.title,
-              section: qMeta.section,
-              total_score: result.scoring.total_score,
-              category_scores: result.scoring.category_scores,
-              interpretation: result.scoring.interpretation
-            });
+            // From HEAD: Store the scoring result for display
+            if (result.scoring) {
+              results.push({
+                questionnaire_id: qMeta.id,
+                title: qMeta.title,
+                section: qMeta.section,
+                total_score: result.scoring.total_score,
+                category_scores: result.scoring.category_scores,
+                interpretation: result.scoring.interpretation
+              });
+            }
           } else {
             console.error(`[Questionnaire ${qMeta.id} Submission Failed]`, result);
             toast.error(`问卷 ${qMeta.section} 提交失败: ${result.error || '未知错误'}`);
@@ -345,6 +353,15 @@ export const InnerQuickTest: React.FC = () => {
               </Button>
               <Button className="bg-violet-600 hover:bg-violet-500 text-white border-none shadow-[0_0_15px_rgba(139,92,246,0.3)]">
                 <SafeIcon icon={Icons.Save} className="mr-2 h-4 w-4" /> 保存报告
+              </Button>
+              <Button
+                onClick={() => {
+                  setPendingModuleCompletion('quick_assessment');
+                  setCurrentView('chat');
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-[0_0_15px_rgba(52,211,153,0.3)]"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" /> 返回对话
               </Button>
             </div>
           </header>

@@ -275,7 +275,7 @@ def complete_module(
     logger.info(f"Marking module {module_id} as complete for conversation {conversation_id}")
 
     # Validate module_id
-    valid_modules = ["breathing_exercise", "emotion_labeling", "inner_doodling", "quick_assessment"]
+    valid_modules = ["emotional_first_aid", "inner_doodling", "quick_assessment"]
     if module_id not in valid_modules:
         raise HTTPException(status_code=400, detail=f"Invalid module_id. Must be one of: {valid_modules}")
 
@@ -327,7 +327,7 @@ def get_module_status(
     """
     Get module completion status for a conversation
 
-    Returns the status of all 4 modules (recommended, completed, etc.)
+    Returns the status of all 3 modules (recommended, completed, etc.)
     """
     conversation = db.query(db_models.Conversation).filter(
         db_models.Conversation.id == conversation_id
@@ -344,7 +344,7 @@ def get_module_status(
     from src.modules.module_config import get_module_by_id
 
     result = {}
-    for module_id in ["breathing_exercise", "emotion_labeling", "inner_doodling", "quick_assessment"]:
+    for module_id in ["emotional_first_aid", "inner_doodling", "quick_assessment"]:
         module_config = get_module_by_id(module_id)
         status = module_status.get(module_id, {})
 
@@ -547,7 +547,8 @@ async def upload_sketch(
             "ok": True,
             "analysis": analysis,
             "file_uri": file_uri,
-            "message": "涂鸦已上传并分析完成"
+            "message": "涂鸦已上传并分析完成",
+            "module_status": conversation.extra_data.get("module_status", {})
         }
 
     except Exception as e:
@@ -781,7 +782,8 @@ def submit_questionnaire_response(
             "questionnaire_id": response.questionnaire_id,
             "response_id": db_response.id,
             "scoring": scoring_result,
-            "module_completed": "quick_assessment"
+            "module_completed": "quick_assessment",
+            "module_status": module_status  # Return full module status for frontend sync
         }
 
     except HTTPException:

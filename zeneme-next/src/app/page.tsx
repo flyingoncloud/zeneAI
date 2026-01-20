@@ -16,7 +16,7 @@ import { MoodTracker } from "@/components/features/tools/MoodTracker";
 
 import { useZenemeStore, type View } from "@/hooks/useZenemeStore";
 import { DEFAULT_VIEW, VIEW_QUERY_KEY, isRoutableView, viewToHref, type RoutableView } from "@/lib/routes";
-import { sendChatMessage } from "@/lib/api";
+import { sendChatMessage, sendModuleCompletionMessage } from "@/lib/api";
 import { filterFunctionCallText, validateModuleData } from "@/utils/contentFilter";
 
 export default function Home() {
@@ -31,7 +31,10 @@ export default function Home() {
     sessionId,
     conversationId,
     setSessionId,
-    setConversationId
+    setConversationId,
+    setModuleStatus,
+    pendingModuleCompletion,
+    setPendingModuleCompletion
   } = useZenemeStore();
 
  const urlViewRaw = searchParams.get(VIEW_QUERY_KEY);
@@ -80,6 +83,64 @@ React.useEffect(() => {
 
 
 
+  // Handle pending module completion when returning to chat
+  React.useEffect(() => {
+    const handlePendingCompletion = async () => {
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Pending Completion Check]', {
+          currentView,
+          pendingModuleCompletion,
+          sessionId,
+          willRun: currentView === 'chat' && pendingModuleCompletion && sessionId
+        });
+      }
+
+      if (currentView === 'chat' && pendingModuleCompletion && sessionId) {
+        const moduleId = pendingModuleCompletion;
+        // Clear immediately to prevent duplicate calls
+        setPendingModuleCompletion(null);
+
+        try {
+          // Module name mapping
+          const MODULE_NAMES: Record<string, string> = {
+            'emotional_first_aid': '情绪急救',
+            'inner_doodling': '内视涂鸦',
+            'quick_assessment': '内视快测'
+          };
+          const moduleName = MODULE_NAMES[moduleId] || moduleId;
+          const completionMessage = `我刚刚完成了${moduleName}.`;
+
+          // Add user message about completion
+          addMessage(completionMessage, "user");
+
+          // Send to API for AI response
+          const response = await sendModuleCompletionMessage(sessionId, moduleId);
+
+          if (response && response.assistant_message?.content) {
+            const filteredContent = filterFunctionCallText(response.assistant_message.content);
+            const recommendedModules = response.recommended_modules || [];
+            const validModules = recommendedModules.filter(validateModuleData);
+
+            if (filteredContent) {
+              addMessage(filteredContent, "ai", undefined, {
+                recommended_modules: validModules,
+              });
+            }
+
+            if (response.module_status) {
+              setModuleStatus(response.module_status);
+            }
+          }
+        } catch (error) {
+          console.error('Error sending module completion message:', error);
+        }
+      }
+    };
+
+    handlePendingCompletion();
+  }, [currentView, pendingModuleCompletion, sessionId, setPendingModuleCompletion, addMessage, setModuleStatus]);
+
   const handleSendMessage = async (text: string) => {
     addMessage(text, "user");
 
@@ -90,14 +151,38 @@ React.useEffect(() => {
         session_id: sessionId
       });
 
+      // Debug: Log full response in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API Response]', JSON.stringify(response, null, 2));
+      }
+
+      // Check if response is empty or malformed
+      if (!response || Object.keys(response).length === 0) {
+        console.error('Empty response from API');
+        addMessage("抱歉，服务器返回了空响应，请稍后再试。", "ai");
+        return;
+      }
+
       // Store session_id and conversation_id for subsequent messages
-      if (!sessionId) {
+      if (!sessionId && response.session_id) {
         setSessionId(response.session_id);
       }
-      setConversationId(response.conversation_id);
+      if (response.conversation_id) {
+        setConversationId(response.conversation_id);
+      }
 
       // Extract AI content and filter out function call text
       const aiContent = response.assistant_message?.content;
+
+      // Debug logging for content processing
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Content Debug]', {
+          hasAssistantMessage: !!response.assistant_message,
+          rawContent: aiContent,
+          contentLength: aiContent?.length || 0
+        });
+      }
+
       const filteredContent = filterFunctionCallText(aiContent);
 
       if (filteredContent) {
@@ -118,10 +203,19 @@ React.useEffect(() => {
         // Add AI message with module recommendations
         addMessage(filteredContent, "ai", undefined, {
           recommended_modules: validModules,
-          module_status: response.module_status || {}
         });
+        if (response.module_status) {
+          setModuleStatus(response.module_status);
+        }
       } else {
-        console.error('No content in AI response:', response);
+        // Enhanced error logging
+        console.error('[Empty Content Debug]', {
+          rawContent: aiContent,
+          filteredContent,
+          assistantMessage: response.assistant_message,
+          recommendedModules: response.recommended_modules,
+          fullResponse: response
+        });
         addMessage("抱歉，我没有收到完整的回复。", "ai");
       }
 

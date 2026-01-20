@@ -77,6 +77,8 @@ export interface AnalyzeImageResponse {
  */
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
   try {
+    console.log('[API] Sending chat message to:', `${API_BASE_URL}/chat/`);
+
     const response = await fetch(`${API_BASE_URL}/chat/`, {
       method: 'POST',
       headers: {
@@ -86,14 +88,19 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
       body: JSON.stringify(request),
     });
 
+    console.log('[API] Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[API] Error response body:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('[API] Response data keys:', Object.keys(data));
     return data;
   } catch (error) {
-    console.error('Error sending chat message:', error);
+    console.error('[API] Error sending chat message:', error);
     throw error;
   }
 }
@@ -207,6 +214,7 @@ export interface UploadSketchResponse {
   analysis: string;
   file_uri: string;
   message: string;
+  module_status?: Record<string, any>;
 }
 
 export async function uploadSketch(
@@ -512,6 +520,7 @@ export interface QuestionnaireSubmissionResult {
     category_scores?: Record<string, number>;
     interpretation?: string;
   };
+  module_status?: Record<string, any>;
   error?: string;
 }
 
@@ -614,7 +623,8 @@ export async function submitQuestionnaireResponse(
       ok: true,
       message: data.message,
       module_completed: data.module_completed,
-      scoring: data.scoring
+      scoring: data.scoring,
+      module_status: data.module_status
     };
   } catch (error) {
     console.error('Error submitting questionnaire response:', error);
@@ -623,6 +633,30 @@ export async function submitQuestionnaireResponse(
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+// Module name mapping for display
+const MODULE_NAMES: Record<string, string> = {
+  'emotional_first_aid': '情绪急救',
+  'inner_doodling': '内视涂鸦',
+  'quick_assessment': '内视快测'
+};
+
+/**
+ * Send a module completion message to continue the conversation
+ * This triggers the AI to acknowledge completion and recommend remaining modules
+ */
+export async function sendModuleCompletionMessage(
+  sessionId: string,
+  moduleId: string
+): Promise<ChatResponse> {
+  const moduleName = MODULE_NAMES[moduleId] || moduleId;
+  const completionMessage = `我刚刚完成了${moduleName}.`;
+
+  return sendChatMessage({
+    message: completionMessage,
+    session_id: sessionId
+  });
 }
 
 /**
