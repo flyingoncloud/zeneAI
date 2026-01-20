@@ -14,7 +14,8 @@ import os
 import json
 
 from src.config.settings import CORS_ORIGINS, AI_RESPONSE_LANGUAGE, DATABASE_URL
-from src.database.database import get_db, init_db
+from src.database.database import get_db, init_db, SessionLocal
+from src.database.questionnaire_seeding import seed_questionnaires
 from src.database import models as db_models
 from src.api import models as api_models
 from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
@@ -48,6 +49,14 @@ async def startup_event():
     try:
         init_db()
         logger.info("✓ Database initialized successfully")
+
+        # Seed questionnaires from JSON files
+        db = SessionLocal()
+        try:
+            seed_questionnaires(db)
+            logger.info("✓ Questionnaires seeded successfully")
+        finally:
+            db.close()
     except Exception as e:
         logger.error(f"✗ Failed to initialize database: {e}")
         raise

@@ -226,38 +226,7 @@ export const InnerSketch: React.FC = () => {
 
         // 1. Fill background (match app dark theme solid color)
         tCtx.fillStyle = '#0f172a';
-        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-        // 2. Draw the drawing on top
-        tCtx.drawImage(canvas, 0, 0);
-
-        // Convert canvas to blob
-        const blob: Blob | null = await new Promise((resolve) => {
-            tempCanvas.toBlob(resolve, 'image/png', 0.95);
-        });
-
-        if (!blob) {
-            toast.error('无法生成图片');
-            setIsSending(false);
-            return;
-        }
-
-        // Upload sketch to backend with AI analysis
-        const result = await uploadSketch(blob, conversationId);
-
-        if (result.ok) {
-            console.log('[Sketch Uploaded & Module Completed]', {
-                module_id: 'inner_doodling',
-                conversation_id: conversationId,
-                file_uri: result.file_uri,
-                timestamp: new Date().toISOString()
-            });
-
-            if (result.module_status) {
-              setModuleStatus(result.module_status);
-            }
-            addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
-            setPendingModuleCompletion('inner_doodling');
         // 2. Draw the drawing on top
         tCtx.drawImage(canvas, 0, 0);
 
@@ -317,6 +286,7 @@ export const InnerSketch: React.FC = () => {
     } finally {
         setIsSending(false);
     }
+  };
 
   const getAnalysisDetail = (step: number) => {
     switch (step) {

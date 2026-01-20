@@ -363,43 +363,8 @@ export const InnerQuickTest: React.FC = () => {
                 <SafeIcon icon={Icons.Save} className="mr-2 h-4 w-4" /> 保存报告
               </Button>
               <Button
-                onClick={async () => {
-                  if (conversationId && selectedQuestionnaire) {
-                    setLoading(true);
-                    try {
-                      const formattedAnswers: Record<string, number> = {};
-                      Object.entries(answers).forEach(([index, answerValue]) => {
-                        const questionIndex = parseInt(index);
-                        const question = selectedQuestionnaire.questions[questionIndex];
-                        if (question) {
-                          formattedAnswers[question.id.toString()] = answerValue;
-                        }
-                      });
-
-                      const result = await submitQuestionnaireResponse(conversationId, {
-                        questionnaire_id: selectedQuestionnaire.id,
-                        answers: formattedAnswers,
-                        metadata: {
-                          total_questions: totalQuestions,
-                          completed_at: new Date().toISOString()
-                        }
-                      });
-
-                      if (result.ok) {
-                        if (result.module_status) {
-                          setModuleStatus(result.module_status);
-                        }
-                        toast.success('问卷已成功提交！');
-                      } else {
-                        toast.error('保存测试结果失败，但您的测试已完成');
-                      }
-                    } catch (error) {
-                      console.error('Error submitting questionnaire:', error);
-                      toast.error('提交问卷时出错');
-                    } finally {
-                      setLoading(false);
-                    }
-                  }
+                onClick={() => {
+                  // Questionnaires were already submitted in handleAnswer, just navigate back
                   addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
                   setPendingModuleCompletion('quick_assessment');
                   setCurrentView('chat');
