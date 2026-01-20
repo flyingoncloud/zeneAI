@@ -651,7 +651,7 @@ export async function sendModuleCompletionMessage(
   moduleId: string
 ): Promise<ChatResponse> {
   const moduleName = MODULE_NAMES[moduleId] || moduleId;
-  const completionMessage = `我刚刚完成了${moduleName}.`;
+  const completionMessage = `我做完${moduleName}了。`;
 
   return sendChatMessage({
     message: completionMessage,

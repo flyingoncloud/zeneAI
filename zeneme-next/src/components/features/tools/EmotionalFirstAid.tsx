@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
@@ -44,7 +44,14 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
 
 export const EmotionalFirstAid: React.FC = () => {
   const [step, setStep] = useState<'intro' | 'breathing' | 'naming'>('intro');
-  const { t, setCurrentView, conversationId, setModuleStatus, setPendingModuleCompletion } = useZenemeStore();
+  const { t, setCurrentView, conversationId, setModuleStatus, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
+
+  useEffect(() => {
+    setExitAction("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "emotional_first_aid");
+    return () => {
+      clearExitAction();
+    };
+  }, [setExitAction, clearExitAction]);
 
   const handleExit = () => {
     setCurrentView('chat');
@@ -68,15 +75,8 @@ export const EmotionalFirstAid: React.FC = () => {
         if (result.module_status) {
           setModuleStatus(result.module_status);
         }
-        // Set pending module completion to trigger continuation message
+        addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
         setPendingModuleCompletion('emotional_first_aid');
-        console.log('[Module Completed]', {
-          module_id: 'emotional_first_aid',
-          conversation_id: conversationId,
-          emotion: emotionData.emotion,
-          intensity: emotionData.intensity,
-          timestamp: new Date().toISOString()
-        });
       } else {
         toast.error('保存完成状态失败，但您的练习已完成');
       }

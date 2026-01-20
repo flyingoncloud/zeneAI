@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../ui/tooltip';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadSketch } from '../../../lib/api';
 
@@ -44,7 +44,7 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon: IconComponent } & IconProps)
 const DEFAULT_COLOR = '#e2e8f0';
 
 export const InnerSketch: React.FC = () => {
-  const { t, setCurrentView, addMessage, conversationId, setModuleStatus, setPendingModuleCompletion } = useZenemeStore();
+  const { t, setCurrentView, addMessage, conversationId, setModuleStatus, setPendingModuleCompletion, setExitAction, clearExitAction } = useZenemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -90,6 +90,13 @@ export const InnerSketch: React.FC = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    setExitAction("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "inner_doodling");
+    return () => {
+      clearExitAction();
+    };
+  }, [setExitAction, clearExitAction]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -249,7 +256,37 @@ export const InnerSketch: React.FC = () => {
             if (result.module_status) {
               setModuleStatus(result.module_status);
             }
-            // Set pending module completion to trigger continuation message
+            addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
+            setPendingModuleCompletion('inner_doodling');
+        // 2. Draw the drawing on top
+        tCtx.drawImage(canvas, 0, 0);
+
+        // Convert canvas to blob
+        const blob: Blob | null = await new Promise((resolve) => {
+            tempCanvas.toBlob(resolve, 'image/png', 0.95);
+        });
+
+        if (!blob) {
+            toast.error('无法生成图片');
+            setIsSending(false);
+            return;
+        }
+
+        // Upload sketch to backend with AI analysis
+        const result = await uploadSketch(blob, conversationId);
+
+        if (result.ok) {
+            console.log('[Sketch Uploaded & Module Completed]', {
+                module_id: 'inner_doodling',
+                conversation_id: conversationId,
+                file_uri: result.file_uri,
+                timestamp: new Date().toISOString()
+            });
+
+            if (result.module_status) {
+              setModuleStatus(result.module_status);
+            }
+            addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
             setPendingModuleCompletion('inner_doodling');
 
             // Create data URL for local display
@@ -280,7 +317,6 @@ export const InnerSketch: React.FC = () => {
     } finally {
         setIsSending(false);
     }
-  };
 
   const getAnalysisDetail = (step: number) => {
     switch (step) {
@@ -442,7 +478,9 @@ export const InnerSketch: React.FC = () => {
                              发送中...
                            </>
                        ) : (
-                           t.sketch.share
+                           <>
+                             <MessageCircle className="w-4 h-4 mr-2" /> {t.sketch.returnToChat}
+                           </>
                        )}
                      </Button>
                   </div>

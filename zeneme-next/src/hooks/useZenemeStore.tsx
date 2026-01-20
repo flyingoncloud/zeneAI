@@ -33,7 +33,7 @@ export type ModuleStatus = {
 
 export type Message = {
   id: string;
-  role: 'user' | 'ai';
+  role: 'user' | 'ai' | 'system';
   content: string;
   timestamp: Date;
   attachment?: {
@@ -60,7 +60,7 @@ export type SavedReport = {
   isPro?: boolean;
 };
 
-export type UpgradeSource = 'report' | 'limit' | 'settings' | null;
+export type UpgradeSource = 'report' | 'limit' | 'settings' | 'report_lock' | null;
 
 interface ZenemeContextType {
   currentView: View;
@@ -84,6 +84,12 @@ interface ZenemeContextType {
   pendingModuleCompletion: string | null;
   setPendingModuleCompletion: (moduleId: string | null) => void;
 
+  // Exit action for TopBar
+  exitMessage: string | null;
+  exitModuleToComplete: string | null;
+  setExitAction: (message: string, moduleName: string | null) => void;
+  clearExitAction: () => void;
+
   // Conversation tracking for module completion
   sessionId: string | undefined;
   conversationId: number | undefined;
@@ -93,7 +99,7 @@ interface ZenemeContextType {
   messages: Message[]; // Derived from current session
   addMessage: (
     content: string,
-    role: 'user' | 'ai',
+    role: 'user' | 'ai' | 'system',
     attachment?: Message['attachment'],
     moduleData?: {
       recommended_modules?: RecommendedModule[];
@@ -149,13 +155,17 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Pending module completion - triggers a continuation message when returning to chat
   const [pendingModuleCompletion, setPendingModuleCompletion] = useState<string | null>(null);
 
+  // Exit Action Management for TopBar
+  const [exitMessage, setExitMessage] = useState<string | null>(null);
+  const [exitModuleToComplete, setExitModuleToComplete] = useState<string | null>(null);
+
   // Conversation tracking for module completion
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [conversationId, setConversationId] = useState<number | undefined>(undefined);
 
-  // Initialize first session if none exists
+  // Initialize first session if none exists, or recover if currentSessionId is lost
   React.useEffect(() => {
-    if (sessions.length === 0 && !currentSessionId) {
+    if (sessions.length === 0) {
       const initialId = Date.now().toString();
       const initialSession: ChatSession = {
         id: initialId,
@@ -166,8 +176,13 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       };
       setSessions([initialSession]);
       setCurrentSessionId(initialId);
+      return;
     }
-  }, []); // Only run once on mount (or if sessions empty)
+
+    if (!currentSessionId && sessions.length > 0) {
+      setCurrentSessionId(sessions[0].id);
+    }
+  }, [sessions.length, currentSessionId]);
 
   const messages = useMemo(() => {
     return sessions.find(s => s.id === currentSessionId)?.messages || [];
@@ -220,51 +235,57 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       module_status?: ModuleStatus;
     }
   ) => {
-    if (!currentSessionId) return;
-
-    setSessions(prev => prev.map(session => {
-      if (session.id !== currentSessionId) return session;
-
-      const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newMessage: Message = {
-        id: uniqueId,
-        role,
-        content,
-        timestamp: new Date(),
-        attachment,
-        ...(moduleData && {
-          recommended_modules: moduleData.recommended_modules,
-          // No longer storing module_status on the message
-        })
-      };
-
-      const newMessages = [...session.messages, newMessage];
-
-      let newTitle = session.title;
-      // If first user message, set title
-      if (session.isDraft && role === 'user') {
-        newTitle = content.slice(0, 30) + (content.length > 30 ? '...' : '');
+    setSessions(prev => {
+      let targetSessionId = currentSessionId;
+      if (!targetSessionId && prev.length > 0) {
+        targetSessionId = prev[0].id;
       }
 
-      // Merge the new module_status with the existing session moduleStatus
-      const newModuleStatus = {
-        ...session.moduleStatus,
-        ...moduleData?.module_status
-      };
-      
-      if (moduleData?.module_status) {
-        setModuleStatus(newModuleStatus);
+      if (!targetSessionId) {
+        return prev;
       }
 
-      return {
-        ...session,
-        messages: newMessages,
-        updatedAt: new Date(),
-        isDraft: false, // No longer draft once message added
-        title: newTitle,
-        moduleStatus: newModuleStatus
-      };
-    }));
+      return prev.map(session => {
+        if (session.id !== targetSessionId) return session;
+
+        const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const newMessage: Message = {
+          id: uniqueId,
+          role,
+          content,
+          timestamp: new Date(),
+          attachment,
+          ...(moduleData && {
+            recommended_modules: moduleData.recommended_modules,
+          })
+        };
+
+        const newMessages = [...session.messages, newMessage];
+
+        let newTitle = session.title;
+        if (session.isDraft && role === 'user') {
+          newTitle = content.slice(0, 30) + (content.length > 30 ? '...' : '');
+        }
+
+        const newModuleStatus = {
+          ...session.moduleStatus,
+          ...moduleData?.module_status
+        };
+
+        if (moduleData?.module_status) {
+          setModuleStatus(newModuleStatus);
+        }
+
+        return {
+          ...session,
+          messages: newMessages,
+          updatedAt: new Date(),
+          isDraft: false,
+          title: newTitle,
+          moduleStatus: newModuleStatus
+        };
+      });
+    });
   }, [currentSessionId]);
 
   const deductCredit = useCallback(() => {
@@ -298,6 +319,16 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setIsPro(status);
   }, []);
 
+  const setExitAction = useCallback((message: string, moduleName: string | null) => {
+    setExitMessage(message);
+    setExitModuleToComplete(moduleName);
+  }, []);
+
+  const clearExitAction = useCallback(() => {
+    setExitMessage(null);
+    setExitModuleToComplete(null);
+  }, []);
+
 
   return (
     <ZenemeContext.Provider
@@ -316,6 +347,10 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setModuleStatus,
         pendingModuleCompletion,
         setPendingModuleCompletion,
+        exitMessage,
+        exitModuleToComplete,
+        setExitAction,
+        clearExitAction,
         sessionId,
         conversationId,
         setSessionId,

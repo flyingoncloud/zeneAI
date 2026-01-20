@@ -145,6 +145,7 @@ export const translations = {
       clear: 'Clear Canvas',
       save: 'Save to Journal',
       share: 'Share',
+      returnToChat: 'Return to Chat',
       steps: {
         scanning: 'Scanning lines...',
         interpreting: 'Interpreting patterns...',
@@ -503,6 +504,7 @@ export const translations = {
       clear: '清空画布',
       save: '保存到本次记录',
       share: '发送给 zeneme',
+      returnToChat: '返回对话',
       steps: {
         scanning: '正在扫描线条...',
         interpreting: '正在解读模式...',

@@ -86,35 +86,13 @@ React.useEffect(() => {
   // Handle pending module completion when returning to chat
   React.useEffect(() => {
     const handlePendingCompletion = async () => {
-      // Debug logging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Pending Completion Check]', {
-          currentView,
-          pendingModuleCompletion,
-          sessionId,
-          willRun: currentView === 'chat' && pendingModuleCompletion && sessionId
-        });
-      }
-
       if (currentView === 'chat' && pendingModuleCompletion && sessionId) {
         const moduleId = pendingModuleCompletion;
         // Clear immediately to prevent duplicate calls
         setPendingModuleCompletion(null);
 
         try {
-          // Module name mapping
-          const MODULE_NAMES: Record<string, string> = {
-            'emotional_first_aid': '情绪急救',
-            'inner_doodling': '内视涂鸦',
-            'quick_assessment': '内视快测'
-          };
-          const moduleName = MODULE_NAMES[moduleId] || moduleId;
-          const completionMessage = `我刚刚完成了${moduleName}.`;
-
-          // Add user message about completion
-          addMessage(completionMessage, "user");
-
-          // Send to API for AI response
+          // Send to API for AI response (user message already added by the module component)
           const response = await sendModuleCompletionMessage(sessionId, moduleId);
 
           if (response && response.assistant_message?.content) {
@@ -145,25 +123,16 @@ React.useEffect(() => {
     addMessage(text, "user");
 
     try {
-      // Call the real API
       const response = await sendChatMessage({
         message: text,
         session_id: sessionId
       });
 
-      // Debug: Log full response in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[API Response]', JSON.stringify(response, null, 2));
-      }
-
-      // Check if response is empty or malformed
       if (!response || Object.keys(response).length === 0) {
-        console.error('Empty response from API');
         addMessage("抱歉，服务器返回了空响应，请稍后再试。", "ai");
         return;
       }
 
-      // Store session_id and conversation_id for subsequent messages
       if (!sessionId && response.session_id) {
         setSessionId(response.session_id);
       }
@@ -171,36 +140,13 @@ React.useEffect(() => {
         setConversationId(response.conversation_id);
       }
 
-      // Extract AI content and filter out function call text
       const aiContent = response.assistant_message?.content;
-
-      // Debug logging for content processing
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Content Debug]', {
-          hasAssistantMessage: !!response.assistant_message,
-          rawContent: aiContent,
-          contentLength: aiContent?.length || 0
-        });
-      }
-
       const filteredContent = filterFunctionCallText(aiContent);
 
       if (filteredContent) {
-        // Extract and validate module recommendations
         const recommendedModules = response.recommended_modules || [];
         const validModules = recommendedModules.filter(validateModuleData);
 
-        // Log module recommendations in development
-        if (process.env.NODE_ENV === 'development' && validModules.length > 0) {
-          console.log('[Module Recommendations]', {
-            modules: validModules,
-            session_id: response.session_id,
-            conversation_id: response.conversation_id,
-            timestamp: new Date().toISOString()
-          });
-        }
-
-        // Add AI message with module recommendations
         addMessage(filteredContent, "ai", undefined, {
           recommended_modules: validModules,
         });
@@ -208,23 +154,16 @@ React.useEffect(() => {
           setModuleStatus(response.module_status);
         }
       } else {
-        // Enhanced error logging
-        console.error('[Empty Content Debug]', {
-          rawContent: aiContent,
-          filteredContent,
-          assistantMessage: response.assistant_message,
-          recommendedModules: response.recommended_modules,
-          fullResponse: response
-        });
         addMessage("抱歉，我没有收到完整的回复。", "ai");
       }
 
     } catch (error) {
       console.error('Error sending message:', error);
-      // Fallback response on error
       addMessage("抱歉，我现在遇到了一些问题。请稍后再试。", "ai");
     }
   };
+
+  const visibleMessages = messages.filter(msg => msg.role !== 'system');
 
   const renderContent = () => {
     switch (currentView) {
@@ -251,7 +190,7 @@ React.useEffect(() => {
       case "chat":
       case "new-chat":
       default:
-        return <ChatInterface messages={messages} onSendMessage={handleSendMessage} />;
+        return <ChatInterface messages={visibleMessages} onSendMessage={handleSendMessage} />;
     }
   };
 
