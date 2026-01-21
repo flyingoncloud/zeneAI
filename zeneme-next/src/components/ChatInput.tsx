@@ -308,7 +308,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             value={input}
             disabled={isGenerating}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isGenerating ? "ZeneMe 正在回复…" : (isListening ? "正在聆听..." : (placeholder || t.chat.placeholder))}
+            placeholder={isGenerating ? "ZeneMe 正在回复…" : (isListening ? "正在聆听..." : (placeholder || "聊聊你的心情吧"))}
             className={`w-full px-6 py-4 pr-4 bg-slate-900/50 border rounded-full focus:outline-none focus:ring-2 transition-all backdrop-blur-sm shadow-inner z-10
                 ${isGenerating
                     ? 'border-white/5 bg-slate-800/20 text-slate-500 placeholder:text-slate-600 cursor-not-allowed'

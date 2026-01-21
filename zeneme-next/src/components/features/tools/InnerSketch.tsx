@@ -264,9 +264,9 @@ export const InnerSketch: React.FC = () => {
             // Add AI analysis as assistant message
             addMessage(
                 result.analysis,
-                'assistant',
+                'ai',
                 {
-                    type: 'sketch_analysis',
+                    type: 'sketch',
                     url: result.file_uri,
                     preview: dataUrl
                 }

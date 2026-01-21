@@ -228,7 +228,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const addMessage = useCallback((
     content: string,
-    role: 'user' | 'ai',
+    role: 'user' | 'ai' | 'system',
     attachment?: Message['attachment'],
     moduleData?: {
       recommended_modules?: RecommendedModule[];
