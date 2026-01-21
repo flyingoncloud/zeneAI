@@ -57,6 +57,7 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
         # Extract and save questions
         questions_added = 0
+        global_question_number = 1  # Generate unique sequential question numbers
 
         # Handle different JSON structures
         if "questions" in data:
@@ -67,12 +68,13 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
                 question = AssessmentQuestion(
                     questionnaire_id=questionnaire_id,
-                    question_number=q["id"],
+                    question_number=global_question_number,
                     text=q["text"],
                     options=options
                 )
                 db.add(question)
                 questions_added += 1
+                global_question_number += 1
 
         elif "dimensions" in data:
             # Dimensions structure (questionnaire_2_5)
@@ -85,13 +87,14 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
                         question = AssessmentQuestion(
                             questionnaire_id=questionnaire_id,
-                            question_number=q["id"],
+                            question_number=global_question_number,
                             text=q["text"],
                             dimension=dimension_name,
                             options=options
                         )
                         db.add(question)
                         questions_added += 1
+                        global_question_number += 1
 
         elif "sub_sections" in data:
             # Sub-sections structure (questionnaire_2_2, questionnaire_2_3)
@@ -109,7 +112,7 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
                                 question = AssessmentQuestion(
                                     questionnaire_id=questionnaire_id,
-                                    question_number=q["id"],
+                                    question_number=global_question_number,
                                     text=q["text"],
                                     category=category_name,
                                     sub_section=sub_section_id,
@@ -117,6 +120,7 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
                                 )
                                 db.add(question)
                                 questions_added += 1
+                                global_question_number += 1
 
                 # Handle direct questions in sub_section
                 elif "questions" in sub_section:
@@ -126,13 +130,14 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
                         question = AssessmentQuestion(
                             questionnaire_id=questionnaire_id,
-                            question_number=q["id"],
+                            question_number=global_question_number,
                             text=q["text"],
                             sub_section=sub_section_id,
                             options=options
                         )
                         db.add(question)
                         questions_added += 1
+                        global_question_number += 1
 
                 # Handle options with questions
                 elif "options" in sub_section:
@@ -144,7 +149,7 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
 
                                 question = AssessmentQuestion(
                                     questionnaire_id=questionnaire_id,
-                                    question_number=q["id"],
+                                    question_number=global_question_number,
                                     text=q["text"],
                                     sub_section=sub_section_id,
                                     category=q.get("type"),  # For automatic thought patterns
@@ -152,6 +157,7 @@ def load_questionnaire_from_json(json_file: Path, db: Session):
                                 )
                                 db.add(question)
                                 questions_added += 1
+                                global_question_number += 1
 
         db.commit()
         logger.info(f"✓ Loaded {questionnaire_id}: {questions_added} questions")
