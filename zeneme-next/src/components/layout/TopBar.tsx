@@ -2,7 +2,7 @@ import React from 'react';
 import * as Icons from '../ui/icons';
 import { Button } from '../ui/button';
 import { useZenemeStore } from '../../hooks/useZenemeStore';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const SafeIcon = ({ icon: Icon, ...props }: any) => {
   if (!Icon) return <span style={{ width: props.size || 24, height: props.size || 24, display: 'inline-block', background: '#ccc', borderRadius: 4 }} />;
   return <Icon {...props} />;

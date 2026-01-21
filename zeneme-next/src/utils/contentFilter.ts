@@ -5,6 +5,7 @@
  * @param content - The raw AI response content
  * @returns Filtered content with technical text removed
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function filterFunctionCallText(content: string | undefined): string {
   if (!content) return '';
 

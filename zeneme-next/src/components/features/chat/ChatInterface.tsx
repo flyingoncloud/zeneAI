@@ -457,11 +457,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
             <div className="absolute inset-0 -mx-6 -my-6 bg-gradient-to-b from-slate-900/0 via-slate-900/10 to-slate-900/20 blur-2xl -z-10 rounded-full opacity-50 pointer-events-none" />
 
             <h1 className="text-left w-full">
-              <span className="block text-[32px] md:text-[36px] leading-[1.3] font-light text-slate-300/90 tracking-wide mb-2">
+             {/* <span className="block text-[32px] md:text-[36px] leading-[1.3] font-light text-slate-300/90 tracking-wide mb-2">
                 你好，我是 ZeneMe。
-              </span>
+              </span>*/}
               <span className="block text-[46px] md:text-[54px] leading-[1.15] font-light text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-violet-100 tracking-tight mt-1">
-                你现在感觉如何？
+                我的情绪咋了？
               </span>
             </h1>
           </div>

@@ -15,6 +15,8 @@ export function isRoutableView(v: string | null): v is RoutableView {
     case "test":
     case "mood":
     case "first-aid":
+    case "breathing":
+    case "naming":
     case "history":
       return true;
     default:

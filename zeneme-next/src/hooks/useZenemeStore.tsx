@@ -1,9 +1,9 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
 import { translations, Language } from '@/utils/translations';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-
-export type View = 'chat' | 'sketch' | 'test' | 'mood' | 'first-aid' | 'history'| 'new-chat';
+export type View = 'chat' | 'sketch' | 'test' | 'mood' | 'first-aid' | 'history'| 'new-chat'|'breathing'|'naming';
 
 type ChatSession = {
   id: string;

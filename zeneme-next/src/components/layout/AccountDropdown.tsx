@@ -1,6 +1,7 @@
 import React from 'react';
-import * as Icons from '../ui/icons';
+import  { MoreHorizontal } from '../ui/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +52,7 @@ export const AccountDropdown: React.FC<AccountDropdownProps> = ({ isCollapsed = 
           )}
           
           {!isCollapsed && (
-            <SafeIcon icon={Icons.MoreHorizontal} size={16} className="text-slate-500 shrink-0" />
+            <SafeIcon icon={MoreHorizontal} size={16} className="text-slate-500 shrink-0" />
           )}
         </div>
       </DropdownMenuTrigger>

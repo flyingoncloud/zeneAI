@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ArrowLeft } from 'lucide-react';
 import { completeModuleWithRetry } from '../../../lib/api';
 import { toast } from 'sonner';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 void X;
 void ArrowLeft;
 
@@ -158,7 +158,7 @@ export const EmotionalFirstAid: React.FC = () => {
                 exit={{ opacity: 0 }}
             >
                 <EmotionPage
-                  onComplete={handleComplete}
+                  onComplete={handleComplete as any}
                   onBack={() => setStep('breathing')}
                 />
             </motion.div>

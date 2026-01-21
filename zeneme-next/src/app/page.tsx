@@ -18,6 +18,9 @@ import { useZenemeStore, type View } from "@/hooks/useZenemeStore";
 import { DEFAULT_VIEW, VIEW_QUERY_KEY, isRoutableView, viewToHref, type RoutableView } from "@/lib/routes";
 import { sendChatMessage, sendModuleCompletionMessage } from "@/lib/api";
 import { filterFunctionCallText, validateModuleData } from "@/utils/contentFilter";
+import { BreathingPage } from "@/components/features/tools/firstaid/BreathingPage";
+import { EmotionPage } from "@/components/features/tools/firstaid/EmotionPage";
+import { HistoryReports } from "@/components/features/reports/HistoryReports";
 
 export default function Home() {
   const router = useRouter();
@@ -167,9 +170,21 @@ React.useEffect(() => {
 
   const renderContent = () => {
     switch (currentView) {
-      case "first-aid":
+      case 'first-aid':
         return <EmotionalFirstAid />;
-
+      case 'breathing':
+        return (
+          <BreathingPage
+            onComplete={() => setCurrentView("naming")} // 训练完成后顺着走到情绪命名
+          />
+        );
+      case 'naming':
+        return (
+          <EmotionPage
+            onBack={() => setCurrentView("breathing")}
+            onComplete={() => setCurrentView("chat")}
+          />
+        );
       case "sketch":
         return <InnerSketch />;
 
@@ -180,12 +195,7 @@ React.useEffect(() => {
         return <MoodTracker />;
 
       case "history":
-        // 你后面把 History 页面组件补上后，在这里替换即可
-        return (
-          <div className="h-full w-full flex items-center justify-center text-slate-300">
-            历史记录页面开发中
-          </div>
-        );
+        return <HistoryReports />;
 
       case "chat":
       case "new-chat":
@@ -199,14 +209,13 @@ React.useEffect(() => {
       {/* 背景图：public/3b6a5589c53301457230648f6d21f5eab8c4f69b.png */}
       <div className="absolute inset-0 -z-10">
         <Image
-          src="/3b6a5589c53301457230648f6d21f5eab8c4f69b.png"
+          src="/Mian Page BG.png"
           alt=""
           fill
           priority
           className="object-cover"
         />
-        {/* 叠加暗层，保持你现在的整体暗黑风格 */}
-        <div className="absolute inset-0 bg-black/70" />
+
       </div>
 
       <Sidebar />

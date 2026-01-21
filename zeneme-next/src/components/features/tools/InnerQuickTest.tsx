@@ -12,9 +12,24 @@ import {
   getPsychologyReportStatus,
   downloadPsychologyReport,
   type QuestionnaireDetail,
-  type QuestionOption,
-  type QuestionnaireSubmissionResult
+  type QuestionOption
 } from '../../../lib/api';
+
+type QuestionItem = QuestionnaireDetail['questions'][number];
+
+type QuestionnaireMetadataItem = {
+  id: string;
+  start: number;
+  end: number;
+  section: string;
+  title: string;
+};
+
+type CombinedQuestionnaire = QuestionnaireDetail & {
+  metadata?: { questionnaireMetadata: QuestionnaireMetadataItem[] };
+};
+
+type CategoryScoreObj = { sub_section?: string; category?: string; score?: number; count?: number };
 import { toast } from 'sonner';
 
 type IconLikeProps = {
@@ -51,7 +66,7 @@ export const InnerQuickTest: React.FC = () => {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
-  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<QuestionnaireDetail | null>(null);
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<CombinedQuestionnaire | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scoringResults, setScoringResults] = useState<Array<{
     questionnaire_id: string;
@@ -164,8 +179,8 @@ export const InnerQuickTest: React.FC = () => {
         }
 
         // Fetch all questionnaires and combine their questions
-        const allQuestions: any[] = [];
-        const questionnaireMetadata: Array<{ id: string; start: number; end: number; section: string; title: string }> = [];
+        const allQuestions: QuestionItem[] = [];
+        const questionnaireMetadata: QuestionnaireMetadataItem[] = [];
 
         for (const q of result.questionnaires) {
           const detailResult = await getQuestionnaire(q.id);
@@ -184,7 +199,7 @@ export const InnerQuickTest: React.FC = () => {
         }
 
         // Create a combined questionnaire
-        const combinedQuestionnaire: QuestionnaireDetail = {
+        const combinedQuestionnaire: CombinedQuestionnaire = {
           id: 'combined_all',
           section: '综合',
           title: '完整心理评估 (Complete Psychological Assessment)',
@@ -197,8 +212,8 @@ export const InnerQuickTest: React.FC = () => {
           questions: allQuestions
         };
 
-        // Store metadata for splitting answers later
-        (combinedQuestionnaire as any).metadata = { questionnaireMetadata };
+        // Attach metadata for splitting answers later
+        combinedQuestionnaire.metadata = { questionnaireMetadata };
 
         setSelectedQuestionnaire(combinedQuestionnaire);
         setError(null);
@@ -259,14 +274,14 @@ export const InnerQuickTest: React.FC = () => {
         const allAnswers = { ...answers, [currentQIndex]: value };
 
         // Get questionnaire metadata to split answers
-        const metadata = (selectedQuestionnaire as any).metadata?.questionnaireMetadata || [];
+        const metadata = selectedQuestionnaire?.metadata?.questionnaireMetadata || [];
 
         const results: Array<{
           questionnaire_id: string;
           title: string;
           section: string;
           total_score: number;
-          category_scores?: Record<string, number | { sub_section?: string; category?: string; score?: number; count?: number }>;
+          category_scores?: Record<string, number | CategoryScoreObj>;
           interpretation?: string | { level?: string; description?: string; score_range?: number[] } | null;
         }> = [];
 
@@ -462,7 +477,7 @@ export const InnerQuickTest: React.FC = () => {
                           const scoreValue = typeof scoreData === 'number'
                             ? scoreData
                             : typeof scoreData === 'object' && scoreData !== null
-                              ? (scoreData as any).score || 0
+                              ? (scoreData as CategoryScoreObj).score || 0
                               : 0;
 
                           return (
@@ -481,10 +496,10 @@ export const InnerQuickTest: React.FC = () => {
                     <div className="mt-4 p-4 bg-violet-500/10 rounded-lg border border-violet-500/20">
                       <h4 className="text-sm font-semibold text-violet-300 mb-2">评估解读：</h4>
                       <p className="text-sm text-slate-300 leading-relaxed">
-                        {typeof result.interpretation === 'string'
+                          {typeof result.interpretation === 'string'
                           ? result.interpretation
                           : typeof result.interpretation === 'object' && result.interpretation !== null
-                            ? (result.interpretation as any).description || JSON.stringify(result.interpretation)
+                            ? (result.interpretation as { description?: string }).description || JSON.stringify(result.interpretation)
                             : '暂无解读'}
                       </p>
                     </div>
