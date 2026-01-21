@@ -69,7 +69,9 @@ interface ZenemeContextType {
   deductCredit: () => void;
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
-
+  // set default userid
+  userId: string;
+  setUserId: (id: string) => void;
   // Session Management
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -144,11 +146,27 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [freeSessionsLeft, setFreeSessionsLeft] = useState(5);
 
   const t = useMemo(() => translations[language], [language]);
+  // user state
+  const USER_ID_STORAGE_KEY = 'zeneme_user_id';
+
+  const [userId, setUserId] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'guest';
+
+  const existing = window.localStorage.getItem(USER_ID_STORAGE_KEY);
+  if (existing) return existing;
+
+  const newId =
+    window.crypto?.randomUUID?.() ??
+    `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+    window.localStorage.setItem(USER_ID_STORAGE_KEY, newId);
+    return newId;
+  });
 
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-
+  
   // Module Status
   const [moduleStatus, setModuleStatus] = useState<ModuleStatus | undefined>(undefined);
 
@@ -366,6 +384,8 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setLanguage,
         t,
         isPro,
+        userId,
+        setUserId,
         setProStatus,
         isUpgradeModalOpen,
         upgradeSource,

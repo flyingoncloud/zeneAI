@@ -37,6 +37,7 @@ export default function Home() {
     setConversationId,
     setModuleStatus,
     pendingModuleCompletion,
+    userId,
     setPendingModuleCompletion
   } = useZenemeStore();
 
@@ -128,7 +129,8 @@ React.useEffect(() => {
     try {
       const response = await sendChatMessage({
         message: text,
-        session_id: sessionId
+        session_id: sessionId,
+        user_id: userId,
       });
 
       if (!response || Object.keys(response).length === 0) {
@@ -167,6 +169,15 @@ React.useEffect(() => {
   };
 
   const visibleMessages = messages.filter(msg => msg.role !== 'system');
+  // 背景切换规则：
+  // - 主页面空白（chat/new-chat 且没有任何对话消息） => Mian Page BG
+  // - 一旦发过消息（visibleMessages >= 1） => Cutting BG 3
+  const isChatOrNewChat = currentView === "chat" || currentView === "new-chat";
+  const isHomeEmpty = isChatOrNewChat && visibleMessages.length === 0;
+
+  const bgSrc = isHomeEmpty
+    ? "/Mian%20Page%20BG.png"
+    : "/Cutting%20BG%203.png";
 
   const renderContent = () => {
     switch (currentView) {
@@ -209,7 +220,7 @@ React.useEffect(() => {
       {/* 背景图：public/3b6a5589c53301457230648f6d21f5eab8c4f69b.png */}
       <div className="absolute inset-0 -z-10">
         <Image
-          src="/Mian Page BG.png"
+          src={bgSrc}
           alt=""
           fill
           priority

@@ -10,6 +10,7 @@ export interface ChatRequest {
   message: string;
   session_id?: string;
   images?: string[];
+  user_id?: string | null;
 }
 
 export interface Message {
@@ -76,11 +77,28 @@ export interface AnalyzeImageResponse {
 
 /**
  * Send a chat message to the backend
+ * Generates or retrieves a user ID and includes it in the request
  */
+const USER_ID_STORAGE_KEY = 'zeneme_user_id';
+
+function getOrCreateUserId(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+
+  const existing = window.localStorage.getItem(USER_ID_STORAGE_KEY);
+  if (existing) return existing;
+
+  const newId =
+    window.crypto?.randomUUID?.() ??
+    `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+  window.localStorage.setItem(USER_ID_STORAGE_KEY, newId);
+  return newId;
+}
+
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
   try {
     console.log('[API] Sending chat message to:', `${API_BASE_URL}/chat/`);
-
+    const defaultUserId = getOrCreateUserId();
     const response = await fetch(`${API_BASE_URL}/chat/`, {
       method: 'POST',
       headers: {
@@ -88,6 +106,8 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
       },
       credentials: 'include',
       body: JSON.stringify(request),
+      // 如果页面没传 user_id，就用本地默认虚拟用户
+      user_id: request.user_id ?? defaultUserId ?? null,
     });
 
     console.log('[API] Response status:', response.status);
