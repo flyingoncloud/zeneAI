@@ -122,11 +122,11 @@ export const EmotionalFirstAid: React.FC = () => {
       transition={{ duration: 0.3 }}
       className="relative flex flex-col w-full h-full overflow-hidden"
     >
-      {/* 1. Page BG - Independent, Opaque, Immersive */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 opacity-100" />
+      {/* 1. Page BG - Independent, Opaque, Immersive - positioned to not cover TopBar */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 opacity-100 -z-10" />
 
       {/* Optional: Subtle ambient noise or overlay pattern for texture (Option B/C) */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light pointer-events-none -z-10" />
 
       {/* 3. Content Area */}
       <div className="relative z-10 w-full h-full flex flex-col">
@@ -158,7 +158,7 @@ export const EmotionalFirstAid: React.FC = () => {
                 exit={{ opacity: 0 }}
             >
                 <EmotionPage
-                  onComplete={handleComplete as any}
+                  onComplete={handleComplete}
                   onBack={() => setStep('breathing')}
                 />
             </motion.div>

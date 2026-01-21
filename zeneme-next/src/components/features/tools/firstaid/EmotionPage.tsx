@@ -4,7 +4,7 @@ import { useZenemeStore, MoodLog } from '../../../../hooks/useZenemeStore';
 import { ZeneMeEmotions } from '../../../ui/ZeneMeEmotions';
 
 interface EmotionPageProps {
-  onComplete: () => void;
+  onComplete: (emotionData: { emotion: string; intensity: number }) => void;
   onBack?: () => void;
 }
 
@@ -59,11 +59,15 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
       note: `Emotional First Aid Session. Intensity: ${intensity}/100`
     });
 
-    onComplete();
+    // Call onComplete with emotion data
+    onComplete({
+      emotion: moodToSave,
+      intensity: intensity
+    });
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-transparent z-50">
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-transparent">
       <div className="w-full h-full relative flex flex-col items-center justify-center z-10">
         {/* Top Content (Title etc.) */}
         <div className="absolute top-12 left-0 right-0 z-10 px-6 md:px-12">
@@ -96,7 +100,7 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
           >
             {/* Emotions Scroll Container */}
             <div className="w-full overflow-x-auto py-4 -my-4 scrollbar-hide">
-              {/* 
+              {/*
                 目标：
                 - 尽量铺满一行：justify-between + 每个 item flex-1
                 - 放大：icon wrapper / icon size / label 字号

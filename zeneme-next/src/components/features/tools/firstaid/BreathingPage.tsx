@@ -36,7 +36,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isTimerRunning && remainingSeconds > 0) {
       interval = setInterval(() => {
         setRemainingSeconds((prev) => {
@@ -44,12 +44,12 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             // Timer finished
             setIsTimerRunning(false);
             setShowNudge(true);
-            
+
             // Auto navigate after 1.5s (Strategy A)
             autoNavTimeoutRef.current = setTimeout(() => {
               onComplete();
             }, 1500);
-            
+
             return 0;
           }
           return prev - 1;
@@ -100,8 +100,8 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-transparent z-50">
-      
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-transparent">
+
       {/* Wave animations */}
       <div className="absolute inset-0" style={{ transform: 'translateY(530px)' }}>
         <motion.div
@@ -244,19 +244,19 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
 
             {/* Countdown Timer */}
             <div className="flex items-center gap-2 mb-4">
-              <div 
+              <div
                 className="fixed bottom-80 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3"
                 style={{ perspective: '1000px' }}
               >
                 <div className="w-56 h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/5 shadow-inner">
-                  <motion.div 
+                  <motion.div
                     className="h-full bg-gradient-to-r from-violet-200 via-white to-violet-200 shadow-[0_0_10px_rgba(255,255,255,0.6)]"
                     initial={{ width: '100%' }}
                     animate={{ width: `${(remainingSeconds / 60) * 100}%` }}
                     transition={{ duration: 1, ease: "linear" }}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-center gap-0.5 font-mono text-xs text-white/60 tracking-widest h-5 overflow-hidden">
                   <div className="relative w-5 h-full">
                     <AnimatePresence mode="popLayout">
@@ -272,9 +272,9 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                       </motion.span>
                     </AnimatePresence>
                   </div>
-                  
+
                   <span className="pb-0.5">:</span>
-                  
+
                   <div className="relative w-2.5 h-full">
                     <AnimatePresence mode="popLayout">
                       <motion.span
@@ -355,7 +355,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
       {/* Completion Nudge / Toast */}
       <AnimatePresence>
         {showNudge && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -365,9 +365,9 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
               <h3 className="text-white font-semibold text-lg">做得很好</h3>
               <p className="text-slate-400 text-sm">我们进入下一步。</p>
             </div>
-            
+
             <div className="flex gap-3 w-full">
-              <Button 
+              <Button
                 onClick={handleOneMoreMinute}
                 variant="outline"
                 className="flex-1 border-white/10 bg-white/5 hover:bg-white/10 text-white h-10 text-sm"
@@ -375,7 +375,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 再来 1 分钟
               </Button>
-              <Button 
+              <Button
                 onClick={handleNextStep}
                 className="flex-1 bg-violet-600 hover:bg-violet-700 text-white h-10 text-sm font-medium"
               >
