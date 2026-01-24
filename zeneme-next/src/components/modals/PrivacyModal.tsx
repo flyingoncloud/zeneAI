@@ -16,7 +16,11 @@ interface PrivacyModalProps {
 
 export const PrivacyModal: React.FC<PrivacyModalProps> = ({ open, onOpenChange }) => {
   const { t } = useZenemeStore();
-  const privacy = t.privacy;
+  const privacy = (t && t.privacy) || {
+    title: t?.common?.privacyPolicy || 'Privacy',
+    subtitle: '',
+    sections: [] as { title?: string; content?: string }[],
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -36,7 +40,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ open, onOpenChange }
 
         {/* Scrollable Content Area */}
         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-[#161825] p-6 space-y-8 animate-in fade-in-50 duration-300">
-          {privacy.sections.map((section, index) => (
+          {(privacy.sections || []).map((section, index) => (
             <div key={index} className="space-y-3">
               <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-2">
                 <span className="w-1 h-1 rounded-full bg-indigo-500"></span>

@@ -3,7 +3,7 @@ import svgPaths from "./svg-rq1s5ofmyc";
 
 export default function Logo() {
   return (
-    <div className="relative w-full h-full" data-name="Logo">
+    <div className="relative w-[180px] h-[40px]" data-name="Logo">
       <div className="absolute flex h-[32.268px] items-center justify-center left-0 top-0 w-[32px]" style={{ "--transform-inner-width": "0", "--transform-inner-height": "0" } as React.CSSProperties}>
         <div className="flex-none rotate-[0.241deg]">
           <div className="h-[32.134px] relative w-[31.865px]" data-name="Logo">

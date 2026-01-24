@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import * as Icons from './ui/icons';
 import { Button } from './ui/button';
+import { Plus, Image as ImageIcon, PenTool } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import {
   Tooltip,
   TooltipContent,
@@ -48,7 +50,7 @@ interface ChatInputProps {
   className?: string;
   placeholder?: string;
 }
-
+//替换成+扩展，内饰涂鸦，发送图片
 export const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
   onOpenDrawing,
@@ -61,6 +63,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const { t } = useZenemeStore();
+
+  // Plus menu state
+const [isPlusOpen, setIsPlusOpen] = useState(false);
+const plusWrapRef = useRef<HTMLDivElement | null>(null);
+
+// Close plus menu on outside click / Esc
+useEffect(() => {
+  if (!isPlusOpen) return;
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') setIsPlusOpen(false);
+  };
+
+  const onMouseDown = (e: MouseEvent) => {
+    const el = plusWrapRef.current;
+    if (!el) return;
+    if (!el.contains(e.target as Node)) setIsPlusOpen(false);
+  };
+
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('mousedown', onMouseDown);
+  return () => {
+    window.removeEventListener('keydown', onKeyDown);
+    window.removeEventListener('mousedown', onMouseDown);
+  };
+  }, [isPlusOpen]);
 
   // Voice States
   const [isListening, setIsListening] = useState(false);
@@ -75,6 +103,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // Toast State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' | 'info' });
 
+  const [plusOpen, setPlusOpen] = useState(false);
   // Simulation Refs
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -248,57 +277,72 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       <form onSubmit={handleSubmit} className={`relative flex items-center gap-2 ${className}`}>
         {/* Left Actions */}
-        <div className="flex items-center gap-2 mr-2 z-10 relative">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*"
-            onChange={handleFileUpload}
-            disabled={isGenerating}
-          />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  disabled={isGenerating}
-                  className={`w-10 h-10 transition-all rounded-full ${isGenerating ? 'text-slate-600 opacity-50 cursor-not-allowed' : 'text-violet-400 hover:text-violet-200 hover:bg-violet-500/20 active:scale-95'}`}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <SafeIcon icon={Icons.Image} size={20} />
-                </Button>
-              </TooltipTrigger>
-              {!isGenerating && (
-                <TooltipContent className="bg-slate-900/80 border-white/10 text-slate-200 backdrop-blur-md">
-                    <p>{t.chat.tooltips.sendImage}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-             
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  disabled={isGenerating}
-                  className={`w-10 h-10 transition-all rounded-full ${isGenerating ? 'text-slate-600 opacity-50 cursor-not-allowed' : 'text-violet-400 hover:text-violet-200 hover:bg-violet-500/20 active:scale-95'}`}
-                  onClick={onOpenDrawing}
-                >
-                  <SafeIcon icon={Icons.PenTool} size={20} />
-                </Button>
-              </TooltipTrigger>
-              {!isGenerating && (
-                  <TooltipContent className="bg-slate-900/80 border-white/10 text-slate-200 backdrop-blur-md">
-                    <p>{t.chat.tooltips.innerSketchpad}</p>
-                  </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+<div className="flex items-center gap-2 mr-2 z-10 relative">
+  <input 
+    type="file" 
+    ref={fileInputRef} 
+    className="hidden" 
+    accept="image/*"
+    onChange={handleFileUpload}
+    disabled={isGenerating}
+  />
+
+  {/* Left: Plus Button with Popover */}
+  <div className="relative z-10 flex-shrink-0">
+    <Popover open={plusOpen} onOpenChange={setPlusOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          disabled={isGenerating}
+          className={[
+            "w-10 h-10 rounded-full transition-all duration-200",
+            "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white",
+            "focus:ring-0 focus:outline-none"
+          ].join(" ")}
+        >
+          <Plus size={22} strokeWidth={2} />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={10}
+        className="w-40 p-1.5 bg-slate-900/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-xl"
+      >
+        <div className="flex flex-col gap-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              setPlusOpen(false);
+              fileInputRef.current?.click();
+            }}
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors w-full text-left"
+          >
+            <ImageIcon size={16} className="text-violet-400" />
+            <span>上传图片</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPlusOpen(false);
+              onOpenDrawing?.();
+            }}
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors w-full text-left"
+          >
+            <PenTool size={16} className="text-violet-400" />
+            <span>内视涂鸦</span>
+          </button>
         </div>
+      </PopoverContent>
+    </Popover>
+  </div>
+</div>
+
+
 
         {/* Input Field Area */}
         <div className="relative flex-1">
