@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, VolumeX, RefreshCw, ArrowRight } from 'lucide-react';
 import { useZenemeStore } from '../../../../hooks/useZenemeStore';
 import { Button } from '../../../ui/button';
+import { BreathingArcTimer } from './BreathingArcTimer';
 
 interface BreathingPageProps {
   onComplete: () => void;
@@ -20,18 +21,8 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [showNudge, setShowNudge] = useState(false);
   const autoNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const cycleInterval = setInterval(() => {
-      setBreathPhase((prev) => {
-        if (prev === 'inhale') return 'hold';
-        if (prev === 'hold') return 'exhale';
-        setCompletedCycle(true);
-        return 'inhale';
-      });
-    }, 4000);
+  // Cycle logic driven by BreathingArcTimer
 
-    return () => clearInterval(cycleInterval);
-  }, []);
 
   // Timer logic
   useEffect(() => {
@@ -244,93 +235,31 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
 
             {/* Countdown Timer */}
             <div className="flex items-center gap-2 mb-4">
-              <div
-                className="fixed bottom-80 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3"
-                style={{ perspective: '1000px' }}
-              >
-                <div className="w-56 h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm border border-white/5 shadow-inner">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-violet-200 via-white to-violet-200 shadow-[0_0_10px_rgba(255,255,255,0.6)]"
-                    initial={{ width: '100%' }}
-                    animate={{ width: `${(remainingSeconds / 60) * 100}%` }}
-                    transition={{ duration: 1, ease: "linear" }}
-                  />
-                </div>
+              <span className="text-white/40 text-sm font-medium tracking-widest tabular-nums">
+                {formatTime(remainingSeconds)}
+              </span>
+            </div>
 
-                <div className="flex items-center justify-center gap-0.5 font-mono text-xs text-white/60 tracking-widest h-5 overflow-hidden">
-                  <div className="relative w-5 h-full">
-                    <AnimatePresence mode="popLayout">
-                      <motion.span
-                        key={Math.floor(remainingSeconds / 60)}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -10, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        {Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-
-                  <span className="pb-0.5">:</span>
-
-                  <div className="relative w-2.5 h-full">
-                    <AnimatePresence mode="popLayout">
-                      <motion.span
-                        key={Math.floor((remainingSeconds % 60) / 10)}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -10, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        {Math.floor((remainingSeconds % 60) / 10)}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-
-                  <div className="relative w-2.5 h-full">
-                    <AnimatePresence mode="popLayout">
-                      <motion.span
-                        key={remainingSeconds % 10}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -10, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        {remainingSeconds % 10}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-8">
+              <BreathingArcTimer 
+                isPlaying={isTimerRunning}
+                onPhaseChange={(p) => {
+                  setBreathPhase(p);
+                  if (p === 'inhale') setCompletedCycle(true);
+                }} 
+              />
             </div>
 
             <h1 className="text-4xl text-white mb-4">
-              {t.breathing.title}
+              四步呼吸法
             </h1>
-            <p className="text-gray-400 text-lg max-w-2xl">
-              一分钟呼吸训练，专注画面中的节奏起伏，让呼吸在几次往复间慢慢放缓、趋于平稳。
+            <p className="text-gray-400 text-lg max-w-3xl">
+              四步呼吸法也叫箱式呼吸法，每步4秒合计16秒；吸气4秒—停4秒—呼气4秒—停4秒；通过节律呼吸激活副交感神经，打断情绪反应，让大脑恢复稳定与掌控。保持这个节奏，您会感受到内心重归平静。
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 text-center">
-          <motion.div
-            key={breathPhase}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl text-white backdrop-blur-sm bg-white/10 px-8 py-4 rounded-full border border-white/5"
-          >
-            {breathPhase === 'inhale' && t.breathing.inhale}
-            {breathPhase === 'hold' && t.breathing.hold}
-            {breathPhase === 'exhale' && t.breathing.exhale}
-          </motion.div>
-        </div>
+
 
         <div className="absolute bottom-12 left-0 right-0 z-10 px-12">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
