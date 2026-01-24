@@ -12,6 +12,7 @@ import { Dialog, DialogContent } from '../../ui/dialog';
 import { generateConversationReport, getReportStatus } from '../../../lib/api';
 import { ModuleRecommendationCard } from './ModuleRecommendationCard';
 import { toast } from 'sonner';
+import { SplashDanmakuLayer } from './SplashDanmakuLayer';
 
 // Module ID to View mapping
 // Only 3 modules exist: emotional_first_aid, inner_doodling, quick_assessment
@@ -404,6 +405,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
 
   return (
     <div className="flex flex-col h-full bg-transparent relative text-slate-200">
+      {isWelcomeState && (
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <SplashDanmakuLayer />
+        </div>
+      )}
       {/* 1. Header Analysis Progress - Only show if not welcome state */}
       {!isWelcomeState && (
         <div className="w-full bg-slate-900/40 border-b border-white/5 p-4 sticky top-0 z-20 flex items-center gap-4 backdrop-blur-xl">

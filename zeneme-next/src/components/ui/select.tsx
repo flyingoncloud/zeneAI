@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "./utils"
 import { ChevronDown, Check } from "./icons"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const SelectContext = React.createContext<{ 
   value: string; 

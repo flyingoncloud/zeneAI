@@ -6,7 +6,7 @@ import { useZenemeStore } from '../../../../hooks/useZenemeStore';
 
 
 function usePrefersReducedMotion() {
-  // ✅ 初始值放到 useState initializer，避免在 effect 里同步 setState
+  // 初始值放到 useState initializer，避免在 effect 里同步 setState
   const [shouldReduceMotion, setShouldReduceMotion] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -242,9 +242,9 @@ export function BreathingArcTimer({
     </div>
   );
 
-  // ✅ 未挂载前不渲染（防止 document 不可用）
+  //  未挂载前不渲染（防止 document 不可用）
   if (!mounted) return null;
 
-  // ✅ Portal：避免 fixed 被父级 transform/overflow 裁剪或层级覆盖
+  //  Portal：避免 fixed 被父级 transform/overflow 裁剪或层级覆盖
   return createPortal(content, document.body);
 }

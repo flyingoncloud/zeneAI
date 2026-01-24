@@ -299,7 +299,23 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
           </div>
 
           {/* B. Recent Chats List */}
-          <div className="px-3 space-y-1 max-h-[192px] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+          <div className="
+            px-3 space-y-1 max-h-[192px] overflow-y-auto
+            [&::-webkit-scrollbar]:w-2
+            [&::-webkit-scrollbar-track]:bg-transparent
+            [&::-webkit-scrollbar-thumb]:bg-white/10
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb]:border-[3px]
+            [&::-webkit-scrollbar-thumb]:border-transparent
+            [&::-webkit-scrollbar-thumb]:bg-clip-padding
+            [&::-webkit-scrollbar-button]:hidden
+            hover:[&::-webkit-scrollbar-thumb]:bg-white/20
+            "
+            style={{
+              scrollbarWidth: "thin", // Firefox
+              scrollbarColor: "rgba(255,255,255,0.18) transparent",
+            }}
+            >
             {recentSessions.length === 0 && (
               <div className="px-4 text-xs text-slate-600 italic mt-1">{t.common.empty}</div>
             )}

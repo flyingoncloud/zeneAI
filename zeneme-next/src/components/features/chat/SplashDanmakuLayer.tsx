@@ -97,9 +97,27 @@ const estimateSize = (text: string, scale: number) => {
   // Rough estimation based on text length (assuming font size ~14)
   const baseWidth = Math.min(280, Math.max(140, text.length * 10));
   const width = baseWidth * scale;
-  const height = 44 * scale; // fixed height
+
+  // ---- NEW: estimate wrapped lines and compute height ----
+  // Tailwind: px-4 py-3 => horizontal padding 32px, vertical padding 24px
+  const paddingX = 32;
+  const paddingY = 24;
+
+  // text-sm ~= 14px; leading-snug ~= ~18px (approx)
+  const approxCharW = 14;
+  const approxLineH = 18;
+
+  const usableW = Math.max(1, baseWidth - paddingX);
+  const charsPerLine = Math.max(6, Math.floor(usableW / approxCharW));
+  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+
+  // Keep at least the original 44px baseline
+  const baseHeight = Math.max(44, paddingY + lines * approxLineH);
+  const height = baseHeight * scale;
+
   return { width, height };
 };
+
 
 const checkOverlap = (
   c1: { x: number, y: number, w: number, h: number },
@@ -310,7 +328,7 @@ export const SplashDanmakuLayer = () => {
       }
     }
 
-    // ✅ 避免在 effect 里同步 setState：推到下一帧执行（逻辑等价）
+    //  避免在 effect 里同步 setState：推到下一帧执行（逻辑等价）
     const raf = requestAnimationFrame(() => {
       setBubbles(generated);
       bubblesRef.current = generated;
@@ -339,7 +357,7 @@ const BubbleRenderer = ({
   const { isSidebarOpen } = useZenemeStore();
   const startTimeRef = useRef<number | null>(null);
 
-  // ✅ 用 ref 保存 offsetX，避免直接修改 props/config（immutability）
+  //  用 ref 保存 offsetX，避免直接修改 props/config（immutability）
   const offsetXRef = useRef<number>(config.offsetX);
 
   // Keep initial offset (if any) in sync without mutating props
@@ -461,12 +479,14 @@ const BubbleRenderer = ({
       <div
         className="rounded-2xl px-4 py-3 backdrop-blur-md border shadow-[0_8px_22px_rgba(0,0,0,0.25)]"
         style={{
-          width: config.width,
-          height: config.height,
-          background: config.fill,
-          borderColor: config.border,
-          boxShadow: `0 0 14px ${config.glow}`,
-        }}
+                width: config.width,
+                minHeight: config.height,
+                height: 'auto',
+                overflow: 'hidden',
+                background: config.fill,
+                borderColor: config.border,
+                boxShadow: `0 0 14px ${config.glow}`,
+                }}
       >
         <p className="text-white/85 text-sm font-medium leading-snug">
           {config.text}

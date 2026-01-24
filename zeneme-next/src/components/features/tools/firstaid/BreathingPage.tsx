@@ -15,14 +15,14 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [soundOn, setSoundOn] = useState(false);
   const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
 
+  // ✅ 用 BreathingArcTimer 的 inhale 作为每个 16s 周期起点，强制背景“重置对齐”
+  const [waveCycleKey, setWaveCycleKey] = useState(0);
+
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(60);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [showNudge, setShowNudge] = useState(false);
   const autoNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cycle logic driven by BreathingArcTimer
-
 
   // Timer logic
   useEffect(() => {
@@ -77,6 +77,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // 仅用于停止时的静态位置兜底（不依赖 tailwind）
   const getWavePosition = () => {
     switch (breathPhase) {
       case 'inhale':
@@ -90,20 +91,50 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
     }
   };
 
+  /**
+   * ✅ 4-4-4-4（16s）节奏：
+   * 0-4s   吸气：低 -> 高
+   * 4-8s   保持：高（冻结）
+   * 8-12s  呼气：高 -> 低（第4秒到最低）
+   * 12-16s 保持：低（冻结）
+   */
+  const CYCLE_DURATION = 16;
+  const times = [0, 0.25, 0.5, 0.75, 1];
+
+  // y：用重复值实现 hold 冻结
+  const waveY = ['0%', '-60%', '-60%', '0%', '0%'];
+
+  // 形状 morph：同样用重复值实现 hold 冻结
+  const d1High = 'M-240,500 Q120,135 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z';
+  const d1Low = 'M-240,500 Q120,865 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z';
+
+  const d2High = 'M-240,550 Q360,-50 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z';
+  const d2Low = 'M-240,550 Q360,1150 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z';
+
+  const d3High = 'M-240,600 Q120,-325 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z';
+  const d3Low = 'M-240,600 Q120,1525 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z';
+
+  const waveTransition = {
+    duration: CYCLE_DURATION,
+    times,
+    repeat: Infinity,
+    ease: 'easeInOut' as const,
+  };
+
   return (
     <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-transparent">
-
       {/* Wave animations */}
-      <div className="absolute inset-0" style={{ transform: 'translateY(530px)' }}>
+      {/* ✅ key 让背景在 inhale 时“重置对齐”到 16s 周期起点 */}
+      <div
+        key={waveCycleKey}
+        className="absolute inset-0"
+        style={{ transform: 'translateY(530px)' }}
+      >
+        {/* Layer 1 */}
         <motion.div
           className="absolute inset-0 w-full h-full"
-          animate={{
-            y: getWavePosition(),
-          }}
-          transition={{
-            duration: 4,
-            ease: 'easeInOut',
-          }}
+          animate={isTimerRunning ? { y: waveY } : { y: getWavePosition() }}
+          transition={isTimerRunning ? waveTransition : { duration: 0 }}
         >
           <svg
             className="absolute inset-0 w-full h-full"
@@ -114,18 +145,12 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             <motion.path
               d="M-240,500 Q120,350 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z"
               fill="url(#gradient1)"
-              animate={{
-                d: [
-                  "M-240,500 Q120,135 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z",
-                  "M-240,500 Q120,865 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z",
-                  "M-240,500 Q120,135 480,500 T1200,500 T1920,500 L1920,3000 L-240,3000 Z",
-                ],
-              }}
-              transition={{
-                duration: 9,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
+              animate={
+                isTimerRunning
+                  ? { d: [d1Low, d1High, d1High, d1Low, d1Low] }
+                  : { d: breathPhase === 'exhale' ? d1Low : d1High }
+              }
+              transition={isTimerRunning ? waveTransition : { duration: 0 }}
             />
             <defs>
               <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -136,16 +161,11 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
           </svg>
         </motion.div>
 
+        {/* Layer 2 */}
         <motion.div
           className="absolute inset-0 w-full h-full"
-          animate={{
-            y: getWavePosition(),
-          }}
-          transition={{
-            duration: 4,
-            ease: 'easeInOut',
-            delay: 0.2,
-          }}
+          animate={isTimerRunning ? { y: waveY } : { y: getWavePosition() }}
+          transition={isTimerRunning ? waveTransition : { duration: 0 }}
         >
           <svg
             className="absolute inset-0 w-full h-full"
@@ -156,18 +176,12 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             <motion.path
               d="M-240,550 Q360,400 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z"
               fill="url(#gradient2)"
-              animate={{
-                d: [
-                  "M-240,550 Q360,1150 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z",
-                  "M-240,550 Q360,-50 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z",
-                  "M-240,550 Q360,1150 960,550 T1680,550 T2400,550 L2400,3000 L-240,3000 Z",
-                ],
-              }}
-              transition={{
-                duration: 6.5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
+              animate={
+                isTimerRunning
+                  ? { d: [d2Low, d2High, d2High, d2Low, d2Low] }
+                  : { d: breathPhase === 'exhale' ? d2Low : d2High }
+              }
+              transition={isTimerRunning ? waveTransition : { duration: 0 }}
             />
             <defs>
               <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -178,16 +192,11 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
           </svg>
         </motion.div>
 
+        {/* Layer 3 */}
         <motion.div
           className="absolute inset-0 w-full h-full"
-          animate={{
-            y: getWavePosition(),
-          }}
-          transition={{
-            duration: 4,
-            ease: 'easeInOut',
-            delay: 0.4,
-          }}
+          animate={isTimerRunning ? { y: waveY } : { y: getWavePosition() }}
+          transition={isTimerRunning ? waveTransition : { duration: 0 }}
         >
           <svg
             className="absolute inset-0 w-full h-full"
@@ -198,18 +207,12 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             <motion.path
               d="M-240,600 Q120,450 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z"
               fill="url(#gradient3)"
-              animate={{
-                d: [
-                  "M-240,600 Q120,1525 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z",
-                  "M-240,600 Q120,-325 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z",
-                  "M-240,600 Q120,1525 480,600 T1200,600 T1920,600 L1920,3000 L-240,3000 Z",
-                ],
-              }}
-              transition={{
-                duration: 5.2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
+              animate={
+                isTimerRunning
+                  ? { d: [d3Low, d3High, d3High, d3Low, d3Low] }
+                  : { d: breathPhase === 'exhale' ? d3Low : d3High }
+              }
+              transition={isTimerRunning ? waveTransition : { duration: 0 }}
             />
             <defs>
               <linearGradient id="gradient3" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -241,25 +244,26 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             </div>
 
             <div className="mb-8">
-              <BreathingArcTimer 
+              <BreathingArcTimer
                 isPlaying={isTimerRunning}
                 onPhaseChange={(p) => {
                   setBreathPhase(p);
-                  if (p === 'inhale') setCompletedCycle(true);
-                }} 
+
+                  // ✅ inhale = 新一轮 16s 周期开始：背景重新对齐
+                  if (p === 'inhale') {
+                    setCompletedCycle(true);
+                    setWaveCycleKey((k) => k + 1);
+                  }
+                }}
               />
             </div>
 
-            <h1 className="text-4xl text-white mb-4">
-              四步呼吸法
-            </h1>
+            <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
             <p className="text-gray-400 text-lg max-w-3xl">
               四步呼吸法也叫箱式呼吸法，每步4秒合计16秒；吸气4秒—停4秒—呼气4秒—停4秒；通过节律呼吸激活副交感神经，打断情绪反应，让大脑恢复稳定与掌控。保持这个节奏，您会感受到内心重归平静。
             </p>
           </div>
         </div>
-
-
 
         <div className="absolute bottom-12 left-0 right-0 z-10 px-12">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
