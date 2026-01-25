@@ -666,8 +666,33 @@ def get_ai_response_with_image(
         AI response content
     """
     try:
-        # Get system prompt based on configured language
-        system_prompt = get_base_system_prompt(language)
+        # Use a vision-specific system prompt that tells the AI it can see images
+        if language == "chinese":
+            vision_system_prompt = """你是一名专业、温和、富有同理心的心理咨询师。
+
+你具有图像分析能力，可以看到和分析用户上传的图片。
+
+当用户上传图片时：
+1. 仔细观察图片中的内容、色彩、构图、情绪表达
+2. 从心理学角度分析图片可能反映的情绪状态、内心感受
+3. 用温和、共情的语言描述你的观察和理解
+4. 避免过度解读或下诊断性结论
+5. 鼓励用户分享他们自己对图片的感受和想法
+
+请用中文回答，语气温和、专业、富有同理心。"""
+        else:
+            vision_system_prompt = """You are a professional, warm, and empathetic psychological counselor.
+
+You have image analysis capabilities and can see and analyze images uploaded by users.
+
+When a user uploads an image:
+1. Carefully observe the content, colors, composition, and emotional expression in the image
+2. Analyze from a psychological perspective what emotions and inner feelings the image might reflect
+3. Describe your observations and understanding in warm, empathetic language
+4. Avoid over-interpretation or diagnostic conclusions
+5. Encourage users to share their own feelings and thoughts about the image
+
+Please respond in English with a warm, professional, and empathetic tone."""
 
         # Add language instruction to the prompt if force language is enabled
         if AI_FORCE_LANGUAGE and language == "chinese":
@@ -676,10 +701,13 @@ def get_ai_response_with_image(
         else:
             full_prompt = prompt
 
+        logger.info(f"Calling OpenAI Vision API with model: {model}")
+        logger.info(f"Prompt: {full_prompt[:100]}...")
+
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": vision_system_prompt},
                 {
                     "role": "user",
                     "content": [
@@ -693,7 +721,10 @@ def get_ai_response_with_image(
             ],
             max_tokens=AI_MAX_TOKENS
         )
-        return response.choices[0].message.content
+
+        ai_response = response.choices[0].message.content
+        logger.info(f"Vision API response: {ai_response[:100]}...")
+        return ai_response
     except Exception as e:
         logger.error(f"Error getting AI response with image: {str(e)}")
         raise Exception(f"Error getting AI response with image: {str(e)}")
