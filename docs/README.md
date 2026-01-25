@@ -4,6 +4,10 @@ Welcome to the ZeneAI documentation! This directory contains all project documen
 
 ## 📚 Documentation Structure
 
+### 📋 [Documentation Meta](.)
+- [Documentation Restructure Plan](DOCUMENTATION_RESTRUCTURE_PLAN.md)
+- [Documentation Restructure Summary](DOCUMENTATION_RESTRUCTURE_SUMMARY.md)
+
 ### 🚀 [Deployment](deployment/)
 Guides for deploying ZeneAI to various environments:
 - [EC2 Instance Recommendations](deployment/EC2_INSTANCE_RECOMMENDATIONS.md)
@@ -21,6 +25,9 @@ Implementation guides for major features:
 - [Complete Flow Implementation](features/questionnaire/QUESTIONNAIRE_COMPLETE_FLOW_IMPLEMENTATION.md)
 - [Scoring Explanation](features/questionnaire/QUESTIONNAIRE_SCORING_EXPLANATION.md)
 - [Deployment Guide](features/questionnaire/QUESTIONNAIRE_DEPLOYMENT_GUIDE.md)
+- [Extension Guide](features/questionnaire/QUESTIONNAIRE_EXTENSION_GUIDE.md) - How to add new questionnaires
+- [Media Support Guide](features/questionnaire/QUESTIONNAIRE_MEDIA_SUPPORT_GUIDE.md) - Images & animations support
+- [Duplicate Fix 2](features/questionnaire/QUESTIONNAIRE_DUPLICATE_FIX_2.md)
 
 #### [Psychology Report](features/psychology-report/)
 - [Integration Guide](features/psychology-report/PSYCHOLOGY_REPORT_INTEGRATION_GUIDE.md)
@@ -33,6 +40,8 @@ Implementation guides for major features:
 - [Upload Implementation](features/inner-doodling/INNER_DOODLING_UPLOAD_IMPLEMENTATION.md)
 - [Deployment Guide](features/inner-doodling/INNER_DOODLING_DEPLOYMENT_GUIDE.md)
 - [Completion Summary](features/inner-doodling/INNER_DOODLING_COMPLETION_SUMMARY.md)
+- [Analyze Button Fix](features/inner-doodling/INNER_DOODLING_ANALYZE_BUTTON_FIX.md)
+- [Image Display Fix](features/inner-doodling/INNER_DOODLING_IMAGE_DISPLAY_FIX.md)
 
 #### [Modules](features/modules/)
 - [Module Completion Database Guide](features/modules/MODULE_COMPLETION_DATABASE_GUIDE.md)
@@ -50,6 +59,12 @@ Bug fixes and troubleshooting guides:
 #### [Frontend Issues](troubleshooting/frontend/)
 - [Emotional First Aid Button Fix](troubleshooting/frontend/EMOTIONAL_FIRST_AID_BUTTON_FIX.md)
 - [UI Flow Guide](troubleshooting/frontend/UI_FLOW_GUIDE.md)
+- [Emotional First Aid Completion Fix](troubleshooting/frontend/EMOTIONAL_FIRST_AID_COMPLETION_FIX.md)
+- [Emotional First Aid Debug Guide](troubleshooting/frontend/EMOTIONAL_FIRST_AID_DEBUG_GUIDE.md)
+- [Emotional First Aid Fix Complete](troubleshooting/frontend/EMOTIONAL_FIRST_AID_FIX_COMPLETE.md)
+- [Emotional First Aid Repeat Fix](troubleshooting/frontend/EMOTIONAL_FIRST_AID_REPEAT_FIX.md)
+- [Emotional First Aid Status Explanation](troubleshooting/frontend/EMOTIONAL_FIRST_AID_STATUS_EXPLANATION.md)
+- [Testing Emotional First Aid Fix](troubleshooting/frontend/TESTING_EMOTIONAL_FIRST_AID_FIX.md)
 
 #### [Database Issues](troubleshooting/database/)
 - [Questionnaire Backend Fix](troubleshooting/database/QUESTIONNAIRE_BACKEND_FIX.md)
