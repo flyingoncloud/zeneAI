@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional, Dict, Any
@@ -41,6 +42,11 @@ app.add_middleware(
 
 # Include psychology report routes
 app.include_router(psychology_report_router)
+
+# Mount static files for uploads
+uploads_dir = Path("uploads")
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.on_event("startup")
 async def startup_event():
@@ -612,6 +618,81 @@ async def upload_sketch(
 
     except Exception as e:
         logger.error(f"Error uploading sketch: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+
+
+@app.post("/api/zene/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    General file upload endpoint for images
+
+    This endpoint:
+    1. Accepts an uploaded image file (PNG/JPEG/WebP)
+    2. Validates file type and size
+    3. Saves it to /uploads/ directory
+    4. Returns the file URL for use in chat
+    """
+    logger.info(f"Received file upload - filename: {file.filename}, content_type: {file.content_type}")
+
+    try:
+        # Validate content type
+        allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=415,
+                detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(allowed_types)}"
+            )
+
+        # Validate file size (5MB limit)
+        contents = await file.read()
+        file_size = len(contents)
+        max_size = 5 * 1024 * 1024  # 5MB
+
+        if file_size > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large: {file_size} bytes. Maximum size: {max_size} bytes (5MB)"
+            )
+
+        # Create uploads directory if it doesn't exist
+        upload_dir = Path("uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique filename with proper extension
+        file_extension = Path(file.filename).suffix if file.filename else ".jpg"
+        if not file_extension or file_extension not in ['.png', '.jpg', '.jpeg', '.webp']:
+            # Determine extension from content type
+            ext_map = {
+                "image/png": ".png",
+                "image/jpeg": ".jpg",
+                "image/jpg": ".jpg",
+                "image/webp": ".webp"
+            }
+            file_extension = ext_map.get(file.content_type, ".jpg")
+
+        unique_filename = f"{int(datetime.utcnow().timestamp() * 1000)}-{uuid.uuid4().hex[:8]}{file_extension}"
+        file_path = upload_dir / unique_filename
+
+        # Save uploaded file
+        logger.info(f"Saving file to: {file_path}")
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        logger.info(f"Saved {file_size} bytes to {file_path}")
+
+        # Generate file URL for frontend
+        file_url = f"/uploads/{unique_filename}"
+
+        return {
+            "ok": True,
+            "url": file_url,
+            "mime": file.content_type,
+            "size": file_size
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
 
 

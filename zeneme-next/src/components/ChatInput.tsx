@@ -51,8 +51,8 @@ interface ChatInputProps {
   placeholder?: string;
 }
 //替换成+扩展，内饰涂鸦，发送图片
-export const ChatInput: React.FC<ChatInputProps> = ({ 
-  onSendMessage, 
+export const ChatInput: React.FC<ChatInputProps> = ({
+  onSendMessage,
   onOpenDrawing,
   onStopGenerating,
   isGenerating = false,
@@ -93,7 +93,7 @@ useEffect(() => {
   // Voice States
   const [isListening, setIsListening] = useState(false);
   const [voiceText, setVoiceText] = useState('');
-  
+
   // Permission States
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
@@ -123,7 +123,7 @@ useEffect(() => {
 
     // Simulate voice recognition
     const phrases = ["我最近有点...", "我最近有点焦虑，睡不好", "我最近有点焦虑，睡不好，脑子停不下来"];
-    
+
     let step = 0;
     const typeNext = () => {
       if (step < phrases.length) {
@@ -137,7 +137,7 @@ useEffect(() => {
         }, 2500);
       }
     };
-    
+
     // Start typing simulation after a short delay
     typingTimerRef.current = setTimeout(typeNext, 600);
   };
@@ -202,11 +202,44 @@ useEffect(() => {
     stopListening(); // Ensure listening stops if manually sent
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
       console.log('File selected:', file.name);
+
+      // Show uploading toast
+      setToast({ visible: true, message: '正在上传图片...', type: 'info' });
+
+      // Upload file to backend
+      const { uploadFile } = await import('../lib/api');
+      const result = await uploadFile(file);
+
+      if (result.ok && result.url) {
+        // Convert relative URL to full URL for display
+        const fullImageUrl = result.url.startsWith('http')
+          ? result.url
+          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${result.url}`;
+
+        console.log('Image uploaded successfully:', fullImageUrl);
+
+        // Send the uploaded image URL to AI for analysis
+        onSendMessage(`请分析这张图片中表达的情感和感受 [图片: ${fullImageUrl}]`);
+
+        setToast({ visible: true, message: '图片上传成功！', type: 'success' });
+      } else {
+        console.error('File upload failed:', result);
+        setToast({ visible: true, message: '图片上传失败，请重试', type: 'error' });
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      setToast({ visible: true, message: '图片上传失败，请重试', type: 'error' });
+    } finally {
+      // Clear the file input
       if (fileInputRef.current) fileInputRef.current.value = '';
+      // Hide toast after 3 seconds
+      setTimeout(() => setToast({ ...toast, visible: false }), 3000);
     }
   };
 
@@ -214,17 +247,17 @@ useEffect(() => {
 
   return (
     <>
-      <Toast 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
-        onClose={() => setToast({ ...toast, visible: false })} 
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, visible: false })}
       />
 
       {/* Permission Denied Toast / Mini Dialog */}
       <AnimatePresence>
         {showPermissionDeniedToast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -254,15 +287,15 @@ useEffect(() => {
               为了进行语音输入，zeneme 需要使用你的麦克风。
             </p>
             <div className="flex gap-2 pt-2">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className="flex-1 text-slate-400 hover:text-white hover:bg-white/5 h-8 text-xs"
                 onClick={handlePermissionDeny}
               >
                 暂不允许
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 className="flex-1 bg-violet-600 hover:bg-violet-500 text-white h-8 text-xs"
                 onClick={handlePermissionGrant}
@@ -278,10 +311,10 @@ useEffect(() => {
       <form onSubmit={handleSubmit} className={`relative flex items-center gap-2 ${className}`}>
         {/* Left Actions */}
 <div className="flex items-center gap-2 mr-2 z-10 relative">
-  <input 
-    type="file" 
-    ref={fileInputRef} 
-    className="hidden" 
+  <input
+    type="file"
+    ref={fileInputRef}
+    className="hidden"
     accept="image/*"
     onChange={handleFileUpload}
     disabled={isGenerating}
@@ -356,25 +389,25 @@ useEffect(() => {
             className={`w-full px-6 py-4 pr-4 bg-slate-900/50 border rounded-full focus:outline-none focus:ring-2 transition-all backdrop-blur-sm shadow-inner z-10
                 ${isGenerating
                     ? 'border-white/5 bg-slate-800/20 text-slate-500 placeholder:text-slate-600 cursor-not-allowed'
-                    : isListening 
-                        ? 'border-violet-500/50 ring-2 ring-violet-500/20 text-violet-200 placeholder:text-violet-400/70' 
+                    : isListening
+                        ? 'border-violet-500/50 ring-2 ring-violet-500/20 text-violet-200 placeholder:text-violet-400/70'
                         : 'border-white/10 focus:ring-violet-500/40 focus:border-violet-500 text-slate-200 placeholder:text-slate-500'}`}
             />
-            
+
             {/* Listening Visualizer inside/near input */}
             {isListening && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 pointer-events-none">
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 12, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0 }}
                        className="w-1 bg-violet-500 rounded-full"
                      />
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 16, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }}
                        className="w-1 bg-violet-400 rounded-full"
                      />
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 10, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }}
                        className="w-1 bg-violet-500 rounded-full"
@@ -391,8 +424,8 @@ useEffect(() => {
           className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 z-20 flex items-center justify-center relative
             ${isGenerating
                 ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'
-                : hasText 
-                    ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20' 
+                : hasText
+                    ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20'
                     : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'}`}
         >
           <AnimatePresence mode="wait">
@@ -425,7 +458,7 @@ useEffect(() => {
                 >
                     {isListening && (
                         <>
-                         <motion.div 
+                         <motion.div
                             animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
                             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                             className="absolute inset-0 -m-2 bg-violet-500 rounded-full blur-md opacity-50"
