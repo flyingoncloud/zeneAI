@@ -7,7 +7,7 @@ import { AnalysisProgress } from '../../AnalysisProgress';
 import { AnimatePresence, motion } from 'motion/react';
 import { ReportPage } from './ReportPage';
 import { ChatInput } from '../../ChatInput';
-import { Heart, PenTool, ClipboardList, Maximize2 } from 'lucide-react';
+import { Heart, PenTool, ClipboardList, Maximize2, X } from 'lucide-react';
 import { Dialog, DialogContent } from '../../ui/dialog';
 import { generateConversationReport, getReportStatus } from '../../../lib/api';
 import { ModuleRecommendationCard } from './ModuleRecommendationCard';
@@ -78,16 +78,23 @@ const AIMessageBubble = ({
   onComplete,
   isStopped,
   shouldAnimate = true,
+  attachment,
 }: {
   content: string;
   onComplete?: () => void;
   isStopped?: boolean;
   shouldAnimate?: boolean;
+  attachment?: {
+    type: 'image' | 'voice' | 'sketch' | 'gallery';
+    url?: string;
+    preview?: string;
+  };
 }) => {
   // Safety check for undefined content
   const safeContent = content || '';
   const [displayedContent, setDisplayedContent] = useState(shouldAnimate ? '' : content);
   const [isTyping, setIsTyping] = useState(shouldAnimate);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // If shouldAnimate becomes false (e.g. became history), force complete
   useEffect(() => {
@@ -156,14 +163,71 @@ const AIMessageBubble = ({
   }, [content, isTyping, isStopped, onComplete, shouldAnimate]);
 
   return (
-    <div className="w-full relative group min-h-[24px]">
-      <div className="text-slate-300 text-[15px] leading-[1.7] whitespace-pre-wrap font-light tracking-wide break-words">
-        {displayedContent}
-        {isTyping && (
-          <span className="animate-pulse inline-block w-1.5 h-4 ml-1 bg-violet-400 align-middle rounded-full align-text-bottom"></span>
+    <>
+      <div className="w-full relative group min-h-[24px]">
+        {/* Sketch attachment for AI messages */}
+        {attachment && attachment.type === 'sketch' && (
+          <motion.div
+            layoutId={`ai-sketch-${content.substring(0, 20)}`}
+            onClick={() => setIsPreviewOpen(true)}
+            className="group/img relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 shadow-lg mb-3"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="absolute inset-0 bg-black/20 group-hover/img:bg-black/10 transition-colors" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={attachment.preview || attachment.url}
+              alt="Sketch Analysis"
+              className="w-48 h-32 object-cover bg-slate-900"
+            />
+            <div className="absolute top-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/50 rounded-full p-1">
+              <Maximize2 size={14} className="text-white" />
+            </div>
+            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-white/80 font-medium">
+              内视涂鸦分析
+            </div>
+          </motion.div>
         )}
+
+        <div className="text-slate-300 text-[15px] leading-[1.7] whitespace-pre-wrap font-light tracking-wide break-words">
+          {displayedContent}
+          {isTyping && (
+            <span className="animate-pulse inline-block w-1.5 h-4 ml-1 bg-violet-400 align-middle rounded-full align-text-bottom"></span>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Image Preview Modal */}
+      {attachment && attachment.type === 'sketch' && isPreviewOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsPreviewOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            layoutId={`ai-sketch-${content.substring(0, 20)}`}
+            className="relative max-w-4xl max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={attachment.preview || attachment.url}
+              alt="Sketch Analysis"
+              className="w-full h-full object-contain rounded-2xl"
+            />
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors"
+            >
+              <X size={20} className="text-white" />
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </>
   );
 };
 
@@ -524,6 +588,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                         // Only attach completion handler to the very last message if it's AI
                         onComplete={index === messages.length - 1 ? handleAiReplyComplete : undefined}
                         isStopped={index === messages.length - 1 ? isAiResponseStopped : false}
+                        attachment={message.attachment}
                       />
                     )}
                   </div>
