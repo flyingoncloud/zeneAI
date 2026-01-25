@@ -98,8 +98,9 @@ def seed_questionnaires(db: Session):
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            # Use section as the unique ID
-            questionnaire_id = data['section']
+            # Use prefixed section as the unique ID (e.g., "questionnaire_2_1")
+            # This prevents conflicts and maintains consistency
+            questionnaire_id = f"questionnaire_{data['section']}"
 
             # Check if questionnaire already exists
             exists = db.query(AssessmentQuestionnaire).filter(AssessmentQuestionnaire.id == questionnaire_id).first()
