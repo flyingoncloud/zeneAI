@@ -182,20 +182,9 @@ React.useEffect(() => {
   const renderContent = () => {
     switch (currentView) {
       case 'first-aid':
+      case 'breathing':  // These are sub-views of EmotionalFirstAid
+      case 'naming':     // These are sub-views of EmotionalFirstAid
         return <EmotionalFirstAid />;
-      case 'breathing':
-        return (
-          <BreathingPage
-            onComplete={() => setCurrentView("naming")} // 训练完成后顺着走到情绪命名
-          />
-        );
-      case 'naming':
-        return (
-          <EmotionPage
-            onBack={() => setCurrentView("breathing")}
-            onComplete={() => setCurrentView("chat")}
-          />
-        );
       case "sketch":
         return <InnerSketch />;
 

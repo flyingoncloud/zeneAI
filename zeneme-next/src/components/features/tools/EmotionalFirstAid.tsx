@@ -27,7 +27,7 @@ const SafeIcon = ({ icon: Icon, size = 24, className }: SafeIconProps) => {
 };
 
 export const EmotionalFirstAid: React.FC = () => {
-  const { t, setCurrentView, currentView } = useZenemeStore();
+  const { t, setCurrentView, currentView, conversationId, addMessage, setPendingModuleCompletion } = useZenemeStore();
 
   const step = currentView === 'breathing' ? 'breathing' : currentView === 'naming' ? 'naming' : 'intro';
 
@@ -35,8 +35,59 @@ export const EmotionalFirstAid: React.FC = () => {
     setCurrentView('chat');
   };
 
+  const handleComplete = async (emotionData: { emotion: string; intensity: number }) => {
+    try {
+      // Call module completion API with emotion data
+      if (conversationId) {
+        const { completeModuleWithRetry } = await import('../../../lib/api');
+        const { toast } = await import('sonner');
+
+        const result = await completeModuleWithRetry(
+          conversationId,
+          'emotional_first_aid',
+          {
+            completed_steps: ['breathing', 'emotion_naming'],
+            emotion: emotionData.emotion,
+            intensity: emotionData.intensity,
+            timestamp: new Date().toISOString()
+          }
+        );
+
+        if (result.ok) {
+          console.log('[Module Completed]', {
+            module_id: 'emotional_first_aid',
+            conversation_id: conversationId,
+            emotion: emotionData.emotion,
+            intensity: emotionData.intensity,
+            timestamp: new Date().toISOString()
+          });
+
+          // Add system message to inform AI that module was completed
+          addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
+          setPendingModuleCompletion('emotional_first_aid');
+
+          toast.success('情绪急救已完成！');
+        } else {
+          console.error('[EmotionalFirstAid] Failed to complete module:', result.error);
+          toast.error('保存完成状态失败，但您的练习已完成');
+        }
+      } else {
+        console.error('[EmotionalFirstAid] No conversationId available!');
+        const { toast } = await import('sonner');
+        toast.error('无法保存：未找到会话ID');
+      }
+    } catch (error) {
+      console.error('[EmotionalFirstAid] Error in handleComplete:', error);
+      const { toast } = await import('sonner');
+      toast.error('保存时出错：' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      // Reset and exit
+      handleExit();
+    }
+  };
+
   const renderIntro = () => (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -52,7 +103,7 @@ export const EmotionalFirstAid: React.FC = () => {
         </p>
       </div>
       <div className="w-full flex justify-center pt-3">
-        <Button 
+        <Button
           className="h-16 text-lg bg-white text-slate-900 hover:bg-slate-100 rounded-full px-12 shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all font-medium"
           onClick={() => setCurrentView('breathing')}
         >
@@ -63,7 +114,7 @@ export const EmotionalFirstAid: React.FC = () => {
   );
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -85,31 +136,28 @@ export const EmotionalFirstAid: React.FC = () => {
             </div>
           )}
           {step === 'breathing' && (
-            <motion.div 
+            <motion.div
                 key="breathing"
                 className="w-full h-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
             >
-                <BreathingPage 
-                  onComplete={() => setCurrentView('naming')} 
+                <BreathingPage
+                  onComplete={() => setCurrentView('naming')}
                 />
             </motion.div>
           )}
           {step === 'naming' && (
-             <motion.div 
+             <motion.div
                 key="naming"
                 className="w-full h-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
             >
-                <EmotionPage 
-                  onComplete={() => {
-                      setCurrentView('first-aid'); // Back to intro? Or handleExit()? 
-                      handleExit(); 
-                  }} 
+                <EmotionPage
+                  onComplete={handleComplete}
                   onBack={() => setCurrentView('breathing')}
                 />
             </motion.div>
