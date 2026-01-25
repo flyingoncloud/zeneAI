@@ -168,23 +168,47 @@ export const InnerSketch: React.FC = () => {
     setIsSaved(false);
   };
 
-  const analyzeDrawing = () => {
+  const analyzeDrawing = async () => {
     if (!hasDrawn) {
       toast.error('请先画点什么再分析');
       return;
     }
+
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      toast.error('无法获取画布');
+      return;
+    }
+
     setAnalyzing(true);
     setAnalysisStep(1);
 
-    setTimeout(() => setAnalysisStep(2), 1000);
-    setTimeout(() => setAnalysisStep(3), 2000);
+    try {
+      // Convert canvas to base64 data URL
+      const dataUrl = canvas.toDataURL('image/png');
 
-    // Simulate AI analysis delay
-    setTimeout(() => {
+      setAnalysisStep(2);
+
+      // Call the analyze API (without saving to database)
+      const { analyzeSketch } = await import('../../../lib/api');
+      const response = await analyzeSketch(dataUrl);
+
+      setAnalysisStep(3);
+
+      if (response.ok && response.analysis) {
+        setResult(response.analysis);
+      } else {
+        toast.error('分析失败，请重试');
+        setResult(t.sketch.mockResult); // Fallback to mock result
+      }
+    } catch (error) {
+      console.error('Error analyzing sketch:', error);
+      toast.error('分析失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      setResult(t.sketch.mockResult); // Fallback to mock result
+    } finally {
       setAnalyzing(false);
       setAnalysisStep(0);
-      setResult(t.sketch.mockResult);
-    }, 3000);
+    }
   };
 
   const handleSave = () => {
