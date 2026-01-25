@@ -568,6 +568,7 @@ async def upload_sketch(
         file_uri = f"/uploads/sketches/{unique_filename}"
 
         # If conversation_id provided, auto-complete Inner Doodling module
+        module_status = {}
         if conversation_id:
             try:
                 db = next(get_db())
@@ -606,7 +607,7 @@ async def upload_sketch(
             "analysis": analysis,
             "file_uri": file_uri,
             "message": "涂鸦已上传并分析完成",
-            "module_status": conversation.extra_data.get("module_status", {})
+            "module_status": module_status
         }
 
     except Exception as e:
