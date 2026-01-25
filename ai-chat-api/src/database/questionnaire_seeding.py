@@ -67,6 +67,11 @@ def seed_questionnaires(db: Session):
     """
     Seeds the database with questionnaires from JSON files.
     This function is idempotent and will not re-seed existing data.
+
+    Defensive checks:
+    1. Checks by questionnaire ID (primary key)
+    2. Checks by section number (to prevent duplicates with different IDs)
+    3. Cleans up any existing duplicates before seeding
     """
     try:
         # Path to the directory containing questionnaire JSONs
@@ -91,6 +96,12 @@ def seed_questionnaires(db: Session):
             logger.warning("No questionnaire JSON files found to seed.")
             return False
 
+        # DEFENSIVE: Clean up any existing duplicates before seeding
+        logger.info("Checking for duplicate questionnaires...")
+        duplicates_removed = _cleanup_duplicates(db)
+        if duplicates_removed > 0:
+            logger.warning(f"Removed {duplicates_removed} duplicate questionnaires")
+
         seeded_count = 0
         for file_name in json_files:
             file_path = os.path.join(json_dir, file_name)
@@ -98,45 +109,60 @@ def seed_questionnaires(db: Session):
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            # Use prefixed section as the unique ID (e.g., "questionnaire_2_1")
-            # This prevents conflicts and maintains consistency
-            questionnaire_id = f"questionnaire_{data['section']}"
+            section = data['section']
 
-            # Check if questionnaire already exists
-            exists = db.query(AssessmentQuestionnaire).filter(AssessmentQuestionnaire.id == questionnaire_id).first()
+            # Use prefixed section as the unique ID (e.g., "questionnaire_2.1")
+            # Replace dots with underscores for consistency
+            questionnaire_id = f"questionnaire_{section.replace('.', '_')}"
 
-            if not exists:
-                logger.info(f"Seeding questionnaire: {questionnaire_id} - {data['title']}")
+            # DEFENSIVE CHECK 1: Check if questionnaire with this ID already exists
+            exists_by_id = db.query(AssessmentQuestionnaire).filter(
+                AssessmentQuestionnaire.id == questionnaire_id
+            ).first()
 
-                # Create Questionnaire
-                new_questionnaire = AssessmentQuestionnaire(
-                    id=questionnaire_id,
-                    section=data['section'],
-                    title=data['title'],
-                    marking_criteria=data.get('marking_criteria', {})
+            # DEFENSIVE CHECK 2: Check if questionnaire with this section already exists
+            # (in case there's an old one with a different ID format)
+            exists_by_section = db.query(AssessmentQuestionnaire).filter(
+                AssessmentQuestionnaire.section == section
+            ).first()
+
+            if exists_by_id or exists_by_section:
+                if exists_by_id:
+                    logger.info(f"Questionnaire {questionnaire_id} already exists (by ID), skipping.")
+                else:
+                    logger.info(f"Questionnaire for section {section} already exists (by section), skipping.")
+                continue
+
+            # Neither check found existing questionnaire, safe to create
+            logger.info(f"Seeding questionnaire: {questionnaire_id} - {data['title']}")
+
+            # Create Questionnaire
+            new_questionnaire = AssessmentQuestionnaire(
+                id=questionnaire_id,
+                section=section,
+                title=data['title'],
+                marking_criteria=data.get('marking_criteria', {})
+            )
+            db.add(new_questionnaire)
+
+            # Extract and create Questions from various structures
+            all_questions = extract_questions(data)
+            question_number = 1
+            for q_data in all_questions:
+                new_question = AssessmentQuestion(
+                    questionnaire_id=questionnaire_id,
+                    question_number=question_number,
+                    text=q_data['text'],
+                    category=q_data.get('category'),
+                    sub_section=q_data.get('sub_section'),
+                    dimension=q_data.get('dimension'),
+                    options=q_data.get('options')
                 )
-                db.add(new_questionnaire)
+                db.add(new_question)
+                question_number += 1
 
-                # Extract and create Questions from various structures
-                all_questions = extract_questions(data)
-                question_number = 1
-                for q_data in all_questions:
-                    new_question = AssessmentQuestion(
-                        questionnaire_id=questionnaire_id,
-                        question_number=question_number,
-                        text=q_data['text'],
-                        category=q_data.get('category'),
-                        sub_section=q_data.get('sub_section'),
-                        dimension=q_data.get('dimension'),
-                        options=q_data.get('options')
-                    )
-                    db.add(new_question)
-                    question_number += 1
-
-                logger.info(f"  -> Added {question_number - 1} questions")
-                seeded_count += 1
-            else:
-                logger.info(f"Questionnaire {questionnaire_id} already exists, skipping.")
+            logger.info(f"  -> Added {question_number - 1} questions")
+            seeded_count += 1
 
         if seeded_count > 0:
             db.commit()
@@ -150,3 +176,55 @@ def seed_questionnaires(db: Session):
         logger.error(f"Error seeding questionnaires: {e}", exc_info=True)
         db.rollback()
         return False
+
+
+def _cleanup_duplicates(db: Session) -> int:
+    """
+    Internal helper to clean up duplicate questionnaires.
+    Keeps the first occurrence (by ID) for each section.
+
+    Returns:
+        Number of duplicates removed
+    """
+    try:
+        # Find all questionnaires grouped by section
+        questionnaires = db.query(AssessmentQuestionnaire).order_by(
+            AssessmentQuestionnaire.section,
+            AssessmentQuestionnaire.id
+        ).all()
+
+        # Group by section
+        sections = {}
+        for q in questionnaires:
+            if q.section not in sections:
+                sections[q.section] = []
+            sections[q.section].append(q)
+
+        # Find and remove duplicates
+        duplicates_removed = 0
+        for section, questionnaire_list in sections.items():
+            if len(questionnaire_list) > 1:
+                # Keep the first one, delete the rest
+                keeper = questionnaire_list[0]
+
+                for duplicate in questionnaire_list[1:]:
+                    logger.warning(f"Removing duplicate: {duplicate.id} (section {section}), keeping {keeper.id}")
+
+                    # Delete associated questions first (foreign key constraint)
+                    db.query(AssessmentQuestion).filter(
+                        AssessmentQuestion.questionnaire_id == duplicate.id
+                    ).delete()
+
+                    # Delete the questionnaire
+                    db.delete(duplicate)
+                    duplicates_removed += 1
+
+        if duplicates_removed > 0:
+            db.commit()
+
+        return duplicates_removed
+
+    except Exception as e:
+        logger.error(f"Error cleaning up duplicates: {e}")
+        db.rollback()
+        return 0

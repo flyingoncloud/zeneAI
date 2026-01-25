@@ -35,6 +35,7 @@ class ConversationResponse(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None  # If not provided, creates new conversation
+    images: Optional[List[str]] = None  # Optional list of image URLs for vision analysis
 
 
 class ImageAnalysisRequest(BaseModel):
