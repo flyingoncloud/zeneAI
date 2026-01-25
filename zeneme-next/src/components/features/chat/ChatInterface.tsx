@@ -231,16 +231,16 @@ const AIMessageBubble = ({
   );
 };
 
-// Component for User Message with optional attachment (Sketch)
+// Component for User Message with optional attachment (Sketch or Image)
 const UserMessageBubble = ({ message }: { message: Message }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   return (
     <>
       <div className="flex flex-col items-end gap-2 max-w-full">
-        {message.attachment && message.attachment.type === 'sketch' && (
+        {message.attachment && (message.attachment.type === 'sketch' || message.attachment.type === 'image') && (
           <motion.div
-            layoutId={`sketch-${message.id}`}
+            layoutId={`${message.attachment.type}-${message.id}`}
             onClick={() => setIsPreviewOpen(true)}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 shadow-lg"
             whileHover={{ scale: 1.02 }}
@@ -250,14 +250,14 @@ const UserMessageBubble = ({ message }: { message: Message }) => {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={message.attachment.preview || message.attachment.url}
-              alt="Sketch"
+              alt={message.attachment.type === 'sketch' ? 'Sketch' : 'Uploaded Image'}
               className="w-48 h-32 object-cover bg-slate-900"
             />
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-1">
               <Maximize2 size={14} className="text-white" />
             </div>
             <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-white/80 font-medium">
-              内视涂鸦
+              {message.attachment.type === 'sketch' ? '内视涂鸦' : '上传图片'}
             </div>
           </motion.div>
         )}
@@ -271,7 +271,7 @@ const UserMessageBubble = ({ message }: { message: Message }) => {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={message.attachment?.preview || message.attachment?.url}
-            alt="Sketch Preview"
+            alt={message.attachment?.type === 'sketch' ? 'Sketch Preview' : 'Image Preview'}
             className="max-w-full max-h-[80vh] rounded-lg shadow-2xl border border-white/10 bg-slate-900"
           />
         </DialogContent>

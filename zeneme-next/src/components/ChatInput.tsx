@@ -224,8 +224,20 @@ useEffect(() => {
 
         console.log('Image uploaded successfully:', fullImageUrl);
 
-        // Send the uploaded image URL to AI for analysis
-        onSendMessage(`请分析这张图片中表达的情感和感受 [图片: ${fullImageUrl}]`);
+        // Send message with image attachment
+        // The onSendMessage prop needs to be updated to accept attachments
+        // For now, we'll trigger a custom event that the parent can handle
+        const messageEvent = new CustomEvent('sendMessageWithAttachment', {
+          detail: {
+            text: '请分析这张图片中表达的情感和感受',
+            attachment: {
+              type: 'image' as const,
+              url: fullImageUrl,
+              preview: fullImageUrl
+            }
+          }
+        });
+        window.dispatchEvent(messageEvent);
 
         setToast({ visible: true, message: '图片上传成功！', type: 'success' });
       } else {

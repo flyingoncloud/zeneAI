@@ -123,8 +123,12 @@ React.useEffect(() => {
     handlePendingCompletion();
   }, [currentView, pendingModuleCompletion, sessionId, setPendingModuleCompletion, addMessage, setModuleStatus]);
 
-  const handleSendMessage = async (text: string) => {
-    addMessage(text, "user");
+  const handleSendMessage = async (text: string, attachment?: {
+    type: 'image' | 'voice' | 'sketch' | 'gallery';
+    url?: string;
+    preview?: string;
+  }) => {
+    addMessage(text, "user", attachment);
 
     try {
       const response = await sendChatMessage({
@@ -167,6 +171,29 @@ React.useEffect(() => {
       addMessage("抱歉，我现在遇到了一些问题。请稍后再试。", "ai");
     }
   };
+
+  // Handle custom event for sending messages with attachments
+  React.useEffect(() => {
+    const handleMessageWithAttachment = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        text: string;
+        attachment: {
+          type: 'image' | 'voice' | 'sketch' | 'gallery';
+          url?: string;
+          preview?: string;
+        };
+      }>;
+
+      if (customEvent.detail) {
+        handleSendMessage(customEvent.detail.text, customEvent.detail.attachment);
+      }
+    };
+
+    window.addEventListener('sendMessageWithAttachment', handleMessageWithAttachment);
+    return () => {
+      window.removeEventListener('sendMessageWithAttachment', handleMessageWithAttachment);
+    };
+  }, [sessionId, userId]); // Dependencies for handleSendMessage
 
   const visibleMessages = messages.filter(msg => msg.role !== 'system');
   // 背景切换规则：
