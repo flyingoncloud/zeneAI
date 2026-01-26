@@ -1,406 +1,427 @@
-# Implementation Plan: Psychology Report Generation System
-
-## Overview
-
-This implementation plan breaks down the psychology report generation system into discrete, manageable tasks. Each task builds on previous work and includes testing to ensure correctness.
-
-## Tasks
-
-- [x] 1. Set up project structure and utilities
-  - Create `src/services/psychology/` directory
-  - Create `__init__.py` files
-  - Set up logging configuration for psychology services
-  - Create utility functions for database queries
-  - _Requirements: All_
-
-- [x] 2. Implement dominant element identification
-  - [x] 2.1 Implement `identify_dominant_ifs_part()`
-    - Query IFS parts ordered by confidence
-    - Return highest confidence part with metadata
-    - Handle case when no parts detected
-    - _Requirements: 1.1, 1.4_
-
-  - [ ]* 2.2 Write property test for dominant IFS part identification
-    - **Property 1: Dominant Element Consistency**
-    - **Validates: Requirements 1.1**
-
-  - [x] 2.3 Implement `identify_dominant_cognitive_pattern()`
-    - Query cognitive patterns ordered by detection count
-    - Return highest count pattern with metadata
-    - Handle case when no patterns detected
-    - _Requirements: 1.2, 1.4_
-
-  - [ ]* 2.4 Write property test for dominant cognitive pattern identification
-    - **Property 1: Dominant Element Consistency**
-    - **Validates: Requirements 1.2**
-
-  - [x] 2.5 Implement `identify_dominant_narrative()`
-    - Query narratives ordered by score
-    - Return highest score narrative with metadata
-    - Handle case when no narratives detected
-    - _Requirements: 1.3, 1.4_
-
-  - [ ]* 2.6 Write property test for dominant narrative identification
-    - **Property 1: Dominant Element Consistency**
-    - **Validates: Requirements 1.3**
-
-  - [x] 2.7 Implement `identify_all_dominant_elements()`
-    - Call all three identification functions
-    - Combine results into single dictionary
-    - Update psychology_assessments table with dominant element IDs
-    - _Requirements: 1.5_
-
-  - [ ]* 2.8 Write unit tests for dominant element identification
-    - Test with multiple detections
-    - Test with no detections
-    - Test database updates
-    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
-
-- [ ] 3. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [x] 4. Implement status label calculation
-  - [x] 4.1 Implement `calculate_emotional_status_labels()`
-    - Calculate recognition & expression label from sub-scores
-    - Calculate regulation & recovery label
-    - Calculate tendency & risk label
-    - Return dictionary with all three labels
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.8, 4.9_
-
-  - [ ]* 4.2 Write property test for status label monotonicity
-    - **Property 2: Status Label Monotonicity**
-    - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
-
-  - [x] 4.3 Implement `calculate_perspective_shifting_summary()`
-    - Extract perspective shifting questions from responses
-    - Calculate four sub-scores (self-other, spatial, cognitive-frame, emotional)
-    - Calculate average and map to summary label
-    - Calculate star rating based on summary
-    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
-
-  - [ ]* 4.4 Write property test for perspective shifting star consistency
-    - **Property 7: Perspective Shifting Star Consistency**
-    - **Validates: Requirements 5.5, 5.6, 5.7**
-
-  - [x] 4.5 Implement `calculate_attachment_boolean_flags()`
-    - Apply threshold logic (score >= 12 = true)
-    - Return boolean flags for all four attachment styles
-    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
-
-  - [ ]* 4.6 Write property test for attachment boolean threshold
-    - **Property 4: Attachment Boolean Threshold**
-    - **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5**
-
-  - [ ]* 4.7 Write unit tests for status calculation functions
-    - Test edge cases (boundary values)
-    - Test with missing data
-    - Test with invalid data
-    - _Requirements: 4.1-4.9, 5.1-5.8, 6.1-6.6_
-
-- [ ] 5. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [x] 6. Implement personality style classification
-  - [x] 6.1 Define personality classification rules
-    - Create PERSONALITY_RULES configuration
-    - Define conditions for each personality type
-    - Define description templates
-    - _Requirements: 3.2, 3.3, 3.4, 3.5_
-
-  - [x] 6.2 Implement `classify_personality_style()`
-    - Iterate through classification rules
-    - Apply condition functions to dimension scores
-    - Return first matching rule or default
-    - Include classification basis in result
-    - _Requirements: 3.1, 3.6, 3.7_
-
-  - [ ]* 6.3 Write property test for personality classification determinism
-    - **Property 3: Personality Classification Determinism**
-    - **Validates: Requirements 3.1**
-
-  - [ ]* 6.4 Write unit tests for personality classification
-    - Test each personality type condition
-    - Test with edge case scores
-    - Test default classification
-    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
-
-- [x] 7. Implement AI analysis text generation
-  - [x] 7.1 Create AI prompt templates
-    - Define IFS_IMPACT_PROMPT template
-    - Define COGNITIVE_PATTERN_PROMPT template
-    - Define NARRATIVE_SUMMARY_PROMPT template
-    - Define CONFLICT_TRIGGER_PROMPT template
-    - _Requirements: 2.1, 2.2, 2.3, 2.4_
-
-  - [x] 7.2 Implement `generate_ifs_impact_analysis()`
-    - Format prompt with IFS part data
-    - Call OpenAI API with prompt
-    - Parse and return generated text
-    - Handle API errors with fallback text
-    - _Requirements: 2.1, 2.5, 2.7, 13.1_
-
-  - [x] 7.3 Implement `generate_cognitive_pattern_impact()`
-    - Format prompt with cognitive pattern data
-    - Call OpenAI API with prompt
-    - Parse and return generated text
-    - Handle API errors with fallback text
-    - _Requirements: 2.2, 2.5, 2.7, 13.1_
-
-  - [x] 7.4 Implement `generate_narrative_summary()`
-    - Format prompt with narrative data
-    - Call OpenAI API with prompt
-    - Parse and return generated text
-    - Handle API errors with fallback text
-    - _Requirements: 2.3, 2.5, 2.7, 13.1_
-
-  - [x] 7.5 Implement `generate_conflict_trigger_analysis()`
-    - Format prompt with attachment data
-    - Call OpenAI API with prompt
-    - Parse and return generated text
-    - Handle API errors with fallback text
-    - _Requirements: 2.4, 2.5, 2.7, 13.1_
-
-  - [x] 7.6 Implement `generate_all_analysis_texts()`
-    - Call all four generation functions
-    - Store generated texts in analysis_texts table
-    - Return dictionary with all texts
-    - Log AI API calls and token usage
-    - _Requirements: 2.6, 13.5_
-
-  - [ ]* 7.7 Write property test for analysis text non-empty
-    - **Property 6: Analysis Text Non-Empty**
-    - **Validates: Requirements 2.1, 2.2, 2.3, 2.4**
-
-  - [ ]* 7.8 Write unit tests for AI text generation
-    - Test with mocked OpenAI API
-    - Test error handling and fallbacks
-    - Test text storage in database
-    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 13.1_
-
-- [ ] 8. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [x] 9. Implement report data assembly
-  - [x] 9.1 Implement `get_user_info_section()`
-    - Query user_profiles table
-    - Format user info with name, gender, age
-    - Add current date as report_date
-    - _Requirements: 7.2_
-
-  - [x] 9.2 Implement `get_mind_indices_section()`
-    - Extract five core dimension scores from assessment
-    - Return dictionary with dimension names and scores
-    - _Requirements: 7.3_
-
-  - [x] 9.3 Implement `get_emotional_insight_section()`
-    - Get emotional regulation score
-    - Calculate status labels from sub-scores
-    - Combine into emotional insight structure
-    - _Requirements: 7.4_
-
-  - [x] 9.4 Implement `get_cognitive_insight_section()`
-    - Get cognitive flexibility score
-    - Get inner system (dominant IFS part + impact analysis)
-    - Get automatic thought (dominant cognitive pattern + impact)
-    - Get perspective shifting (summary + stars + details)
-    - Get narrative structure (type + summary)
-    - Combine into cognitive insight structure
-    - _Requirements: 7.5_
-
-  - [x] 9.5 Implement `get_relational_insight_section()`
-    - Get relationship sensitivity score
-    - Get relational details (triggers, empathy, conflict)
-    - Get attachment pattern (boolean flags + scores)
-    - Get conflict triggers analysis text
-    - Combine into relational insight structure
-    - _Requirements: 7.6_
-
-  - [x] 9.6 Implement `get_personality_style_section()`
-    - Query personality_styles table
-    - Return personality type and name
-    - _Requirements: 7.7_
-
-  - [x] 9.7 Implement `get_growth_potential_section()`
-    - Get growth potential total score
-    - Get breakdown scores (insight depth, plasticity, resilience)
-    - Combine into growth potential structure
-    - _Requirements: 7.8_
-
-  - [x] 9.8 Implement `assemble_report_data()`
-    - Call all section functions
-    - Combine into complete report structure
-    - Validate all required sections present
-    - Format according to report_data.json structure
-    - _Requirements: 7.1, 7.9_
-
-  - [ ]* 9.9 Write property test for report data completeness
-    - **Property 5: Report Data Completeness**
-    - **Validates: Requirements 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8**
-
-  - [ ]* 9.10 Write unit tests for report assembly
-    - Test each section function independently
-    - Test complete assembly
-    - Test with missing data
-    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9_
-
-- [ ] 10. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [x] 11. Implement report generation API endpoints
-  - [x] 11.1 Create Pydantic request/response models
-    - Define ReportGenerationRequest
-    - Define ReportGenerationResponse
-    - Define ReportStatusResponse
-    - Define AnalysisGenerationRequest
-    - Define AnalysisGenerationResponse
-    - _Requirements: 8.8, 8.9, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 10.1, 10.2, 10.3, 10.6_
-
-  - [x] 11.2 Implement `POST /api/psychology/report/generate`
-    - Validate assessment_id exists
-    - Check assessment completeness (>= 70%)
-    - Create psychology_reports record with status "pending"
-    - Trigger async report generation
-    - Return report_id and status
-    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.7_
-
-  - [x] 11.3 Implement report generation background task
-    - Identify dominant elements
-    - Generate analysis texts
-    - Classify personality style
-    - Calculate status labels
-    - Assemble report data
-    - Update report status to "completed"
-    - Handle errors and update status to "failed"
-    - _Requirements: 8.5, 8.6, 13.2, 13.3, 13.4_
-
-  - [x] 11.4 Implement `GET /api/psychology/report/{report_id}/status`
-    - Query psychology_reports table
-    - Return current status and progress
-    - Return download URL if completed
-    - Return error message if failed
-    - Calculate estimated time remaining
-    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
-
-  - [x] 11.5 Implement `POST /api/psychology/analysis/generate`
-    - Validate assessment_id exists
-    - Identify dominant elements
-    - Generate requested analysis types
-    - Store in analysis_texts table
-    - Return generated analyses
-    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.7_
-
-  - [ ]* 11.6 Write integration tests for API endpoints
-    - Test report generation with complete assessment
-    - Test report generation with incomplete assessment
-    - Test report status polling
-    - Test analysis text generation
-    - Test error handling
-    - _Requirements: 8.1-8.9, 9.1-9.6, 10.1-10.7_
-
-- [ ] 12. Implement data validation and completeness checks
-  - [ ] 12.1 Implement `check_assessment_completeness()`
-    - Verify all five core dimensions have scores
-    - Verify confidence scores are present
-    - Verify at least one detection exists
-    - Calculate completion percentage
-    - Return missing components list
-    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
-
-  - [ ]* 12.2 Write unit tests for completeness checks
-    - Test with complete assessment
-    - Test with incomplete assessment
-    - Test with missing dimensions
-    - Test with missing detections
-    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
-
-- [ ] 13. Implement error handling and logging
-  - [ ] 13.1 Add comprehensive logging
-    - Log all processing steps with timestamps
-    - Log AI API calls with token usage
-    - Log database operations
-    - Log errors with stack traces
-    - _Requirements: 13.4, 13.5_
-
-  - [ ] 13.2 Implement error handling for AI failures
-    - Catch OpenAI API errors
-    - Use template-based fallback text
-    - Log error details
-    - Continue processing
-    - _Requirements: 13.1_
-
-  - [ ] 13.3 Implement error handling for database failures
-    - Catch database exceptions
-    - Rollback transactions
-    - Return appropriate error responses
-    - Log error details
-    - _Requirements: 13.2_
-
-  - [ ] 13.4 Implement error handling for report generation
-    - Catch all exceptions in background task
-    - Update report status to "failed"
-    - Store error message
-    - Log error details
-    - _Requirements: 13.3, 13.6_
-
-  - [ ]* 13.5 Write unit tests for error handling
-    - Test AI API failure handling
-    - Test database failure handling
-    - Test report generation failure handling
-    - _Requirements: 13.1, 13.2, 13.3, 13.6_
-
-- [ ] 14. Implement performance optimizations
-  - [ ] 14.1 Optimize database queries
-    - Use joins to minimize queries
-    - Add database indexes if needed
-    - Cache frequently accessed data
-    - _Requirements: 14.2_
-
-  - [ ] 14.2 Implement AI API batching
-    - Batch multiple analysis texts in single call when possible
-    - Implement rate limiting
-    - Add retry logic with exponential backoff
-    - _Requirements: 14.1, 14.6_
-
-  - [ ] 14.3 Implement async report generation
-    - Use background tasks for report generation
-    - Support concurrent generation for different users
-    - Add queue management
-    - _Requirements: 14.4, 14.5_
-
-  - [ ]* 14.4 Write performance tests
-    - Test concurrent report generation
-    - Test database query performance
-    - Test AI API batching
-    - _Requirements: 14.1, 14.2, 14.4, 14.5, 14.6_
-
-- [ ] 15. Final checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
-
-- [ ] 16. Integration and end-to-end testing
-  - [ ]* 16.1 Write end-to-end test for complete report generation
-    - Create test assessment with all data
-    - Generate report
-    - Verify all sections present
-    - Verify data accuracy
-    - _Requirements: All_
-
-  - [ ]* 16.2 Write property test for report generation idempotency
-    - **Property 8: Report Generation Idempotency**
-    - **Validates: Requirements 7.9**
-
-  - [ ]* 16.3 Test with real OpenAI API (manual)
-    - Generate reports with actual AI
-    - Verify text quality
-    - Check token usage
-    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+# Tasks: Psychology Report Generation System
+
+## 1. Database Models and Schema
+
+### 1.1 Create PsychologyReport Model
+- [ ] Create `PsychologyReport` model in `ai-chat-api/src/database/psychology_models.py`
+- [ ] Add fields: id, user_id, assessment_id, report_type, language, format, report_data (JSON), file_path, markdown_path, generation_status, error_message, generated_at, created_at
+- [ ] Add relationship to PsychologyAssessment
+- [ ] Add indexes on user_id, assessment_id, generation_status
+
+### 1.2 Create PersonalityStyle Model
+- [ ] Create `PersonalityStyle` model in `ai-chat-api/src/database/psychology_models.py`
+- [ ] Add fields: id, assessment_id, style_type, confidence_score, classification_basis, created_at
+- [ ] Add relationship to PsychologyAssessment
+
+### 1.3 Create AnalysisText Model
+- [ ] Create `AnalysisText` model in `ai-chat-api/src/database/psychology_models.py`
+- [ ] Add fields: id, assessment_id, analysis_type, related_entity_type, related_entity_id, text, language, generation_method, model_version, created_at
+- [ ] Add indexes on assessment_id, analysis_type
+
+### 1.4 Create Database Migration
+- [ ] Create Alembic migration script for new tables
+- [ ] Test migration on development database
+- [ ] Verify all relationships and constraints
+
+## 2. Service Layer - Dominant Element Identification
+
+### 2.1 Create dominant_elements.py Service
+- [ ] Create `ai-chat-api/src/services/psychology/dominant_elements.py`
+- [ ] Implement `identify_dominant_ifs_part(assessment_id)` function
+- [ ] Implement `identify_dominant_cognitive_pattern(assessment_id)` function
+- [ ] Implement `identify_dominant_narrative(assessment_id)` function
+- [ ] Implement `identify_all_dominant_elements(assessment_id)` orchestrator function
+- [ ] Add error handling for missing data
+- [ ] Add logging for each identification step
+
+### 2.2 Write Unit Tests for Dominant Elements
+- [ ] Create `ai-chat-api/tests/unit/test_dominant_elements.py`
+- [ ] Test identify_dominant_ifs_part with multiple detections
+- [ ] Test identify_dominant_cognitive_pattern with tied counts
+- [ ] Test identify_dominant_narrative with all five types
+- [ ] Test graceful handling when no elements detected
+- [ ] Test database update of dominant element IDs
+
+### 2.3 Write Property-Based Test for Dominant Elements
+**Validates: Requirements 1.1, 1.2, 1.3**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_dominant_elements_properties.py`
+- [ ] Property: Dominant element must have highest metric value
+- [ ] Generate random assessments with multiple detections
+- [ ] Verify dominant element is always the maximum
+
+## 3. Service Layer - AI Analysis Generation
+
+### 3.1 Create analysis_generator.py Service
+- [ ] Create `ai-chat-api/src/services/psychology/analysis_generator.py`
+- [ ] Implement `generate_ifs_impact_analysis(ifs_part)` function
+- [ ] Implement `generate_cognitive_pattern_impact(pattern)` function
+- [ ] Implement `generate_narrative_summary(narrative)` function
+- [ ] Implement `generate_conflict_trigger_analysis(attachment_style)` function
+- [ ] Implement `generate_all_analysis_texts(assessment_id)` orchestrator
+- [ ] Add OpenAI API integration with proper prompts
+- [ ] Add fallback template text for each analysis type
+- [ ] Add error handling and logging
+
+### 3.2 Create Fallback Templates
+- [ ] Create `ai-chat-api/src/services/psychology/analysis_templates.py`
+- [ ] Define template for IFS impact analysis
+- [ ] Define template for cognitive pattern impact
+- [ ] Define template for narrative summary
+- [ ] Define template for conflict trigger analysis
+- [ ] Ensure all templates are 150-200 characters in Chinese
+
+### 3.3 Write Unit Tests for Analysis Generation
+- [ ] Create `ai-chat-api/tests/unit/test_analysis_generator.py`
+- [ ] Test each generation function with mocked OpenAI API
+- [ ] Test fallback to template text on API failure
+- [ ] Test storage of generated texts in database
+- [ ] Test character length constraints (150-200)
+- [ ] Test Chinese language output
+
+### 3.4 Write Property-Based Test for Analysis Generation
+**Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.7**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_analysis_generator_properties.py`
+- [ ] Property: Generated analysis texts must be non-empty
+- [ ] Mock OpenAI API to return various responses
+- [ ] Verify fallback text is used when API fails
+
+## 4. Service Layer - Personality Classification
+
+### 4.1 Create personality_classifier.py Service
+- [ ] Create `ai-chat-api/src/services/psychology/personality_classifier.py`
+- [ ] Define PERSONALITY_RULES list with all classification rules
+- [ ] Implement `classify_personality(dimension_scores)` function
+- [ ] Implement rule matching logic (first-match wins)
+- [ ] Add default "Complex Type" classification
+- [ ] Store classification in PersonalityStyle table
+- [ ] Add logging for classification reasoning
+
+### 4.2 Write Unit Tests for Personality Classification
+- [ ] Create `ai-chat-api/tests/unit/test_personality_classifier.py`
+- [ ] Test emotion_dominant classification (relationship_sensitivity > 65, emotional_regulation < 60)
+- [ ] Test logic_dominant classification (cognitive_flexibility > 70, emotional_regulation < 55)
+- [ ] Test balanced classification (all three dimensions 55-70)
+- [ ] Test growth_oriented classification (growth_potential > 75)
+- [ ] Test default complex classification when no rules match
+- [ ] Test boundary values for each rule
+
+### 4.3 Write Property-Based Test for Personality Classification
+**Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_personality_classifier_properties.py`
+- [ ] Property: Same scores must produce same classification (determinism)
+- [ ] Generate random dimension scores
+- [ ] Call classify multiple times and verify identical results
+
+## 5. Service Layer - Status Calculation
+
+### 5.1 Create status_calculator.py Service
+- [ ] Create `ai-chat-api/src/services/psychology/status_calculator.py`
+- [ ] Implement `calculate_emotional_status_labels(sub_scores)` function
+- [ ] Implement `calculate_perspective_shifting_stars(sub_scores)` function
+- [ ] Implement `calculate_attachment_boolean_flags(attachment_scores)` function
+- [ ] Define threshold constants for each calculation
+- [ ] Add Chinese label mappings
+
+### 5.2 Write Unit Tests for Status Calculation
+- [ ] Create `ai-chat-api/tests/unit/test_status_calculator.py`
+- [ ] Test emotional status label thresholds (75, 60, 45)
+- [ ] Test perspective shifting star mapping (≥70=5, ≥50=3, <50=1)
+- [ ] Test attachment boolean threshold (≥12=true)
+- [ ] Test boundary values for all thresholds
+- [ ] Test inverted physical_awareness calculation
+
+### 5.3 Write Property-Based Test for Status Calculation
+**Validates: Requirements 4.1, 4.2, 4.3, 4.8, 4.9, 5.5, 5.6, 5.7, 6.2, 6.3, 6.4, 6.5**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_status_calculator_properties.py`
+- [ ] Property: Higher scores must map to equal or better labels (monotonicity)
+- [ ] Generate scores across threshold boundaries
+- [ ] Verify label transitions occur at correct thresholds
+
+## 6. Service Layer - Report Assembly
+
+### 6.1 Create report_assembler.py Service
+- [ ] Create `ai-chat-api/src/services/psychology/report_assembler.py`
+- [ ] Implement `get_user_info_section(assessment)` function
+- [ ] Implement `get_mind_indices_section(assessment)` function
+- [ ] Implement `get_emotional_insight_section(assessment)` function
+- [ ] Implement `get_cognitive_insight_section(assessment)` function
+- [ ] Implement `get_relational_insight_section(assessment)` function
+- [ ] Implement `get_personality_style_section(assessment)` function
+- [ ] Implement `get_growth_potential_section(assessment)` function
+- [ ] Implement `assemble_complete_report(assessment_id)` orchestrator
+- [ ] Add validation for required sections
+
+### 6.2 Write Unit Tests for Report Assembly
+- [ ] Create `ai-chat-api/tests/unit/test_report_assembler.py`
+- [ ] Test each section function independently
+- [ ] Test complete report assembly
+- [ ] Test validation of required sections
+- [ ] Test handling of missing data
+- [ ] Verify report structure matches report_data.json format
+
+### 6.3 Write Property-Based Test for Report Assembly
+**Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_report_assembler_properties.py`
+- [ ] Property: Assembled report must contain all required sections
+- [ ] Generate random complete assessments
+- [ ] Verify all sections present with valid data
+
+## 7. Report Generation - Charts
+
+### 7.1 Create Chart Generation Functions
+- [ ] Create `ai-chat-api/src/reports/chart_generator.py`
+- [ ] Implement `generate_radar_chart(mind_indices)` function
+- [ ] Implement `generate_perspective_bar_chart(perspective_scores)` function
+- [ ] Implement `generate_growth_bar_chart(growth_breakdown)` function
+- [ ] Implement `generate_relational_rating_scale(attachment_scores)` function
+- [ ] Save charts to `reports/charts/report_{id}/` directory
+- [ ] Return chart file paths
+
+### 7.2 Write Unit Tests for Chart Generation
+- [ ] Create `ai-chat-api/tests/unit/test_chart_generator.py`
+- [ ] Test each chart generation function
+- [ ] Verify PNG files are created
+- [ ] Test with various data ranges
+- [ ] Test Chinese font rendering
+
+## 8. Report Generation - Markdown
+
+### 8.1 Create Markdown Generator
+- [ ] Create `ai-chat-api/src/reports/markdown_generator.py`
+- [ ] Implement `generate_markdown_report(report_data, chart_paths)` function
+- [ ] Create markdown template with all sections
+- [ ] Add chart image references
+- [ ] Format tables and lists properly
+- [ ] Save to `reports/generated/psychology_report_{id}.md`
+
+### 8.2 Write Unit Tests for Markdown Generation
+- [ ] Create `ai-chat-api/tests/unit/test_markdown_generator.py`
+- [ ] Test markdown generation with complete report data
+- [ ] Verify markdown syntax is correct
+- [ ] Test chart image references
+- [ ] Test Chinese character rendering
+
+## 9. Report Generation - DOCX
+
+### 9.1 Create DOCX Generator
+- [ ] Create `ai-chat-api/src/reports/docx_generator.py`
+- [ ] Implement `generate_docx_from_markdown(markdown_path, report_data)` function
+- [ ] Use python-docx library
+- [ ] Parse markdown and convert to DOCX formatting
+- [ ] Embed chart images
+- [ ] Apply Chinese font (SimSun or similar)
+- [ ] Save to `reports/generated/psychology_report_{id}.docx`
+
+### 9.2 Write Unit Tests for DOCX Generation
+- [ ] Create `ai-chat-api/tests/unit/test_docx_generator.py`
+- [ ] Test DOCX generation from markdown
+- [ ] Verify DOCX file is created and valid
+- [ ] Test image embedding
+- [ ] Test Chinese font rendering
+
+## 10. API Endpoints
+
+### 10.1 Create Report Generation Endpoint
+- [ ] Create POST `/api/psychology/report/generate` endpoint in `psychology_report_routes.py`
+- [ ] Define `ReportGenerationRequest` Pydantic model
+- [ ] Define `ReportGenerationResponse` Pydantic model
+- [ ] Validate assessment_id exists
+- [ ] Check assessment completeness ≥ 70%
+- [ ] Create PsychologyReport record with status "pending"
+- [ ] Start background task for report generation
+- [ ] Return report_id and status immediately
+
+### 10.2 Create Report Status Endpoint
+- [ ] Create GET `/api/psychology/report/{report_id}/status` endpoint
+- [ ] Query PsychologyReport by report_id
+- [ ] Return status, progress, estimated_time_remaining
+- [ ] Return report_data when status is "completed"
+- [ ] Return error_message when status is "failed"
+
+### 10.3 Create Analysis Generation Endpoint
+- [ ] Create POST `/api/psychology/analysis/generate` endpoint
+- [ ] Define `AnalysisGenerationRequest` Pydantic model
+- [ ] Define `AnalysisGenerationResponse` Pydantic model
+- [ ] Validate assessment_id exists
+- [ ] Generate requested analysis types only
+- [ ] Store in AnalysisText table
+- [ ] Return generated analyses
+
+### 10.4 Create Report Download Endpoint
+- [ ] Create GET `/api/psychology/report/{report_id}/download` endpoint
+- [ ] Validate report exists and is completed
+- [ ] Return DOCX file with appropriate content-type
+- [ ] Generate friendly filename with user name and report ID
+- [ ] Handle 404 if report not found
+- [ ] Handle 400 if report not completed
+
+### 10.5 Write API Integration Tests
+- [ ] Create `ai-chat-api/tests/integration/test_report_api.py`
+- [ ] Test complete report generation workflow
+- [ ] Test status polling
+- [ ] Test analysis generation
+- [ ] Test report download
+- [ ] Test error cases (invalid IDs, incomplete assessments)
+
+## 11. Background Task Processing
+
+### 11.1 Create Report Generation Background Task
+- [ ] Create `ai-chat-api/src/services/psychology/report_generator.py`
+- [ ] Implement `generate_report_background(report_id)` function
+- [ ] Step 1: Identify dominant elements
+- [ ] Step 2: Generate AI analysis texts
+- [ ] Step 3: Classify personality style
+- [ ] Step 4: Assemble report data
+- [ ] Step 5: Generate charts
+- [ ] Step 6: Generate markdown report
+- [ ] Step 7: Generate DOCX report
+- [ ] Step 8: Update report status to "completed"
+- [ ] Add comprehensive error handling
+- [ ] Update status to "failed" on exceptions
+- [ ] Log all processing steps
+
+### 11.2 Write Integration Tests for Background Task
+- [ ] Create `ai-chat-api/tests/integration/test_report_generation.py`
+- [ ] Test complete background task execution
+- [ ] Test with real database
+- [ ] Verify all files are created
+- [ ] Test error handling and rollback
+- [ ] Test concurrent generation for multiple users
+
+## 12. Data Validation
+
+### 12.1 Create Assessment Validation Service
+- [ ] Create `ai-chat-api/src/services/psychology/assessment_validator.py`
+- [ ] Implement `validate_assessment_completeness(assessment_id)` function
+- [ ] Check all five core dimensions have scores
+- [ ] Check confidence scores are present
+- [ ] Check at least one detection exists
+- [ ] Calculate completion percentage
+- [ ] Return list of missing components
+- [ ] Reject if completeness < 70%
+
+### 12.2 Write Unit Tests for Validation
+- [ ] Create `ai-chat-api/tests/unit/test_assessment_validator.py`
+- [ ] Test with complete assessment (100%)
+- [ ] Test with incomplete assessment (< 70%)
+- [ ] Test with missing dimensions
+- [ ] Test with missing detections
+- [ ] Verify error messages are helpful
+
+## 13. Error Handling and Logging
+
+### 13.1 Add Comprehensive Logging
+- [ ] Add logging to all service functions
+- [ ] Log processing steps with timestamps
+- [ ] Log AI API calls with token usage
+- [ ] Log database queries
+- [ ] Log errors with full stack traces
+- [ ] Use structured logging (JSON format)
+
+### 13.2 Add Error Recovery
+- [ ] Implement retry logic for AI API calls
+- [ ] Implement database transaction rollback
+- [ ] Store error messages in database
+- [ ] Send error notifications (optional)
+- [ ] Add circuit breaker for AI API
+
+### 13.3 Write Tests for Error Handling
+- [ ] Create `ai-chat-api/tests/unit/test_error_handling.py`
+- [ ] Test OpenAI API failure scenarios
+- [ ] Test database exception handling
+- [ ] Test transaction rollback
+- [ ] Test error message storage
+- [ ] Test retry logic
+
+## 14. Performance Optimization
+
+### 14.1 Optimize Database Queries
+- [ ] Add database indexes on frequently queried fields
+- [ ] Use joins to minimize query count
+- [ ] Implement query result caching
+- [ ] Use connection pooling
+- [ ] Profile slow queries
+
+### 14.2 Optimize AI API Calls
+- [ ] Batch multiple analysis texts in single API call
+- [ ] Implement rate limiting
+- [ ] Add request caching for identical inputs
+- [ ] Use streaming for long responses
+- [ ] Monitor token usage and costs
+
+### 14.3 Write Performance Tests
+- [ ] Create `ai-chat-api/tests/performance/test_report_generation_performance.py`
+- [ ] Measure report generation time
+- [ ] Test concurrent generation
+- [ ] Profile database query performance
+- [ ] Profile AI API call latency
+- [ ] Verify generation completes within 30-60 seconds
+
+## 15. Documentation and Deployment
+
+### 15.1 Create API Documentation
+- [ ] Document all API endpoints with examples
+- [ ] Create Postman collection
+- [ ] Add OpenAPI/Swagger documentation
+- [ ] Document error codes and messages
+
+### 15.2 Create User Guide
+- [ ] Write user guide for report generation
+- [ ] Add screenshots of reports
+- [ ] Document report sections and meanings
+- [ ] Create FAQ for common issues
+
+### 15.3 Create Deployment Guide
+- [ ] Document database migration steps
+- [ ] Document environment variables
+- [ ] Document OpenAI API key setup
+- [ ] Create deployment checklist
+- [ ] Add monitoring and alerting setup
+
+### 15.4 Create Developer Guide
+- [ ] Document service architecture
+- [ ] Document data models
+- [ ] Document testing strategy
+- [ ] Add code examples for extending system
+- [ ] Document correctness properties
+
+## 16. Property-Based Testing Summary
+
+### 16.1 Write Property Test for Report Generation Idempotency
+**Validates: Requirements 8.1-8.9**
+- [ ] Create property test in `ai-chat-api/tests/unit/test_report_generation_properties.py`
+- [ ] Property: Generating report twice produces equivalent results
+- [ ] Generate report twice for same assessment
+- [ ] Compare dominant elements (must be identical)
+- [ ] Compare personality classification (must be identical)
+- [ ] Compare status labels (must be identical)
+- [ ] Allow AI text to differ (non-deterministic)
+
+### 16.2 Write Property Test for Perspective Shifting Consistency
+**Validates: Requirements 5.1-5.8**
+- [ ] Property: Star rating must match summary label
+- [ ] Generate scores that map to each summary level
+- [ ] Verify star count matches summary (高=5, 中等=3, 低=1)
+- [ ] Test boundary values
+
+### 16.3 Write Property Test for Attachment Boolean Threshold
+**Validates: Requirements 6.1-6.6**
+- [ ] Property: Attachment detected if and only if score ≥ 12
+- [ ] Generate scores around threshold (11, 12, 13)
+- [ ] Verify boolean flags match threshold logic
+- [ ] Test all four attachment styles
+
+## Progress Tracking
+
+- Total Tasks: 16 major sections
+- Completed: 0
+- In Progress: 0
+- Not Started: 16
 
 ## Notes
 
-- Tasks marked with `*` are optional and can be skipped for faster MVP
-- Each task references specific requirements for traceability
-- Checkpoints ensure incremental validation
-- Property tests validate universal correctness properties
-- Unit tests validate specific examples and edge cases
-- Integration tests validate complete workflows
-- Background task implementation may use Celery or FastAPI BackgroundTasks
-- AI text generation should be mocked in most tests for consistency
+- All property-based tests should use Hypothesis library
+- All tests should use pytest framework
+- Database tests should use test database with sample data
+- AI API tests should mock OpenAI responses
+- Follow existing code style and conventions in the project

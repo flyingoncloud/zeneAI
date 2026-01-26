@@ -131,10 +131,14 @@ React.useEffect(() => {
     addMessage(text, "user", attachment);
 
     try {
+      // Prepare images array if attachment is an image
+      const images = attachment?.type === 'image' && attachment.url ? [attachment.url] : undefined;
+
       const response = await sendChatMessage({
         message: text,
         session_id: sessionId,
         user_id: userId,
+        images: images  // Include images in the request
       });
 
       if (!response || Object.keys(response).length === 0) {

@@ -151,6 +151,8 @@ def chat(
 
     The AI uses function calling to detect when it recommends modules.
     Module recommendations are tracked in conversation metadata.
+
+    Supports image analysis when images are included in the request.
     """
     logger.info(f"Received chat request: {chat_request.message[:100]}...")
 
@@ -200,53 +202,102 @@ def chat(
     db.commit()
     db.refresh(user_message)
 
-    # Get conversation history
-    messages = db.query(db_models.Message).filter(
-        db_models.Message.conversation_id == conversation.id
-    ).order_by(db_models.Message.created_at).all()
+    # Check if message contains images
+    has_images = bool(chat_request.images and len(chat_request.images) > 0)
 
-    # Build message history for AI
-    message_history = build_message_history(messages)
-    logger.info(f"Built message history with {len(message_history)} messages")
+    if has_images:
+        logger.info(f"Processing message with {len(chat_request.images)} image(s)")
 
-    # Get AI response with module recommendations
-    # Language is auto-detected from the user's message
-    try:
-        ai_response_data = get_ai_response(
-            messages=message_history,
-            conversation_id=conversation.id,
-            db_session=db,
-            language=None  # Auto-detect language from user's message
-        )
+        # For now, use the first image
+        image_url = chat_request.images[0]
+        logger.info(f"Image URL: {image_url}")
 
-        ai_content = ai_response_data["content"]
-        recommended_modules = ai_response_data.get("recommended_modules", [])
+        try:
+            # Download and encode image
+            import httpx
 
-        logger.info(f"AI response: {ai_content[:100]}...")
-        logger.info(f"Module recommendations: {len(recommended_modules)} modules")
+            # Handle both full URLs and relative paths
+            if not image_url.startswith("http"):
+                # Relative path - construct full URL
+                base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+                image_url = f"{base_url}{image_url}"
+                logger.info(f"Constructed full URL: {image_url}")
 
-        # Update conversation metadata with new recommendations
-        if recommended_modules:
-            module_status = conversation.extra_data.get("module_status", {})
+            # Download image
+            with httpx.Client() as client:
+                response = client.get(image_url)
+                response.raise_for_status()
+                image_bytes = response.content
 
-            for module in recommended_modules:
-                module_id = module["module_id"]
-                # Only mark as recommended if not already completed
-                if module_id not in module_status or not module_status[module_id].get("completed_at"):
-                    if module_id not in module_status:
-                        module_status[module_id] = {}
-                    if not module_status[module_id].get("recommended_at"):
-                        module_status[module_id]["recommended_at"] = datetime.utcnow().isoformat()
-                        logger.info(f"Marked module {module_id} as recommended")
+            # Encode to base64
+            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            logger.info(f"Image downloaded and encoded ({len(image_base64)} chars)")
 
-            conversation.extra_data["module_status"] = module_status
-            flag_modified(conversation, "extra_data")
-            db.commit()
-            db.refresh(conversation)
+            # Use vision API
+            ai_content = get_ai_response_with_image(
+                prompt=chat_request.message,
+                image_data=image_base64,
+                model="gpt-4o",
+                language=None  # Auto-detect
+            )
 
-    except Exception as e:
-        logger.error(f"Error getting AI response: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+            recommended_modules = []
+            logger.info(f"AI vision response: {ai_content[:100]}...")
+
+        except Exception as e:
+            logger.error(f"Error processing image: {e}")
+            # Fallback to text-only response
+            ai_content = "抱歉，我在处理图片时遇到了问题。请稍后再试，或者描述一下图片的内容。"
+            recommended_modules = []
+    else:
+        # Text-only message - use regular chat
+        # Get conversation history
+        messages = db.query(db_models.Message).filter(
+            db_models.Message.conversation_id == conversation.id
+        ).order_by(db_models.Message.created_at).all()
+
+        # Build message history for AI
+        message_history = build_message_history(messages)
+        logger.info(f"Built message history with {len(message_history)} messages")
+
+        # Get AI response with module recommendations
+        # Language is auto-detected from the user's message
+        try:
+            ai_response_data = get_ai_response(
+                messages=message_history,
+                conversation_id=conversation.id,
+                db_session=db,
+                language=None  # Auto-detect language from user's message
+            )
+
+            ai_content = ai_response_data["content"]
+            recommended_modules = ai_response_data.get("recommended_modules", [])
+
+            logger.info(f"AI response: {ai_content[:100]}...")
+            logger.info(f"Module recommendations: {len(recommended_modules)} modules")
+
+            # Update conversation metadata with new recommendations
+            if recommended_modules:
+                module_status = conversation.extra_data.get("module_status", {})
+
+                for module in recommended_modules:
+                    module_id = module["module_id"]
+                    # Only mark as recommended if not already completed
+                    if module_id not in module_status or not module_status[module_id].get("completed_at"):
+                        if module_id not in module_status:
+                            module_status[module_id] = {}
+                        if not module_status[module_id].get("recommended_at"):
+                            module_status[module_id]["recommended_at"] = datetime.utcnow().isoformat()
+                            logger.info(f"Marked module {module_id} as recommended")
+
+                conversation.extra_data["module_status"] = module_status
+                flag_modified(conversation, "extra_data")
+                db.commit()
+                db.refresh(conversation)
+
+        except Exception as e:
+            logger.error(f"Error getting AI response: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     # Save assistant message with metadata
     assistant_message = db_models.Message(
@@ -255,7 +306,7 @@ def chat(
         content=ai_content,
         extra_data={
             "recommended_modules": recommended_modules,
-            "function_calls": ai_response_data.get("function_calls", [])
+            "function_calls": [] if has_images else ai_response_data.get("function_calls", [])
         }
     )
     db.add(assistant_message)
