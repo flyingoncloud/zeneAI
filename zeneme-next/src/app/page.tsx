@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -22,7 +22,7 @@ import { BreathingPage } from "@/components/features/tools/firstaid/BreathingPag
 import { EmotionPage } from "@/components/features/tools/firstaid/EmotionPage";
 import { HistoryReports } from "@/components/features/reports/HistoryReports";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -256,5 +256,17 @@ React.useEffect(() => {
         <main className="flex-1 relative overflow-hidden bg-transparent">{renderContent()}</main>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full bg-black items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

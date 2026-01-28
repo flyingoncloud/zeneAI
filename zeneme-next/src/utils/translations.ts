@@ -307,7 +307,9 @@ export const translations = {
       limitTitle: 'Limit Reached',
       limitDesc: 'Usage limit reached for current version. Upgrade to continue.',
       later: 'Later',
-      toUpgrade: 'Upgrade Now'
+      toUpgrade: 'Upgrade Now',
+      failed: 'Failed to load',
+      retry: 'Retry'
     },
     upgrade: {
       title: 'Upgrade to Pro',
@@ -751,7 +753,9 @@ privacy: {
       limitTitle: '次数不足',
       limitDesc: '当前版本可用次数已用完,升级后可继续使用',
       later: '稍后再说',
-      toUpgrade: '去升级'
+      toUpgrade: '去升级',
+      failed: '加载失败',
+      retry: '重试'
     },
     upgrade: {
       title: '升级至深度版',

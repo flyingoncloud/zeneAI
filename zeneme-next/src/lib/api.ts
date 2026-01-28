@@ -99,15 +99,20 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
   try {
     console.log('[API] Sending chat message to:', `${API_BASE_URL}/chat/`);
     const defaultUserId = getOrCreateUserId();
+
+    // 如果页面没传 user_id，就用本地默认虚拟用户
+    const requestWithUserId = {
+      ...request,
+      user_id: request.user_id ?? defaultUserId ?? null,
+    };
+
     const response = await fetch(`${API_BASE_URL}/chat/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(request),
-      // 如果页面没传 user_id，就用本地默认虚拟用户
-      user_id: request.user_id ?? defaultUserId ?? null,
+      body: JSON.stringify(requestWithUserId),
     });
 
     console.log('[API] Response status:', response.status);
