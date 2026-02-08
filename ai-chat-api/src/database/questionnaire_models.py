@@ -1,5 +1,6 @@
 """
 Database models for questionnaire system
+Supports both legacy psychology questionnaires and admin-created questions
 """
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON, DateTime, Float
 from sqlalchemy.orm import relationship
@@ -23,18 +24,39 @@ class AssessmentQuestionnaire(Base):
 
 
 class AssessmentQuestion(Base):
-    """Individual questions"""
+    """
+    Individual questions
+    Supports both legacy psychology questionnaires and admin-created questions with rich templates
+    """
     __tablename__ = "assessment_questions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     questionnaire_id = Column(String, ForeignKey("assessment_questionnaires.id"), nullable=False)
     question_number = Column(Integer, nullable=False)  # Question number within questionnaire
-    text = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)  # Main question text (stem)
+
+    # Legacy fields
     category = Column(String)  # For nested categories (e.g., "Managers", "Firefighters")
     sub_section = Column(String)  # For sub-sections (e.g., "2.2.1")
     dimension = Column(String)  # For dimensions (e.g., "Insight Depth")
     options = Column(JSON)  # For multiple choice questions
+
+    # New admin panel fields
+    template = Column(String(10), nullable=True)  # F1-F8 template type (NULL for legacy)
+    status = Column(String(20), default='published')  # draft/published
+    internal_title = Column(String(255), nullable=True)  # For admin reference
+    subtitle = Column(String(500), nullable=True)  # Optional subtitle/instruction
+    media_url = Column(String(500), nullable=True)  # Image/video URL
+    media_type = Column(String(20), nullable=True)  # 'image' or 'video'
+    template_settings = Column(JSON, default={})  # Template-specific configuration
+    validation = Column(JSON, default={"required": True})  # Validation rules
+    tags = Column(JSON, default=[])  # Array of tag strings
+    display_order = Column(Integer, default=0)  # For custom ordering
+    source_type = Column(String(20), default='legacy')  # 'legacy' or 'admin'
+
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     questionnaire = relationship("AssessmentQuestionnaire", back_populates="questions")

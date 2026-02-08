@@ -476,3 +476,4 @@ class PsychologyReport(Base):
 
     # Relationships
     assessment = relationship("PsychologyAssessment", back_populates="reports")
+    progress_records = relationship("UserQuestionnaireProgress", back_populates="report")

@@ -49,6 +49,7 @@ export type MoodLog = {
   date: string; // YYYY-MM-DD
   mood: 'Happy' | 'Calm' | 'Anxious' | 'Sad' | 'Overwhelmed' | 'Neutral' | 'Angry' | 'Relieved' | 'Confused' | 'Tired' | 'Grateful';
   note?: string;
+  timestamp?: string; // ISO timestamp for multiple entries per day
 };
 
 export type SavedReport = {
@@ -166,7 +167,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  
+
   // Module Status
   const [moduleStatus, setModuleStatus] = useState<ModuleStatus | undefined>(undefined);
 
@@ -315,7 +316,12 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const logMood = useCallback((log: MoodLog) => {
-    setMoodLogs((prev) => [...prev.filter(l => l.date !== log.date), log]);
+    // Allow multiple mood logs per day by adding timestamp
+    const logWithTimestamp = {
+      ...log,
+      timestamp: new Date().toISOString()
+    };
+    setMoodLogs((prev) => [...prev, logWithTimestamp]);
   }, []);
 
   // Upgrade Actions

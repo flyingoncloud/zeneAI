@@ -182,3 +182,63 @@ class QuestionnaireScorer:
             "interpretation": None,
             "category_scores": None
         }
+
+    @staticmethod
+    def _score_admin_created(answers: Dict[int, int], questions: List[Any]) -> Dict[str, Any]:
+        """
+        Score admin_created questionnaire - Groups by question category
+
+        Categories:
+        - 情绪识别能力 (Emotion Recognition)
+        - 认知重构能力 (Cognitive Restructuring)
+        - 内在对话能力 (Internal Dialogue)
+        - 关系互动能力 (Relational Interaction)
+        - 情绪调节能力 (Emotion Regulation)
+
+        Args:
+            answers: Dict mapping question_number -> answer_value
+            questions: List of Question objects with category field
+
+        Returns:
+            Dict with total_score and category_scores breakdown
+        """
+        category_scores = {}
+        total_score = 0
+
+        # Build a map of question_number -> question for quick lookup
+        question_map = {q.question_number: q for q in questions}
+
+        # Calculate scores by category
+        for question_number, answer_value in answers.items():
+            question = question_map.get(question_number)
+            if not question:
+                logger.warning(f"Question {question_number} not found in questions list")
+                continue
+
+            # Get category from question
+            category = question.category
+            if not category:
+                logger.warning(f"Question {question_number} has no category, skipping")
+                continue
+
+            # Initialize category if not exists
+            if category not in category_scores:
+                category_scores[category] = {
+                    "score": 0,
+                    "count": 0,
+                    "questions": []
+                }
+
+            # Add to category score
+            category_scores[category]["score"] += answer_value
+            category_scores[category]["count"] += 1
+            category_scores[category]["questions"].append(question_number)
+            total_score += answer_value
+
+        logger.info(f"Admin questionnaire scoring: total={total_score}, categories={list(category_scores.keys())}")
+
+        return {
+            "total_score": total_score,
+            "category_scores": category_scores,
+            "interpretation": None
+        }

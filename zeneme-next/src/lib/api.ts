@@ -554,16 +554,22 @@ export interface QuestionOption {
   value?: number;
   text?: string;
   score: number;
+  imageUrl?: string;
+  sub_category?: string;  // NEW: Optional sub-category for cross-category scoring
 }
 
 export interface QuestionnaireDetail extends Questionnaire {
   questions: Array<{
     id: number;
     text: string;
+    subtitle?: string | null;  // NEW: Optional subtitle/instruction text
+    template?: string | null;  // Template type (F1, F2, etc.)
     category?: string | null;
     sub_section?: string | null;
     dimension?: string | null;
     options?: QuestionOption[];
+    mediaUrl?: string | null;
+    mediaType?: 'image' | 'video' | null;
   }>;
 }
 
@@ -856,3 +862,162 @@ export async function downloadPsychologyReport(reportId: number): Promise<{
   }
 }
 
+
+// ============================================================================
+// Questionnaire Progress Tracking API Methods
+// ============================================================================
+
+export interface StartQuestionnaireRequest {
+  user_id: string;
+  session_id: string;
+  conversation_id: number;
+  questionnaire_id?: string;
+}
+
+export interface StartQuestionnaireResponse {
+  ok: boolean;
+  progress?: {
+    id: number;
+    user_id: string;
+    session_id: string;
+    conversation_id: number;
+    questionnaire_id: string;
+    current_question_index: number;
+    total_questions: number;
+    answers: Record<string, number>;
+    category_scores: Record<string, number>;
+    status: string;
+    started_at: string;
+    last_updated_at: string;
+    completed_at?: string;
+    report_id?: number;
+  };
+  questions?: QuestionnaireDetail['questions'];
+  message?: string;
+  error?: string;
+}
+
+export interface SaveAnswerRequest {
+  progress_id: number;
+  question_id: number;
+  answer_value: number;
+}
+
+export interface SaveAnswerResponse {
+  ok: boolean;
+  current_question_index: number;
+  category_scores: Record<string, number>;
+  is_completed: boolean;
+  report_id?: number;
+  error?: string;
+}
+
+export interface GetProgressResponse {
+  ok: boolean;
+  progress?: StartQuestionnaireResponse['progress'];
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Start or resume questionnaire with progress tracking
+ */
+export async function startQuestionnaire(
+  request: StartQuestionnaireRequest
+): Promise<StartQuestionnaireResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/questionnaire/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error starting questionnaire:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Save answer and update progress
+ */
+export async function saveQuestionnaireAnswer(
+  request: SaveAnswerRequest
+): Promise<SaveAnswerResponse> {
+  try {
+    console.log('[API] saveQuestionnaireAnswer request:', request);
+
+    const response = await fetch(`${API_BASE_URL}/api/questionnaire/answer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] Error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error saving answer:', error);
+    return {
+      ok: false,
+      current_question_index: 0,
+      category_scores: {},
+      is_completed: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get current progress for user
+ */
+export async function getQuestionnaireProgress(
+  userId: string,
+  questionnaireId: string = 'admin_created'
+): Promise<GetProgressResponse> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/questionnaire/progress/${userId}?questionnaire_id=${questionnaireId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting progress:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}

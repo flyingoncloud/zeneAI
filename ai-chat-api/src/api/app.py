@@ -48,6 +48,11 @@ uploads_dir = Path("uploads")
 uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# Mount static files for report charts
+charts_dir = Path("reports/charts")
+charts_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/charts", StaticFiles(directory="reports/charts"), name="charts")
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on application startup"""
@@ -56,13 +61,14 @@ async def startup_event():
         init_db()
         logger.info("✓ Database initialized successfully")
 
+        # NOTE: Questionnaire seeding disabled - now using admin panel to create questionnaires
         # Seed questionnaires from JSON files
-        db = SessionLocal()
-        try:
-            seed_questionnaires(db)
-            logger.info("✓ Questionnaires seeded successfully")
-        finally:
-            db.close()
+        # db = SessionLocal()
+        # try:
+        #     seed_questionnaires(db)
+        #     logger.info("✓ Questionnaires seeded successfully")
+        # finally:
+        #     db.close()
     except Exception as e:
         logger.error(f"✗ Failed to initialize database: {e}")
         raise
@@ -365,10 +371,30 @@ def complete_module(
     if module_id not in module_status:
         module_status[module_id] = {}
 
-    module_status[module_id]["completed_at"] = datetime.utcnow().isoformat()
+    # For emotional_first_aid, store multiple completions as an array
+    if module_id == "emotional_first_aid":
+        # Initialize completion_history if it doesn't exist
+        if "completion_history" not in module_status[module_id]:
+            module_status[module_id]["completion_history"] = []
 
-    if completion_request.completion_data:
-        module_status[module_id]["completion_data"] = completion_request.completion_data
+        # Add new completion to history
+        completion_entry = {
+            "completed_at": datetime.utcnow().isoformat()
+        }
+        if completion_request.completion_data:
+            completion_entry.update(completion_request.completion_data)
+
+        module_status[module_id]["completion_history"].append(completion_entry)
+
+        # Also update the latest completion for backward compatibility
+        module_status[module_id]["completed_at"] = completion_entry["completed_at"]
+        if completion_request.completion_data:
+            module_status[module_id]["completion_data"] = completion_request.completion_data
+    else:
+        # For other modules, keep the original behavior (single completion)
+        module_status[module_id]["completed_at"] = datetime.utcnow().isoformat()
+        if completion_request.completion_data:
+            module_status[module_id]["completion_data"] = completion_request.completion_data
 
     conversation.extra_data["module_status"] = module_status
     flag_modified(conversation, "extra_data")
@@ -673,37 +699,62 @@ async def upload_sketch(
 
 
 @app.post("/api/zene/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
-    General file upload endpoint for images
+    General file upload endpoint for images with duplicate detection
 
     This endpoint:
     1. Accepts an uploaded image file (PNG/JPEG/WebP)
     2. Validates file type and size
-    3. Saves it to /uploads/ directory
-    4. Returns the file URL for use in chat
+    3. Checks for duplicates using SHA256 hash
+    4. Saves it to /uploads/ directory (if not duplicate)
+    5. Saves metadata to database
+    6. Returns the file URL for use in chat
     """
     logger.info(f"Received file upload - filename: {file.filename}, content_type: {file.content_type}")
 
     try:
         # Validate content type
-        allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+        allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
         if file.content_type not in allowed_types:
             raise HTTPException(
                 status_code=415,
                 detail=f"Unsupported file type: {file.content_type}. Allowed types: {', '.join(allowed_types)}"
             )
 
-        # Validate file size (5MB limit)
+        # Read file contents
         contents = await file.read()
         file_size = len(contents)
-        max_size = 5 * 1024 * 1024  # 5MB
 
+        # Validate file size (5MB limit)
+        max_size = 5 * 1024 * 1024  # 5MB
         if file_size > max_size:
             raise HTTPException(
                 status_code=413,
                 detail=f"File too large: {file_size} bytes. Maximum size: {max_size} bytes (5MB)"
             )
+
+        # Calculate SHA256 hash for duplicate detection
+        import hashlib
+        file_hash = hashlib.sha256(contents).hexdigest()
+        logger.info(f"File hash: {file_hash}")
+
+        # Check for existing file with same hash (not deleted)
+        existing_media = db.query(db_models.MediaFile).filter(
+            db_models.MediaFile.file_hash == file_hash,
+            db_models.MediaFile.deleted_at.is_(None)
+        ).first()
+
+        if existing_media:
+            logger.info(f"Duplicate file detected, returning existing URL: {existing_media.url}")
+            return {
+                "ok": True,
+                "url": existing_media.url,
+                "mime": existing_media.mime_type,
+                "size": existing_media.file_size,
+                "duplicate": True,
+                "message": "文件已存在，返回已有文件"
+            }
 
         # Create uploads directory if it doesn't exist
         upload_dir = Path("uploads")
@@ -733,11 +784,27 @@ async def upload_file(file: UploadFile = File(...)):
         # Generate file URL for frontend
         file_url = f"/uploads/{unique_filename}"
 
+        # Save media metadata to database
+        media_file = db_models.MediaFile(
+            url=file_url,
+            filename=unique_filename,
+            original_filename=file.filename,
+            file_type="image",  # Currently only images supported
+            mime_type=file.content_type,
+            file_size=file_size,
+            file_hash=file_hash,
+        )
+        db.add(media_file)
+        db.commit()
+        db.refresh(media_file)
+        logger.info(f"Saved media metadata to database: {media_file.id}")
+
         return {
             "ok": True,
             "url": file_url,
             "mime": file.content_type,
-            "size": file_size
+            "size": file_size,
+            "duplicate": False
         }
 
     except HTTPException:
@@ -745,6 +812,89 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+
+
+@app.get("/api/admin/media")
+async def get_media_list(db: Session = Depends(get_db)):
+    """
+    Get list of all uploaded media files from database
+
+    Returns metadata for all non-deleted media files
+    """
+    try:
+        # Query all non-deleted media files, ordered by upload date (newest first)
+        media_files = db.query(db_models.MediaFile).filter(
+            db_models.MediaFile.deleted_at.is_(None)
+        ).order_by(
+            db_models.MediaFile.uploaded_at.desc()
+        ).all()
+
+        # Format for frontend
+        items = []
+        for media in media_files:
+            # Format file size
+            size_kb = media.file_size / 1024
+            size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb / 1024:.1f} MB"
+
+            items.append({
+                "id": media.url,
+                "url": media.url,
+                "name": media.original_filename or media.filename,
+                "type": media.file_type,
+                "size": size_str,
+                "uploadedAt": media.uploaded_at.strftime("%Y-%m-%d"),
+                "mime": media.mime_type
+            })
+
+        return {"ok": True, "items": items}
+
+    except Exception as e:
+        logger.error(f"Error loading media list: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load media list: {str(e)}")
+
+
+@app.delete("/api/admin/media/{media_id:path}")
+async def delete_media(media_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a media file (soft delete in database, hard delete file)
+
+    Parameters:
+    - media_id: The media ID (URL path like /uploads/filename.jpg)
+    """
+    try:
+        # Ensure media_id starts with /
+        if not media_id.startswith("/"):
+            media_id = f"/{media_id}"
+
+        # Find media file in database
+        media_file = db.query(db_models.MediaFile).filter(
+            db_models.MediaFile.url == media_id,
+            db_models.MediaFile.deleted_at.is_(None)
+        ).first()
+
+        if not media_file:
+            raise HTTPException(status_code=404, detail="Media file not found")
+
+        # Soft delete in database
+        media_file.deleted_at = datetime.utcnow()
+        db.commit()
+        logger.info(f"Soft deleted media in database: {media_id}")
+
+        # Hard delete the actual file
+        file_path = Path(media_id[1:])  # Remove leading slash
+        if file_path.exists():
+            file_path.unlink()
+            logger.info(f"Deleted file: {file_path}")
+        else:
+            logger.warning(f"File not found: {file_path}")
+
+        return {"ok": True, "message": "Media deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting media: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete media: {str(e)}")
 
 
 @app.delete("/conversations/{conversation_id}")
@@ -833,7 +983,9 @@ def get_questionnaire(questionnaire_id: str, db: Session = Depends(get_db)):
                 "category": q.category,
                 "sub_section": q.sub_section,
                 "dimension": q.dimension,
-                "options": q.options
+                "options": q.options,
+                "mediaUrl": q.media_url,
+                "mediaType": q.media_type
             }
             for q in questions
         ]
@@ -980,8 +1132,11 @@ def submit_questionnaire_response(
 
         logger.info(f"Completed questionnaires count: {completed_count}")
 
-        if completed_count >= 4:  # All 4 questionnaires done
-            logger.info(f"All questionnaires completed for conversation {conversation_id}, triggering report generation")
+        # Check if this is an admin-created questionnaire (single questionnaire for testing)
+        is_admin_questionnaire = response.questionnaire_id.startswith('admin_created')
+
+        if completed_count >= 4 or (is_admin_questionnaire and completed_count >= 1):  # All 4 questionnaires done OR admin questionnaire completed
+            logger.info(f"{'All questionnaires' if completed_count >= 4 else 'Admin questionnaire'} completed for conversation {conversation_id}, triggering report generation")
 
             # Get or create psychology_assessment
             from src.database.psychology_models import PsychologyAssessment, PsychologyReport
@@ -1013,6 +1168,28 @@ def submit_questionnaire_response(
                     # Also store attachment scores in sub_dimension_scores
                 elif resp.questionnaire_id == 'questionnaire_2_5':  # Growth
                     dimension_scores['growth_potential_score'] = int(resp.total_score or 0)
+                elif resp.questionnaire_id.startswith('admin_created'):  # Admin questionnaire
+                    # For admin questionnaires, use category_scores to map to dimensions
+                    category_scores = resp.category_scores or {}
+                    logger.info(f"Admin questionnaire category_scores: {category_scores}")
+
+                    # Map Chinese category names to dimension score keys
+                    category_mapping = {
+                        '情绪识别能力': 'emotional_regulation_score',
+                        '情绪调节能力': 'emotional_regulation_score',
+                        '认知重构能力': 'cognitive_flexibility_score',
+                        '内在对话能力': 'internal_conflict_score',
+                        '关系互动能力': 'relationship_sensitivity_score',
+                        '成长潜力': 'growth_potential_score'
+                    }
+
+                    # Sum scores by dimension
+                    for category, score_data in category_scores.items():
+                        dimension_key = category_mapping.get(category)
+                        if dimension_key:
+                            score = score_data.get('score', 0) if isinstance(score_data, dict) else score_data
+                            dimension_scores[dimension_key] += int(score)
+                            logger.info(f"Mapped category '{category}' score {score} to {dimension_key}")
 
             # Calculate internal conflict score (average of emotional and cognitive)
             dimension_scores['internal_conflict_score'] = int(
@@ -1201,4 +1378,616 @@ def get_conversation_questionnaire_responses(
         raise
     except Exception as e:
         logger.error(f"Error getting questionnaire responses: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Questionnaire Progress Tracking Endpoints (NEW)
+# ============================================================================
+
+from src.database.progress_models import UserQuestionnaireProgress
+from src.services.questionnaire_progress import QuestionnaireProgressService
+
+
+class StartQuestionnaireRequest(BaseModel):
+    user_id: str
+    session_id: str
+    conversation_id: Optional[int] = None  # Optional - questionnaire can work without conversation
+    questionnaire_id: Optional[str] = 'admin_created'
+
+
+class SaveAnswerRequest(BaseModel):
+    progress_id: int
+    question_id: int
+    answer_value: int
+    sub_category: Optional[str] = None  # NEW: Optional sub-category from selected option
+
+
+@app.post("/api/questionnaire/start")
+def start_questionnaire(
+    request: StartQuestionnaireRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Start or resume questionnaire with progress tracking.
+
+    Returns progress record and questions list.
+    """
+    try:
+        logger.info(f"Starting questionnaire for user {request.user_id}, questionnaire {request.questionnaire_id}")
+
+        progress, questions = QuestionnaireProgressService.start_or_resume(
+            user_id=request.user_id,
+            session_id=request.session_id,
+            conversation_id=request.conversation_id,
+            questionnaire_id=request.questionnaire_id,
+            db=db
+        )
+
+        # Format questions for response
+        formatted_questions = []
+        for q in questions:
+            question_dict = {
+                'id': q.id,
+                'question_number': q.question_number,
+                'text': q.text,
+                'subtitle': q.subtitle,  # Include subtitle field
+                'template': q.template,
+                'category': q.category,
+                'options': q.options or [],
+                'mediaUrl': q.media_url,
+                'mediaType': q.media_type
+            }
+            formatted_questions.append(question_dict)
+
+        return {
+            'ok': True,
+            'progress': progress.to_dict(),
+            'questions': formatted_questions,
+            'message': 'Questionnaire started' if progress.current_question_index == 0 else 'Resuming questionnaire'
+        }
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error starting questionnaire: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/questionnaire/answer")
+def save_questionnaire_answer(
+    request: SaveAnswerRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Save answer and update progress.
+
+    Auto-saves each answer and triggers report generation on completion.
+    """
+    try:
+        logger.info(f"Received request: progress_id={request.progress_id}, question_id={request.question_id}, answer_value={request.answer_value}")
+        logger.info(f"Saving answer for progress {request.progress_id}, question {request.question_id}")
+
+        result = QuestionnaireProgressService.save_answer(
+            progress_id=request.progress_id,
+            question_id=request.question_id,
+            answer_value=request.answer_value,
+            sub_category=request.sub_category,  # NEW: Pass sub_category
+            db=db
+        )
+
+        # If completed, trigger background report generation
+        if result['is_completed'] and result.get('report_id'):
+            from src.api.psychology_report_routes import generate_report_background
+            from src.database.psychology_models import PsychologyAssessment
+
+            # Get progress to find assessment
+            progress = db.query(UserQuestionnaireProgress).filter(
+                UserQuestionnaireProgress.id == request.progress_id
+            ).first()
+
+            if progress:
+                # Get assessment
+                assessment = db.query(PsychologyAssessment).filter(
+                    PsychologyAssessment.user_id == progress.user_id,
+                    PsychologyAssessment.assessment_type == 'questionnaire'
+                ).order_by(PsychologyAssessment.created_at.desc()).first()
+
+                if assessment:
+                    logger.info(f"Triggering background report generation for report_id={result['report_id']}")
+                    background_tasks.add_task(
+                        generate_report_background,
+                        report_id=result['report_id'],
+                        assessment_id=assessment.id,
+                        user_id=progress.user_id,
+                        language='zh',
+                        db_session=db
+                    )
+
+        return result
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error saving answer: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/questionnaire/progress/{user_id}")
+def get_questionnaire_progress(
+    user_id: str,
+    questionnaire_id: str = 'admin_created',
+    db: Session = Depends(get_db)
+):
+    """
+    Get current progress for user and questionnaire.
+    """
+    try:
+        progress = QuestionnaireProgressService.get_progress(
+            user_id=user_id,
+            questionnaire_id=questionnaire_id,
+            db=db
+        )
+
+        if not progress:
+            return {
+                'ok': True,
+                'progress': None,
+                'message': 'No progress found'
+            }
+
+        return {
+            'ok': True,
+            'progress': progress.to_dict()
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting progress: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ResetProgressRequest(BaseModel):
+    user_id: str
+    questionnaire_id: str = 'admin_created'
+
+
+@app.post("/api/questionnaire/progress/reset")
+def reset_questionnaire_progress(
+    request: ResetProgressRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete questionnaire progress for a user to allow retesting.
+    Also deletes associated responses and reports.
+    """
+    try:
+        # Delete progress record
+        progress_deleted = db.query(UserQuestionnaireProgress).filter(
+            UserQuestionnaireProgress.user_id == request.user_id,
+            UserQuestionnaireProgress.questionnaire_id == request.questionnaire_id
+        ).delete()
+
+        # Delete questionnaire responses (need to join through conversations to get user_id)
+        from src.database.models import Conversation
+
+        # Get conversation IDs for this user
+        conversation_ids = db.query(Conversation.id).filter(
+            Conversation.user_id == request.user_id
+        ).all()
+        conversation_ids = [c[0] for c in conversation_ids]
+
+        # Delete responses for these conversations and questionnaire
+        responses_deleted = 0
+        if conversation_ids:
+            responses_deleted = db.query(DBQuestionnaireResponse).filter(
+                DBQuestionnaireResponse.conversation_id.in_(conversation_ids),
+                DBQuestionnaireResponse.questionnaire_id == request.questionnaire_id
+            ).delete(synchronize_session=False)
+
+        # Delete psychology reports and assessments for this user
+        from src.database.psychology_models import PsychologyReport, PsychologyAssessment
+
+        reports_deleted = db.query(PsychologyReport).filter(
+            PsychologyReport.user_id == request.user_id
+        ).delete()
+
+        assessments_deleted = db.query(PsychologyAssessment).filter(
+            PsychologyAssessment.user_id == request.user_id
+        ).delete()
+
+        db.commit()
+
+        logger.info(f"Reset complete for user {request.user_id}: progress={progress_deleted}, responses={responses_deleted}, reports={reports_deleted}, assessments={assessments_deleted}")
+
+        return {
+            'ok': True,
+            'deleted': {
+                'progress': progress_deleted,
+                'responses': responses_deleted,
+                'reports': reports_deleted,
+                'assessments': assessments_deleted
+            },
+            'message': 'Progress reset successfully'
+        }
+
+    except Exception as e:
+        logger.error(f"Error resetting progress: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Admin Question Management Endpoints (Using Unified assessment_questions Table)
+# ============================================================================
+
+from src.database.questionnaire_models import (
+    AssessmentQuestion as DBQuestion,
+    AssessmentQuestionnaire as DBQuestionnaire
+)
+
+
+class AdminQuestionCreate(BaseModel):
+    questionNumber: int  # User-defined number (1-80)
+    internalTitle: str
+    template: str  # F1-F8
+    stem: str
+    subtitle: Optional[str] = None
+    category: Optional[str] = None  # NEW: Category for scoring
+    tags: List[str] = []
+    options: List[Dict[str, Any]] = []
+    mediaUrl: Optional[str] = None
+    mediaType: Optional[str] = None
+    templateSettings: Dict[str, Any] = {}
+    validation: Dict[str, Any] = {"required": True}
+    order: int = 0
+
+
+class AdminQuestionUpdate(BaseModel):
+    internalTitle: Optional[str] = None
+    template: Optional[str] = None
+    status: Optional[str] = None
+    stem: Optional[str] = None
+    subtitle: Optional[str] = None
+    category: Optional[str] = None  # NEW: Category for scoring
+    tags: Optional[List[str]] = None
+    options: Optional[List[Dict[str, Any]]] = None
+    mediaUrl: Optional[str] = None
+    mediaType: Optional[str] = None
+    templateSettings: Optional[Dict[str, Any]] = None
+    validation: Optional[Dict[str, Any]] = None
+    order: Optional[int] = None
+
+
+@app.get("/api/admin/questions")
+def get_admin_questions(db: Session = Depends(get_db)):
+    """
+    Get all admin-created questions from unified assessment_questions table
+    Returns list of questions with all details
+    """
+    try:
+        # Get only admin-created questions
+        questions = db.query(DBQuestion).filter(
+            DBQuestion.source_type == 'admin'
+        ).order_by(DBQuestion.display_order).all()
+
+        result = []
+        for q in questions:
+            result.append({
+                "id": q.question_number,  # Use question_number as the ID for admin panel
+                "internalTitle": q.internal_title or q.text[:50],
+                "template": q.template or "F1",
+                "status": q.status or "published",
+                "stem": q.text,
+                "subtitle": q.subtitle,
+                "category": q.category,  # NEW: Include category
+                "tags": q.tags or [],
+                "options": q.options or [],
+                "mediaUrl": q.media_url,
+                "mediaType": q.media_type,
+                "templateSettings": q.template_settings or {},
+                "validation": q.validation or {"required": True},
+                "order": q.display_order or 0,
+                "createdAt": q.created_at.isoformat() if q.created_at else None,
+                "updatedAt": q.updated_at.isoformat() if q.updated_at else None
+            })
+
+        logger.info(f"Returning {len(result)} admin questions")
+        return {"ok": True, "questions": result}
+
+    except Exception as e:
+        logger.error(f"Error getting admin questions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/questions/{question_number}")
+def get_admin_question(question_number: int, db: Session = Depends(get_db)):
+    """
+    Get a specific admin question by question_number
+    """
+    try:
+        question = db.query(DBQuestion).filter(
+            DBQuestion.question_number == question_number,
+            DBQuestion.source_type == 'admin'
+        ).first()
+
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question {question_number} not found")
+
+        return {
+            "ok": True,
+            "question": {
+                "id": question.question_number,
+                "internalTitle": question.internal_title or question.text[:50],
+                "template": question.template or "F1",
+                "status": question.status or "published",
+                "stem": question.text,
+                "subtitle": question.subtitle,
+                "category": question.category,  # NEW: Include category
+                "tags": question.tags or [],
+                "options": question.options or [],
+                "mediaUrl": question.media_url,
+                "mediaType": question.media_type,
+                "templateSettings": question.template_settings or {},
+                "validation": question.validation or {"required": True},
+                "order": question.display_order or 0,
+                "createdAt": question.created_at.isoformat() if question.created_at else None,
+                "updatedAt": question.updated_at.isoformat() if question.updated_at else None
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting admin question {question_number}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/questions")
+def create_admin_question(question: AdminQuestionCreate, db: Session = Depends(get_db)):
+    """
+    Create a new admin question in unified assessment_questions table
+    """
+    try:
+        # Check if question_number already exists for admin questions
+        existing = db.query(DBQuestion).filter(
+            DBQuestion.question_number == question.questionNumber,
+            DBQuestion.source_type == 'admin'
+        ).first()
+
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Question with number {question.questionNumber} already exists"
+            )
+
+        # Ensure admin_created questionnaire exists
+        questionnaire_id = "admin_created"
+        admin_questionnaire = db.query(DBQuestionnaire).filter(
+            DBQuestionnaire.id == questionnaire_id
+        ).first()
+
+        if not admin_questionnaire:
+            # Create admin_created questionnaire
+            admin_questionnaire = DBQuestionnaire(
+                id=questionnaire_id,
+                section="admin",
+                title="Admin Created Questions",
+                marking_criteria={}
+            )
+            db.add(admin_questionnaire)
+            db.flush()
+
+        # Create question
+        db_question = DBQuestion(
+            questionnaire_id=questionnaire_id,
+            question_number=question.questionNumber,
+            text=question.stem,
+            internal_title=question.internalTitle,
+            template=question.template,
+            status='draft',
+            subtitle=question.subtitle,
+            category=question.category,  # NEW: Set category
+            options=question.options,
+            media_url=question.mediaUrl,
+            media_type=question.mediaType,
+            template_settings=question.templateSettings,
+            validation=question.validation,
+            tags=question.tags,
+            display_order=question.order,
+            source_type='admin'
+        )
+
+        db.add(db_question)
+        db.commit()
+        db.refresh(db_question)
+
+        logger.info(f"Created admin question with number {db_question.question_number}")
+
+        return {
+            "ok": True,
+            "message": "Question created successfully",
+            "question": {
+                "id": db_question.question_number,
+                "internalTitle": db_question.internal_title,
+                "template": db_question.template,
+                "status": db_question.status,
+                "stem": db_question.text,
+                "subtitle": db_question.subtitle,
+                "category": db_question.category,  # NEW: Include category
+                "tags": db_question.tags or [],
+                "options": db_question.options or [],
+                "mediaUrl": db_question.media_url,
+                "mediaType": db_question.media_type,
+                "templateSettings": db_question.template_settings or {},
+                "validation": db_question.validation or {"required": True},
+                "order": db_question.display_order,
+                "createdAt": db_question.created_at.isoformat(),
+                "updatedAt": db_question.updated_at.isoformat()
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating admin question: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/questions/{question_number}")
+def update_admin_question(
+    question_number: int,
+    updates: AdminQuestionUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing admin question
+    """
+    try:
+        question = db.query(DBQuestion).filter(
+            DBQuestion.question_number == question_number,
+            DBQuestion.source_type == 'admin'
+        ).first()
+
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question {question_number} not found")
+
+        # Update fields if provided
+        if updates.internalTitle is not None:
+            question.internal_title = updates.internalTitle
+        if updates.template is not None:
+            question.template = updates.template
+        if updates.status is not None:
+            question.status = updates.status
+        if updates.stem is not None:
+            question.text = updates.stem
+        if updates.subtitle is not None:
+            question.subtitle = updates.subtitle
+        if updates.category is not None:
+            question.category = updates.category  # NEW: Update category
+        if updates.tags is not None:
+            question.tags = updates.tags
+        if updates.options is not None:
+            question.options = updates.options
+        if updates.mediaUrl is not None:
+            question.media_url = updates.mediaUrl
+        if updates.mediaType is not None:
+            question.media_type = updates.mediaType
+        if updates.templateSettings is not None:
+            question.template_settings = updates.templateSettings
+        if updates.validation is not None:
+            question.validation = updates.validation
+        if updates.order is not None:
+            question.display_order = updates.order
+
+        # Update timestamp
+        question.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(question)
+
+        logger.info(f"Updated admin question {question_number}")
+
+        return {
+            "ok": True,
+            "message": "Question updated successfully",
+            "question": {
+                "id": question.question_number,
+                "internalTitle": question.internal_title,
+                "template": question.template,
+                "status": question.status,
+                "stem": question.text,
+                "subtitle": question.subtitle,
+                "category": question.category,  # NEW: Include category in response
+                "tags": question.tags or [],
+                "options": question.options or [],
+                "mediaUrl": question.media_url,
+                "mediaType": question.media_type,
+                "templateSettings": question.template_settings or {},
+                "validation": question.validation or {"required": True},
+                "order": question.display_order,
+                "createdAt": question.created_at.isoformat(),
+                "updatedAt": question.updated_at.isoformat()
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating admin question {question_number}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/questions/{question_number}")
+def delete_admin_question(question_number: int, db: Session = Depends(get_db)):
+    """
+    Delete an admin question
+    """
+    try:
+        question = db.query(DBQuestion).filter(
+            DBQuestion.question_number == question_number,
+            DBQuestion.source_type == 'admin'
+        ).first()
+
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question {question_number} not found")
+
+        db.delete(question)
+        db.commit()
+
+        logger.info(f"Deleted admin question {question_number}")
+
+        return {
+            "ok": True,
+            "message": "Question deleted successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting admin question {question_number}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/questions/{question_number}/publish")
+def publish_admin_question(question_number: int, db: Session = Depends(get_db)):
+    """
+    Publish an admin question (change status from draft to published)
+    """
+    try:
+        question = db.query(DBQuestion).filter(
+            DBQuestion.question_number == question_number,
+            DBQuestion.source_type == 'admin'
+        ).first()
+
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question {question_number} not found")
+
+        question.status = 'published'
+        question.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(question)
+
+        logger.info(f"Published admin question {question_number}")
+
+        return {
+            "ok": True,
+            "message": "Question published successfully",
+            "question": {
+                "id": question.question_number,
+                "status": question.status
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error publishing admin question {question_number}: {e}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
