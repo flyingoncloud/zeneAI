@@ -138,7 +138,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const loadQuestions = async () => {
       setIsLoadingQuestions(true);
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
         const response = await fetch(`${API_BASE_URL}/api/admin/questions`);
         const data = await response.json();
 
@@ -161,7 +160,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     const loadMediaItems = async () => {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
         console.log('[MediaLibrary] Loading media from:', `${API_BASE_URL}/api/admin/media`);
         console.log('[MediaLibrary] isLoggedIn:', isLoggedIn, 'currentView:', currentView);
 
@@ -335,7 +333,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const reloadMediaItems = useCallback(async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
       console.log('[reloadMediaItems] Reloading media from:', `${API_BASE_URL}/api/admin/media`);
 
       const response = await fetch(`${API_BASE_URL}/api/admin/media`);
@@ -357,7 +354,6 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const reloadQuestions = useCallback(async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
       console.log('[reloadQuestions] Reloading questions from:', `${API_BASE_URL}/api/admin/questions`);
 
       const response = await fetch(`${API_BASE_URL}/api/admin/questions`);

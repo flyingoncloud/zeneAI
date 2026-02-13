@@ -3,7 +3,7 @@ import { useAdminStore, MediaItem } from '@/hooks/useAdminStore';
 import { Search, Upload, Image as ImageIcon, Video, Trash2, ExternalLink, X, Grid, List, Loader2, CheckCircle2, AlertCircle, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const MediaLibrary: React.FC = () => {
   const { mediaItems, addMediaItem, removeMediaItem, reloadMediaItems } = useAdminStore();

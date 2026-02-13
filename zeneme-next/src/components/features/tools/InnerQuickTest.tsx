@@ -61,7 +61,7 @@ function getOrCreateUserId(): string {
   return newId;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
@@ -511,7 +511,7 @@ export const InnerQuickTest: React.FC = () => {
                   <h2 className="text-2xl font-bold text-white mb-6 text-center">五维心理能力雷达图</h2>
                   <div className="flex justify-center">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/charts/report_${reportId}/radar_chart.png`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}/charts/report_${reportId}/radar_chart.png`}
                       alt="心理能力雷达图"
                       className="max-w-full h-auto rounded-lg"
                       style={{ maxHeight: '500px' }}

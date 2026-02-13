@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CategoryPicker } from './CategoryPicker';
 import { getCategoryLabel } from '@/data/categoryHierarchy';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const QuestionEditor: React.FC = () => {
   const { editingQuestionId, questions, updateQuestion, setCurrentView, setEditingQuestionId, mediaItems, reloadMediaItems } = useAdminStore();
@@ -98,8 +98,6 @@ export const QuestionEditor: React.FC = () => {
         },
       };
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
       // Try to update first, if fails then create
       const response = await fetch(`${API_BASE_URL}/api/admin/questions/${question.id}`, {
         method: 'PUT',
@@ -147,8 +145,6 @@ export const QuestionEditor: React.FC = () => {
 
   const handlePublish = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
       // First save the question
       await handleSaveDraft();
 
@@ -202,7 +198,6 @@ export const QuestionEditor: React.FC = () => {
 
   const selectMedia = (item: MediaItem) => {
     // Convert relative URLs to absolute URLs using the backend API base
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     const fullUrl = item.url.startsWith('http') ? item.url : `${API_BASE_URL}${item.url}`;
 
     if (mediaPickerTarget === 'stem') {
