@@ -14,7 +14,7 @@ import {
   type QuestionOption,
   type StartQuestionnaireResponse
 } from '../../../lib/api';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type QuestionItem = QuestionnaireDetail['questions'][number];
 
 type CategoryScoreObj = { sub_section?: string; category?: string; score?: number; count?: number };
@@ -261,7 +261,7 @@ export const InnerQuickTest: React.FC = () => {
         const result = await startQuestionnaire({
           user_id: userId,
           session_id: currentSessionId,
-          conversation_id: conversationId || null, // Optional - can be null
+          ...(typeof conversationId === 'number' ? { conversation_id: conversationId } : {}),
           questionnaire_id: 'admin_created'
         });
 

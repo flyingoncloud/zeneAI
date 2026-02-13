@@ -20,7 +20,7 @@ export default function Logo() {
       </div>
       <div className="absolute flex h-[27.188px] items-center justify-center left-[40px] top-[7px] w-[131.251px]" style={{ "--transform-inner-width": "117", "--transform-inner-height": "32" } as React.CSSProperties}>
         <div className="flex-none rotate-[0.241deg]">
-          <p className="font-['Mangsi'] font-normal h-[26.638px] leading-none not-italic relative text-[24px] text-white w-[131.141px]">ZeneMe</p>
+          <p className="font-['Mangsi'] font-normal h-[26.638px] leading-none not-italic relative text-[24px] text-white w-[131.141px]">ZeneWe</p>
         </div>
       </div>
     </div>

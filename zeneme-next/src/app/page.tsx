@@ -21,6 +21,8 @@ import { filterFunctionCallText, validateModuleData } from "@/utils/contentFilte
 import { BreathingPage } from "@/components/features/tools/firstaid/BreathingPage";
 import { EmotionPage } from "@/components/features/tools/firstaid/EmotionPage";
 import { HistoryReports } from "@/components/features/reports/HistoryReports";
+import { BreathingWelcome } from "@/components/features/tools/firstaid/BreathingWelcome";
+
 
 function HomeContent() {
   const router = useRouter();
@@ -213,6 +215,7 @@ React.useEffect(() => {
   const renderContent = () => {
     switch (currentView) {
       case 'first-aid':
+        return <BreathingWelcome onStart={() => setCurrentView("breathing")}/>;
       case 'breathing':  // These are sub-views of EmotionalFirstAid
       case 'naming':     // These are sub-views of EmotionalFirstAid
         return <EmotionalFirstAid />;

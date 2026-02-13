@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useZenemeStore, MoodLog } from '../../../../hooks/useZenemeStore';
-import { ZeneMeEmotions } from '../../../ui/ZeneMeEmotions';
+import { ZeneWeEmotions } from '../../../ui/ZeneMeEmotions';
 
 interface EmotionPageProps {
   onComplete: (emotionData: { emotion: string; intensity: number }) => void;
@@ -109,7 +109,7 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
               */}
               <div className="w-full px-2">
                 <div className="min-w-[760px] w-full flex flex-row items-start justify-between gap-4">
-                  {ZeneMeEmotions.map((EmotionIcon, idx) => {
+                  {ZeneWeEmotions.map((EmotionIcon, idx) => {
                     const isSelected = selectedEmoji === idx;
                     const label = t.emotion.emotions?.[idx] ?? '';
 

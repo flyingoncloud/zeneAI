@@ -4,7 +4,7 @@
  * This module handles all API calls to the ai-chat-api Python FastAPI server.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export interface ChatRequest {
   message: string;
@@ -870,7 +870,7 @@ export async function downloadPsychologyReport(reportId: number): Promise<{
 export interface StartQuestionnaireRequest {
   user_id: string;
   session_id: string;
-  conversation_id: number;
+  conversation_id?: number;
   questionnaire_id?: string;
 }
 
@@ -936,7 +936,8 @@ export async function startQuestionnaire(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}; body: ${errText}`);
     }
 
     const data = await response.json();

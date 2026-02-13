@@ -14,6 +14,67 @@ import { ModuleRecommendationCard } from './ModuleRecommendationCard';
 import { toast } from 'sonner';
 import { SplashDanmakuLayer } from './SplashDanmakuLayer';
 
+// --- Custom Fine-Line Icons (IconLike compatible) ---
+const IconFirstAid: React.FC<IconLikeProps> = ({ className, size = 24, strokeWidth = 1.5, ...rest }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...rest}
+  >
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    <path d="M12 7.5v4m0 0v4m0-4h4m-4 0H8" />
+  </svg>
+);
+
+const IconSketch: React.FC<IconLikeProps> = ({ className, size = 24, strokeWidth = 1.5, ...rest }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...rest}
+  >
+    <path d="M18 10h-2a2 2 0 0 1-2-2V6l2.5-2.5L19 6l-2.5 2.5a2 2 0 0 1-1.5.5Z" />
+    <path d="M3 20.5v-13A2.5 2.5 0 0 1 5.5 5H13" />
+    <path d="M3 21h15a2 2 0 0 0 2-2v-6" />
+    <path d="M7 11c1-1 3-1 4 0" strokeOpacity="0.7" />
+    <path d="M7 15c2-2 5-1 6 1" />
+  </svg>
+);
+
+const IconTest: React.FC<IconLikeProps> = ({ className, size = 24, strokeWidth = 1.5, ...rest }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...rest}
+  >
+    <rect width="14" height="18" x="5" y="3" rx="2.5" />
+    <path d="M9 8h6" />
+    <path d="M9 12h3" />
+    <path d="M14 16l1 1 2.5-2.5" />
+  </svg>
+);
+
+
 // Module ID to View mapping
 // Only 3 modules exist: emotional_first_aid, inner_doodling, quick_assessment
 const MODULE_VIEW_MAP: Record<string, View> = {
@@ -179,7 +240,7 @@ const AIMessageBubble = ({
             <img
               src={attachment.preview || attachment.url}
               alt="Sketch Analysis"
-              className="w-48 h-32 object-cover bg-slate-900"
+              className="w-48 h-32 object-cover bg-slate-900 ml-auto"
             />
             <div className="absolute top-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/50 rounded-full p-1">
               <Maximize2 size={14} className="text-white" />
@@ -314,6 +375,58 @@ const QuickActionChip = ({ icon: Icon, label, onClick, delay }: QuickActionChipP
     </motion.button>
   );
 };
+
+type QuickActionCardProps = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  delay: number;
+};
+
+const QuickActionCard = ({ icon: Icon, label, onClick }: QuickActionCardProps) => {
+  return (
+    <motion.button
+      initial="idle"
+      whileHover="hover"
+      whileTap="active"
+      animate={{ opacity: 1, y: 0 }}
+      variants={{
+        idle: { scale: 1 },
+        hover: {
+          scale: 1.04,
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          boxShadow: "0 12px 32px -8px rgba(139, 92, 246, 0.2)",
+        },
+        active: { scale: 0.98 },
+      }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+      onClick={onClick}
+      className="flex-1 flex flex-col items-center justify-center gap-3 py-5 px-3 min-w-[96px] max-w-[132px] h-[120px] bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md cursor-pointer group select-none transition-colors duration-300"
+    >
+      <motion.div
+        variants={{
+          idle: { y: 0, opacity: 0.95, filter: "brightness(1.1)" },
+          hover: {
+            y: -3,
+            opacity: 1,
+            filter: "brightness(1.3)",
+            transition: {
+              y: { repeat: Infinity, repeatType: "reverse", duration: 0.8, ease: "easeInOut" },
+            },
+          },
+        }}
+        className="text-violet-100 group-hover:text-white transition-colors"
+      >
+        <Icon className="w-10 h-10" />
+      </motion.div>
+
+      <span className="text-[15px] font-medium text-slate-200 group-hover:text-white transition-colors tracking-wide">
+        {label}
+      </span>
+    </motion.button>
+  );
+};
+
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage }) => {
   const [showReport, setShowReport] = useState(false);
@@ -557,14 +670,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
 
           {/* C. Quick Action Chips - Aligned with Input Card */}
           <div className="flex flex-wrap gap-4 mt-10 w-full justify-center">
-            <QuickActionChip icon={Heart} label="情绪急救" onClick={() => handleQuickAction('first-aid')} delay={0.1} />
-            <QuickActionChip icon={PenTool} label="内视涂鸦" onClick={() => handleQuickAction('sketch')} delay={0.2} />
-            <QuickActionChip
-              icon={ClipboardList}
-              label="内视快测"
-              onClick={() => handleQuickAction('test')}
-              delay={0.3}
-            />
+            <QuickActionCard icon={IconFirstAid} label="情绪急救" onClick={() => handleQuickAction('first-aid')} delay={0.1} />
+            <QuickActionCard icon={IconSketch} label="内视涂鸦" onClick={() => handleQuickAction('sketch')} delay={0.2} />
+            <QuickActionCard icon={IconTest} label="内视快测" onClick={() => handleQuickAction('test')} delay={0.3} />
           </div>
         </div>
       ) : (
