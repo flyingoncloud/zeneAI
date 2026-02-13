@@ -18,6 +18,18 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Detect OS and set pg_restore path
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS
+  PG_RESTORE="/opt/homebrew/opt/postgresql@15/bin/pg_restore"
+  if [ ! -f "$PG_RESTORE" ]; then
+    PG_RESTORE="pg_restore"  # Fallback to system pg_restore
+  fi
+else
+  # Linux
+  PG_RESTORE="pg_restore"
+fi
+
 # Check if backup file is provided
 if [ -z "$1" ]; then
   echo -e "${RED}Error: No backup file specified${NC}"
@@ -50,9 +62,9 @@ fi
 
 echo -e "${YELLOW}Starting database import...${NC}"
 
-# Import database using PostgreSQL 15
+# Import database
 # -c flag: clean (drop) database objects before recreating them
-PGPASSWORD="${DB_PASSWORD}" /opt/homebrew/opt/postgresql@15/bin/pg_restore \
+PGPASSWORD="${DB_PASSWORD}" "${PG_RESTORE}" \
   -h "${DB_HOST}" \
   -U "${DB_USER}" \
   -d "${DB_NAME}" \

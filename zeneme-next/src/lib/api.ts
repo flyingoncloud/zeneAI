@@ -4,7 +4,7 @@
  * This module handles all API calls to the ai-chat-api Python FastAPI server.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface ChatRequest {
   message: string;

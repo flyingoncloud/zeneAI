@@ -19,13 +19,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Detect OS and set pg_dump path
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS
+  PG_DUMP="/opt/homebrew/opt/postgresql@15/bin/pg_dump"
+  if [ ! -f "$PG_DUMP" ]; then
+    PG_DUMP="pg_dump"  # Fallback to system pg_dump
+  fi
+else
+  # Linux
+  PG_DUMP="pg_dump"
+fi
+
 echo -e "${YELLOW}Starting database export...${NC}"
 
 # Create backup directory if it doesn't exist
 mkdir -p "${BACKUP_DIR}"
 
-# Export database using PostgreSQL 15
-PGPASSWORD="${DB_PASSWORD}" /opt/homebrew/opt/postgresql@15/bin/pg_dump \
+# Export database
+PGPASSWORD="${DB_PASSWORD}" "${PG_DUMP}" \
   -h "${DB_HOST}" \
   -U "${DB_USER}" \
   -d "${DB_NAME}" \
