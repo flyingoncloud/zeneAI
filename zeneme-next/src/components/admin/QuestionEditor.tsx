@@ -8,7 +8,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryPicker } from './CategoryPicker';
 import { getCategoryLabel } from '@/data/categoryHierarchy';
-import { SpatialSceneGenerator } from './SpatialSceneGenerator';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 

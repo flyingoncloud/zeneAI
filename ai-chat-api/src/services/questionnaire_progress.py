@@ -143,9 +143,9 @@ class QuestionnaireProgressService:
         if not question:
             raise ValueError(f"Question {question_id} not found")
 
-        # Update answers
+        # Update answers - Store by question_number for consistency with scoring
         answers = progress.answers or {}
-        answers[str(question_id)] = answer_value
+        answers[str(question.question_number)] = answer_value  # Use question_number, not question_id
         progress.answers = answers
 
         # Update category scores
@@ -234,12 +234,59 @@ class QuestionnaireProgressService:
 
         category_scores = progress.category_scores or {}
 
-        # Direct 1:1 mapping from categories to dimension scores
-        emotional_regulation = category_scores.get('情绪调节能力', 0)
-        cognitive_flexibility = category_scores.get('认知重构能力', 0)
-        relationship_sensitivity = category_scores.get('关系互动能力', 0)
-        internal_conflict = category_scores.get('内在对话能力', 0)
-        growth_potential = category_scores.get('成长潜力', 0)
+        # Mapping from category IDs to dimension names
+        CATEGORY_TO_DIMENSION = {
+            '2.1': 'emotional_regulation',      # 情绪调节能力
+            '2.2': 'cognitive_flexibility',     # 认知重构能力
+            '2.2.1': 'cognitive_flexibility',
+            '2.2.2': 'cognitive_flexibility',
+            '2.2.3': 'cognitive_flexibility',
+            '2.2.4': 'cognitive_flexibility',
+            '2.3': 'relationship_sensitivity',  # 关系互动能力
+            '2.3.1': 'relationship_sensitivity',
+            '2.3.2': 'relationship_sensitivity',
+            '2.4': 'internal_conflict',         # 内在对话能力
+            '2.4.1': 'internal_conflict',
+            '2.4.2': 'internal_conflict',
+            '2.5': 'growth_potential',          # 成长潜力
+            '2.5.1': 'growth_potential',
+            '2.5.2': 'growth_potential',
+            '2.5.3': 'growth_potential',
+        }
+
+        # Aggregate scores by dimension
+        dimension_scores = {
+            'emotional_regulation': 0,
+            'cognitive_flexibility': 0,
+            'relationship_sensitivity': 0,
+            'internal_conflict': 0,
+            'growth_potential': 0
+        }
+
+        for category_id, score in category_scores.items():
+            # Try direct dimension name match first (for backward compatibility)
+            if category_id == '情绪调节能力':
+                dimension_scores['emotional_regulation'] += score
+            elif category_id == '认知重构能力':
+                dimension_scores['cognitive_flexibility'] += score
+            elif category_id == '关系互动能力':
+                dimension_scores['relationship_sensitivity'] += score
+            elif category_id == '内在对话能力':
+                dimension_scores['internal_conflict'] += score
+            elif category_id == '成长潜力':
+                dimension_scores['growth_potential'] += score
+            # Try category ID mapping
+            elif category_id in CATEGORY_TO_DIMENSION:
+                dimension = CATEGORY_TO_DIMENSION[category_id]
+                dimension_scores[dimension] += score
+            else:
+                logger.warning(f"Unknown category '{category_id}' - score not mapped to any dimension")
+
+        emotional_regulation = dimension_scores['emotional_regulation']
+        cognitive_flexibility = dimension_scores['cognitive_flexibility']
+        relationship_sensitivity = dimension_scores['relationship_sensitivity']
+        internal_conflict = dimension_scores['internal_conflict']
+        growth_potential = dimension_scores['growth_potential']
 
         if not assessment:
             assessment = PsychologyAssessment(

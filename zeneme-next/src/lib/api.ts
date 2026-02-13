@@ -870,7 +870,7 @@ export async function downloadPsychologyReport(reportId: number): Promise<{
 export interface StartQuestionnaireRequest {
   user_id: string;
   session_id: string;
-  conversation_id?: number;
+  conversation_id?: number | null;  // Optional - can be null for standalone questionnaires
   questionnaire_id?: string;
 }
 

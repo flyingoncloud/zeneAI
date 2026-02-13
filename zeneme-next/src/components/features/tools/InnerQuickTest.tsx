@@ -1170,8 +1170,8 @@ export const InnerQuickTest: React.FC = () => {
                         `}
                       >
                         <div className="space-y-2">
-                          {/* Image - square for F5 (5+ items), 16:9 for F4 (4 items) */}
-                          <div className={`w-full rounded-lg overflow-hidden ${(currentQuestion.options?.length || 0) <= 4 ? 'aspect-video' : 'aspect-square'} ${
+                          {/* Image - smaller for F4 (4 items), square for F5 (5+ items) */}
+                          <div className={`w-full rounded-lg overflow-hidden ${(currentQuestion.options?.length || 0) <= 4 ? 'aspect-[4/3]' : 'aspect-square'} ${
                             currentAnswer === option.value
                               ? 'ring-4 ring-violet-500 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
                               : 'ring-2 ring-white/10 group-hover:ring-violet-500/50'
