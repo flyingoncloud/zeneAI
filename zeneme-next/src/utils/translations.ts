@@ -134,7 +134,16 @@ export const translations = {
         Relieved: 'Relieved',
         Confused: 'Confused',
         Tired: 'Tired',
-        Grateful: 'Grateful'
+        Grateful: 'Grateful',
+        Satisfied: 'Satisfied',
+        Warm: 'Warm',
+        Confident: 'Confident',
+        Curious: 'Curious',
+        Expectant: 'Expectant',
+        Lonely: 'Lonely',
+        Repressed: 'Repressed',
+        Wronged: 'Wronged',
+        Scared: 'Scared'
       }
     },
     sketch: {
@@ -495,7 +504,16 @@ export const translations = {
         Relieved: '宽慰',
         Confused: '困惑',
         Tired: '疲惫',
-        Grateful: '感激'
+        Grateful: '感激',
+        Satisfied: '满足',
+        Warm: '温暖',
+        Confident: '自信',
+        Curious: '好奇',
+        Expectant: '期待',
+        Lonely: '孤独',
+        Repressed: '压抑',
+        Wronged: '委屈',
+        Scared: '害怕'
       }
     },
     sketch: {

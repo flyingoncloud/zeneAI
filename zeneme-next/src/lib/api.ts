@@ -1022,3 +1022,191 @@ export async function getQuestionnaireProgress(
     };
   }
 }
+
+// ============================================================================
+// Authentication API Methods
+// ============================================================================
+
+export interface PhoneVerificationRequest {
+  phone: string;
+  country_code?: string;
+}
+
+export interface PhoneVerificationResponse {
+  success: boolean;
+  message: string;
+  expires_in: number;
+}
+
+export interface PhoneLoginRequest {
+  phone: string;
+  country_code?: string;
+  code: string;
+}
+
+export interface EmailRegisterRequest {
+  email: string;
+  password: string;
+  username?: string;
+}
+
+export interface EmailLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface SocialLoginRequest {
+  provider: 'google' | 'wechat';
+  token: string;
+  user_info?: Record<string, any>;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  user?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    provider?: string;
+  };
+  token?: string;
+}
+
+/**
+ * Send verification code to phone number
+ */
+export async function sendPhoneVerificationCode(
+  request: PhoneVerificationRequest
+): Promise<PhoneVerificationResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/phone/send-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending verification code:', error);
+    throw error;
+  }
+}
+
+/**
+ * Login with phone number and verification code
+ */
+export async function loginWithPhone(request: PhoneLoginRequest): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/phone/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error logging in with phone:', error);
+    throw error;
+  }
+}
+
+/**
+ * Register with email and password
+ */
+export async function registerWithEmail(request: EmailRegisterRequest): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/email/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error registering with email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Login with email and password
+ */
+export async function loginWithEmail(request: EmailLoginRequest): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/email/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error logging in with email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Login with social provider (Google, WeChat)
+ */
+export async function loginWithSocial(request: SocialLoginRequest): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/social/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error logging in with social provider:', error);
+    throw error;
+  }
+}

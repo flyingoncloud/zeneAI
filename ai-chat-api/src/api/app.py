@@ -21,6 +21,7 @@ from src.database import models as db_models
 from src.api import models as api_models
 from src.api.chat_service import get_ai_response, get_ai_response_with_image, build_message_history
 from src.api.psychology_report_routes import router as psychology_report_router
+from src.api.auth_routes import router as auth_router
 
 # Configure logging
 logging.basicConfig(
@@ -42,6 +43,9 @@ app.add_middleware(
 
 # Include psychology report routes
 app.include_router(psychology_report_router)
+
+# Include auth routes
+app.include_router(auth_router)
 
 # Mount static files for uploads
 uploads_dir = Path("uploads")

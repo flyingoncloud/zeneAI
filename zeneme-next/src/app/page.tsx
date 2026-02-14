@@ -15,6 +15,7 @@ import { InnerQuickTest } from "@/components/features/tools/InnerQuickTest";
 import { MoodTracker } from "@/components/features/tools/MoodTracker";
 
 import { useZenemeStore, type View } from "@/hooks/useZenemeStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { DEFAULT_VIEW, VIEW_QUERY_KEY, isRoutableView, viewToHref, type RoutableView } from "@/lib/routes";
 import { sendChatMessage, sendModuleCompletionMessage } from "@/lib/api";
 import { filterFunctionCallText, validateModuleData } from "@/utils/contentFilter";
@@ -22,6 +23,8 @@ import { BreathingPage } from "@/components/features/tools/firstaid/BreathingPag
 import { EmotionPage } from "@/components/features/tools/firstaid/EmotionPage";
 import { HistoryReports } from "@/components/features/reports/HistoryReports";
 import { BreathingWelcome } from "@/components/features/tools/firstaid/BreathingWelcome";
+import { WelcomePage, AuthPage, GuestGate } from "@/components/auth";
+import { LOGIN_REQUIRED_EVENT } from "@/utils/authHelpers";
 
 
 function HomeContent() {
@@ -43,10 +46,51 @@ function HomeContent() {
     setPendingModuleCompletion
   } = useZenemeStore();
 
+  const { status } = useAuthStore();
+
+  const [isAuthPageOpen, setIsAuthPageOpen] = React.useState(false);
+  const [isLoginRequiredOpen, setIsLoginRequiredOpen] = React.useState(false);
+  const [postLoginTarget, setPostLoginTarget] = React.useState<string | null>(null);
+
  const urlViewRaw = searchParams.get(VIEW_QUERY_KEY);
 
- const prevViewRef = React.useRef<View>("chat");
- const urlView: RoutableView = isRoutableView(urlViewRaw) ? urlViewRaw : DEFAULT_VIEW;
+  const prevViewRef = React.useRef<View>("chat");
+  const urlView: RoutableView = isRoutableView(urlViewRaw) ? urlViewRaw : DEFAULT_VIEW;
+
+  // Listen for auth navigation events
+  React.useEffect(() => {
+    const handleNavAuth = () => setIsAuthPageOpen(true);
+    window.addEventListener('zeneme:navigate-auth', handleNavAuth);
+
+    const handleLoginRequired = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.targetView) {
+        setPostLoginTarget(detail.targetView);
+      }
+      setIsLoginRequiredOpen(true);
+    };
+    window.addEventListener(LOGIN_REQUIRED_EVENT, handleLoginRequired);
+
+    return () => {
+      window.removeEventListener('zeneme:navigate-auth', handleNavAuth);
+      window.removeEventListener(LOGIN_REQUIRED_EVENT, handleLoginRequired);
+    };
+  }, []);
+
+  // Close auth page when user logs in
+  React.useEffect(() => {
+    if (status === 'authenticated') {
+      setIsAuthPageOpen(false);
+      setIsLoginRequiredOpen(false);
+
+      if (postLoginTarget) {
+        if (['history', 'naming', 'test', 'mood', 'sketch', 'first-aid'].includes(postLoginTarget)) {
+          setCurrentView(postLoginTarget as View);
+        }
+        setPostLoginTarget(null);
+      }
+    }
+  }, [status, postLoginTarget, setCurrentView]);
 
 // 用 ref 读取最新 currentView，避免把 currentView 放进 URL->Store 的依赖里
 const currentViewRef = React.useRef<View>(currentView);
@@ -238,6 +282,29 @@ React.useEffect(() => {
     }
   };
 
+  // Auth Flow: Show Welcome/Auth pages if status is 'idle'
+  if (status === 'idle') {
+    return (
+      <div className="flex h-screen w-full bg-transparent font-sans text-slate-200 overflow-hidden relative">
+        {isAuthPageOpen ? (
+          <AuthPage onBack={() => setIsAuthPageOpen(false)} />
+        ) : (
+          <WelcomePage onNavigateAuth={() => setIsAuthPageOpen(true)} />
+        )}
+      </div>
+    );
+  }
+
+  // If auth page is open (from guest mode), show it as overlay
+  if (isAuthPageOpen) {
+    return (
+      <div className="flex h-screen w-full bg-transparent font-sans text-slate-200 overflow-hidden relative">
+        <AuthPage onBack={() => setIsAuthPageOpen(false)} />
+      </div>
+    );
+  }
+
+  // Main Application Layout
   return (
     <div className="flex h-screen w-full bg-transparent font-sans text-slate-200 overflow-hidden relative">
       {/* 背景图：public/3b6a5589c53301457230648f6d21f5eab8c4f69b.png */}
@@ -258,6 +325,16 @@ React.useEffect(() => {
         <TopBar />
         <main className="flex-1 relative overflow-hidden bg-transparent">{renderContent()}</main>
       </div>
+
+      <GuestGate
+        open={isLoginRequiredOpen}
+        onOpenChange={setIsLoginRequiredOpen}
+        onLogin={() => {
+          setIsLoginRequiredOpen(false);
+          setIsAuthPageOpen(true);
+        }}
+        onContinueGuest={() => setIsLoginRequiredOpen(false)}
+      />
     </div>
   );
 }
