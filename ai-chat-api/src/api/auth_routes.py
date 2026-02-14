@@ -20,6 +20,7 @@ import logging
 
 from src.database.database import get_db
 from src.database.psychology_models import UserProfile
+from src.services.sms_service import send_sms
 
 logger = logging.getLogger(__name__)
 
@@ -116,16 +117,6 @@ def generate_verification_code() -> str:
 def generate_token() -> str:
     """Generate authentication token"""
     return secrets.token_urlsafe(32)
-
-
-def send_sms(phone: str, code: str) -> bool:
-    """
-    Send SMS verification code
-    In production, integrate with SMS provider (Twilio, AWS SNS, etc.)
-    """
-    logger.info(f"[SMS] Sending code {code} to {phone}")
-    # TODO: Integrate with SMS provider
-    return True
 
 
 def create_or_update_user(db: Session, user_data: dict) -> UserProfile:
