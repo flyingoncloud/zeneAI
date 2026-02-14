@@ -141,8 +141,10 @@ def create_or_update_user(db: Session, user_data: dict) -> UserProfile:
             if hasattr(user, key) and value is not None:
                 setattr(user, key, value)
         user.updated_at = datetime.utcnow()
+        user.last_login_at = datetime.utcnow()
     else:
         # Create new user
+        user_data['last_login_at'] = datetime.utcnow()
         user = UserProfile(**user_data)
         db.add(user)
 
@@ -362,8 +364,7 @@ async def email_login(
             )
 
         # Verify password
-        stored_hash = user.extra_data.get('password_hash') if user.extra_data else None
-        if not stored_hash or not verify_password(request.password, stored_hash):
+        if not user.password_hash or not verify_password(request.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"

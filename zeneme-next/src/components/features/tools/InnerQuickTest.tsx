@@ -61,7 +61,7 @@ function getOrCreateUserId(): string {
   return newId;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();

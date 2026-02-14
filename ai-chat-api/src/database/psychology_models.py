@@ -28,12 +28,26 @@ class UserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(255), unique=True, nullable=False, index=True)
     username = Column(String(255))
-    email = Column(String(255))
+    email = Column(String(255), index=True)
+
+    # Authentication fields
+    phone_number = Column(String(20), nullable=True)
+    phone_country_code = Column(String(10), default='+61')
+    password_hash = Column(String(255), nullable=True)
+    auth_provider = Column(String(50), nullable=True)  # 'phone', 'email', 'google', 'wechat'
+    provider_id = Column(String(255), nullable=True)  # External provider user ID
+
+    # Account status
+    is_active = Column(Boolean, default=True)
+    last_login_at = Column(DateTime, nullable=True)
 
     # Profile metadata
     age = Column(Integer)
     gender = Column(String(50))
     language_preference = Column(String(10), default='zh')
+
+    # Extra data for flexible storage
+    extra_data = Column(JSONB, default={})
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
