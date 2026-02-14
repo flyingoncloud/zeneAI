@@ -21,6 +21,7 @@ import logging
 from src.database.database import get_db
 from src.database.psychology_models import UserProfile
 from src.services.sms_service import send_sms
+from src.services.email_service import send_verification_email, generate_verification_code as generate_email_code
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 # In-memory storage for verification codes (in production, use Redis)
 verification_codes = {}
+email_verification_codes = {}
 
 
 # ============================================================================
@@ -57,6 +59,7 @@ class PhoneLoginRequest(BaseModel):
     phone: str
     country_code: str = "+61"
     code: str
+    username: Optional[str] = None  # Optional for login, required for first-time registration
 
     @validator('code')
     def validate_code(cls, v):
@@ -65,15 +68,26 @@ class PhoneLoginRequest(BaseModel):
         return v
 
 
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class EmailRegisterRequest(BaseModel):
     email: EmailStr
     password: str
+    code: str  # 6-digit verification code
     username: Optional[str] = None
 
     @validator('password')
     def validate_password(cls, v):
         if len(v) < 6:
             raise ValueError('Password must be at least 6 characters')
+        return v
+
+    @validator('code')
+    def validate_code(cls, v):
+        if not re.match(r'^\d{6}$', v):
+            raise ValueError('Verification code must be 6 digits')
         return v
 
 
@@ -237,19 +251,46 @@ async def phone_login(
         # Code verified, remove from storage
         del verification_codes[phone_key]
 
-        # Create or get user
+        # Check if user already exists
         user_id = f"phone_{hashlib.md5(phone_key.encode()).hexdigest()}"
-        user_data = {
-            'user_id': user_id,
-            'username': f"User {request.phone[-4:]}",
-        }
+        existing_user = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
+        ).first()
 
-        user = create_or_update_user(db, user_data)
+        if existing_user:
+            # Existing user - just login
+            user = existing_user
+            logger.info(f"[Auth] Phone login successful for {phone_key}")
+        else:
+            # New user - registration
+            # Use provided username or generate one
+            username = request.username if hasattr(request, 'username') and request.username else f"User {request.phone[-4:]}"
+
+            # Check username uniqueness
+            existing_username = db.query(UserProfile).filter(
+                UserProfile.username == username
+            ).first()
+
+            if existing_username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken. Please choose a different username."
+                )
+
+            user_data = {
+                'user_id': user_id,
+                'username': username,
+                'phone_number': request.phone,
+                'phone_country_code': request.country_code,
+                'auth_provider': 'phone',
+                'provider_id': phone_key,
+            }
+
+            user = create_or_update_user(db, user_data)
+            logger.info(f"[Auth] Phone registration successful for {phone_key}")
 
         # Generate token
         token = generate_token()
-
-        logger.info(f"[Auth] Phone login successful for {phone_key}")
 
         return AuthResponse(
             success=True,
@@ -276,13 +317,89 @@ async def phone_login(
 # Email Authentication Endpoints
 # ============================================================================
 
+@router.post("/email/send-code")
+async def send_email_verification_code(request: EmailVerificationRequest):
+    """Send verification code to email"""
+    try:
+        # Generate 6-digit code
+        code = generate_email_code()
+
+        # Store code with expiration (10 minutes)
+        email_verification_codes[request.email] = {
+            'code': code,
+            'expires_at': datetime.utcnow() + timedelta(minutes=10),
+            'attempts': 0
+        }
+
+        # Send email
+        success = send_verification_email(request.email, code)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email"
+            )
+
+        logger.info(f"[Auth] Verification email sent to {request.email}: {code}")
+
+        return {
+            "success": True,
+            "message": "Verification code sent to your email"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Auth] Error sending verification email: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"500: {str(e)}"
+        )
+
+
 @router.post("/email/register", response_model=AuthResponse)
 async def email_register(
     request: EmailRegisterRequest,
     db: Session = Depends(get_db)
 ):
-    """Register with email and password"""
+    """Register with email, password, and verification code"""
     try:
+        # Verify email code first
+        if request.email not in email_verification_codes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No verification code found. Please request a new code."
+            )
+
+        code_data = email_verification_codes[request.email]
+
+        # Check expiration
+        if datetime.utcnow() > code_data['expires_at']:
+            del email_verification_codes[request.email]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code expired. Please request a new code."
+            )
+
+        # Check attempts
+        if code_data['attempts'] >= 3:
+            del email_verification_codes[request.email]
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed attempts. Please request a new code."
+            )
+
+        # Verify code
+        if request.code != code_data['code']:
+            code_data['attempts'] += 1
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid verification code. {3 - code_data['attempts']} attempts remaining."
+            )
+
+        # Code verified, remove from storage
+        del email_verification_codes[request.email]
+
         # Check if email already exists
         existing_user = db.query(UserProfile).filter(
             UserProfile.email == request.email
@@ -294,18 +411,28 @@ async def email_register(
                 detail="Email already registered"
             )
 
+        # Check if username already exists
+        username = request.username or request.email.split('@')[0]
+        existing_username = db.query(UserProfile).filter(
+            UserProfile.username == username
+        ).first()
+
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken. Please choose a different username."
+            )
+
         # Create user
         user_id = f"email_{hashlib.md5(request.email.encode()).hexdigest()}"
-        username = request.username or request.email.split('@')[0]
 
         user_data = {
             'user_id': user_id,
             'username': username,
             'email': request.email,
-            'extra_data': {
-                'password_hash': hash_password(request.password),
-                'auth_method': 'email'
-            }
+            'password_hash': hash_password(request.password),
+            'auth_provider': 'email',
+            'provider_id': request.email,
         }
 
         user = create_or_update_user(db, user_data)
@@ -424,10 +551,8 @@ async def social_login(
             'user_id': user_id,
             'username': name,
             'email': email,
-            'extra_data': {
-                'auth_method': request.provider,
-                'provider_token': request.token
-            }
+            'auth_provider': request.provider,
+            'provider_id': email,
         }
 
         user = create_or_update_user(db, user_data)

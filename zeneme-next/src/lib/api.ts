@@ -1042,11 +1042,13 @@ export interface PhoneLoginRequest {
   phone: string;
   country_code?: string;
   code: string;
+  username?: string;  // Optional - only needed for first-time registration
 }
 
 export interface EmailRegisterRequest {
   email: string;
   password: string;
+  code: string;  // 6-digit verification code
   username?: string;
 }
 
@@ -1099,6 +1101,33 @@ export async function sendPhoneVerificationCode(
     return data;
   } catch (error) {
     console.error('Error sending verification code:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send verification code to email
+ */
+export async function sendEmailVerificationCode(request: { email: string }): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/email/send-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending email verification code:', error);
     throw error;
   }
 }

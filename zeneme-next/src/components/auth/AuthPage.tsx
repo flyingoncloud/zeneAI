@@ -8,6 +8,7 @@ import {
   sendPhoneVerificationCode,
   loginWithPhone,
   registerWithEmail,
+  sendEmailVerificationCode,
   loginWithEmail,
   loginWithSocial,
 } from '@/lib/api';
@@ -27,6 +28,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [emailCode, setEmailCode] = useState('');
   const [countdown, setCountdown] = useState(0);
 
   React.useEffect(() => {
@@ -38,26 +41,48 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   }, [countdown]);
 
   const handleSendCode = async () => {
-    if (!phone) {
-      toast.error('请输入手机号');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const result = await sendPhoneVerificationCode({
-        phone,
-        country_code: '+61'
-      });
-
-      if (result.success) {
-        setCountdown(result.expires_in);
-        toast.success('验证码已发送');
+    if (method === 'phone') {
+      if (!phone) {
+        toast.error('请输入手机号');
+        return;
       }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '发送验证码失败');
-    } finally {
-      setIsLoading(false);
+
+      try {
+        setIsLoading(true);
+        const result = await sendPhoneVerificationCode({
+          phone,
+          country_code: '+61'
+        });
+
+        if (result.success) {
+          setCountdown(result.expires_in);
+          toast.success('验证码已发送');
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '发送验证码失败');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Email verification
+      if (!email) {
+        toast.error('请输入邮箱地址');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const result = await sendEmailVerificationCode({ email });
+
+        if (result.success) {
+          setCountdown(600); // 10 minutes
+          toast.success('验证码已发送到您的邮箱');
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '发送验证码失败');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -66,21 +91,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
       setIsLoading(true);
 
       if (method === 'phone') {
-        // Phone login
+        // Phone login/register
         if (!phone || !code) {
           toast.error('请输入手机号和验证码');
+          return;
+        }
+
+        // For registration (view === 'register'), require username
+        if (view === 'register' && !username) {
+          toast.error('请输入用户名');
           return;
         }
 
         const result = await loginWithPhone({
           phone,
           country_code: '+61',
-          code
+          code,
+          username: view === 'register' ? username : undefined
         });
 
         if (result.success && result.user) {
           login(result.user);
-          toast.success('登录成功！');
+          toast.success(view === 'register' ? '注册成功！' : '登录成功！');
         }
       } else {
         // Email login/register
@@ -89,13 +121,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
           return;
         }
 
-        const result = view === 'register'
-          ? await registerWithEmail({ email, password })
-          : await loginWithEmail({ email, password });
+        if (view === 'register') {
+          // Registration requires username and verification code
+          if (!username) {
+            toast.error('请输入用户名');
+            return;
+          }
+          if (!emailCode) {
+            toast.error('请输入验证码');
+            return;
+          }
 
-        if (result.success && result.user) {
-          login(result.user);
-          toast.success(view === 'register' ? '注册成功！' : '登录成功！');
+          const result = await registerWithEmail({ email, password, username, code: emailCode });
+
+          if (result.success && result.user) {
+            login(result.user);
+            toast.success('注册成功！');
+          }
+        } else {
+          // Login doesn't need username or code
+          const result = await loginWithEmail({ email, password });
+
+          if (result.success && result.user) {
+            login(result.user);
+            toast.success('登录成功！');
+          }
         }
       }
     } catch (error) {
@@ -216,6 +266,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                     />
                   </div>
                 </div>
+
+                {view === 'register' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-white/80 pl-1">用户名</label>
+                    <input
+                      type="text"
+                      className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                      placeholder="请输入用户名"
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <label className="text-xs text-white/80 pl-1">验证码</label>
                   <div className="flex gap-2">
@@ -248,6 +312,43 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                     onChange={e => setEmail(e.target.value)}
                   />
                 </div>
+
+                {view === 'register' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/80 pl-1">用户名</label>
+                      <input
+                        type="text"
+                        className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                        placeholder="请输入用户名"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/80 pl-1">邮箱验证码</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                          placeholder="请输入验证码"
+                          value={emailCode}
+                          onChange={e => setEmailCode(e.target.value)}
+                          maxLength={6}
+                        />
+                        <Button
+                          onClick={handleSendCode}
+                          disabled={countdown > 0 || !email}
+                          className="w-28 h-11 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xs"
+                        >
+                          {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-1.5">
                   <label className="text-xs text-white/80 pl-1">密码</label>
                   <input
