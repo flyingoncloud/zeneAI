@@ -61,7 +61,7 @@ function getOrCreateUserId(): string {
   return newId;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
@@ -731,7 +731,7 @@ export const InnerQuickTest: React.FC = () => {
       </div>
 
       <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto">
-        <div className="max-w-2xl w-full space-y-6 backdrop-blur-sm p-6 rounded-3xl border border-white/5 bg-slate-900/20 shadow-2xl my-auto">
+        <div className="w-full max-w-5xl space-y-6 backdrop-blur-sm p-4 md:p-6 lg:p-8 rounded-3xl border border-white/5 bg-slate-900/20 shadow-2xl my-auto">
           <div className="space-y-2 text-center">
             <span className="text-violet-400 font-semibold tracking-widest text-xs uppercase">
               {t.test.question} {currentQIndex + 1} / {totalQuestions}
@@ -748,24 +748,26 @@ export const InnerQuickTest: React.FC = () => {
           </div>
 
           {/* Display media if present (F3, F7, F8 templates) */}
-          {currentQuestion?.mediaUrl && (
-            <div className="w-full flex justify-center rounded-xl overflow-hidden border border-white/10 bg-black/30 p-2">
+        {currentQuestion?.mediaUrl && (
+          <div className="w-full flex justify-center">
+            <div className="w-full md:w-2/5 max-w-xl rounded-xl overflow-hidden border border-white/10 bg-black/30 p-2 mx-auto">
+              <div className="w-full h-[240px] md:h-[360px] flex items-center justify-center">
               {currentQuestion.mediaType === 'video' ? (
                 <video
                   src={currentQuestion.mediaUrl}
                   controls
-                  className="h-auto object-contain"
-                  style={{ maxHeight: '120px' }}
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <img
                   src={currentQuestion.mediaUrl}
                   alt="Question media"
-                  className="h-auto object-contain"
-                  style={{ maxHeight: '120px' }}
+                  className="w-full h-full object-contain"
                 />
               )}
+             </div> 
             </div>
+          </div>  
           )}
 
           <div className="max-w-2xl mx-auto w-full">
@@ -1156,8 +1158,9 @@ export const InnerQuickTest: React.FC = () => {
                     style={{
                       display: 'grid',
                       gridTemplateColumns: currentQuestion.options.length <= 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                      gap: '1rem'
-                    }}
+                      gap: '1rem',
+                      gridAutoRows: '1fr', 
+                      }}
                   >
                     {currentQuestion.options.map((option: QuestionOption) => (
                       <button
@@ -1169,7 +1172,7 @@ export const InnerQuickTest: React.FC = () => {
                           ${loading ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
                       >
-                        <div className="space-y-2">
+                        <div className="flex flex-col h-full gap-2">
                           {/* Image - smaller for F4 (4 items), square for F5 (5+ items) */}
                           <div className={`w-full rounded-lg overflow-hidden ${(currentQuestion.options?.length || 0) <= 4 ? 'aspect-[4/3]' : 'aspect-square'} ${
                             currentAnswer === option.value
@@ -1183,12 +1186,12 @@ export const InnerQuickTest: React.FC = () => {
                             />
                           </div>
                           {/* Label and text below image - single line format: "A. 平静" */}
-                          <div className={`transition-colors ${
-                            currentAnswer === option.value
-                              ? 'text-white font-medium'
-                              : 'text-slate-300'
-                          }`}>
-                            <span className="text-sm whitespace-nowrap">
+                         <div
+                            className={`transition-colors ${
+                            currentAnswer === option.value ? 'text-white font-medium' : 'text-slate-300'
+                            } h-[40px]`}  // ✅ 固定高度，避免撑高
+                            >
+                            <span className="text-sm leading-snug line-clamp-2">
                               {option.label}. {option.text}
                             </span>
                           </div>

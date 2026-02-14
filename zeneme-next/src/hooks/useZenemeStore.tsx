@@ -47,8 +47,9 @@ export type Message = {
 
 export type MoodLog = {
   date: string; // YYYY-MM-DD
-  mood: 'Happy' | 'Calm' | 'Anxious' | 'Sad' | 'Overwhelmed' | 'Neutral' | 'Angry' | 'Relieved' | 'Confused' | 'Tired' | 'Grateful';
+  mood: 'Happy' | 'Calm' | 'Anxious' | 'Sad' | 'Overwhelmed' | 'Neutral' | 'Angry' | 'Relieved' | 'Confused' | 'Tired' | 'Grateful'| 'Satisfied'| 'Warm' |'Confident' | 'Curious' |'Expectant' | 'Lonely' | 'Repressed' | 'Wronged' | 'Scared';
   note?: string;
+  intensity?: number; // 0-100
   timestamp?: string; // ISO timestamp for multiple entries per day
 };
 

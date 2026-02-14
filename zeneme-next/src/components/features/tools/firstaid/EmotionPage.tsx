@@ -3,72 +3,94 @@ import { ArrowLeft } from 'lucide-react';
 import { useZenemeStore, MoodLog } from '../../../../hooks/useZenemeStore';
 import { ZeneWeEmotions } from '../../../ui/ZeneMeEmotions';
 
+
 interface EmotionPageProps {
-  onComplete: (emotionData: { emotion: string; intensity: number }) => void;
+  onComplete: () => void;
   onBack?: () => void;
 }
 
-// Mapping index to mood strings
+// --- Color interpolation helpers ---
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+}
+function lerpColor(a: string, b: string, t: number): string {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const bl = Math.round(b1 + (b2 - b1) * t);
+  return '#' + [r, g, bl].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+// Pre-computed 8 position colors per row
+const POS_COLORS = Array.from({ length: 8 }, (_, i) => lerpColor('#FFD54A', '#FF8A00', i / 7));
+const NEG_COLORS = Array.from({ length: 8 }, (_, i) => lerpColor('#3A7BFF', '#8A3DFF', i / 7));
+
+// Mapping index → mood string (new display order)
 const indexToMoodMap: Record<number, MoodLog['mood']> = {
-  0: 'Anxious',
-  1: 'Sad',
-  2: 'Angry',
-  3: 'Happy',
-  4: 'Relieved',
-  5: 'Confused',
-  6: 'Tired',
-  7: 'Grateful'
+  // Positive (0-7): 平静→满足→温暖→自信→好奇→期待→感激→开心
+  0: 'Calm',
+  1: 'Satisfied',
+  2: 'Warm',
+  3: 'Confident',
+  4: 'Curious',
+  5: 'Expectant',
+  6: 'Grateful',
+  7: 'Happy',
+  // Negative (8-15): 孤独→压抑→委屈→悲伤→迷茫→焦虑→害怕→愤怒
+  8: 'Lonely',
+  9: 'Repressed',
+  10: 'Wronged',
+  11: 'Sad',
+  12: 'Confused',
+  13: 'Anxious',
+  14: 'Scared',
+  15: 'Angry'
 };
+
+const LABELS = [
+  '平静', '满足', '温暖', '自信', '好奇', '期待', '感激', '开心',
+  '孤独', '压抑', '委屈', '悲伤', '迷茫', '焦虑', '害怕', '愤怒'
+];
 
 export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
   const { t, language, logMood } = useZenemeStore();
   const [selectedEmoji, setSelectedEmoji] = useState<number | null>(null);
   const [selectedEmotion, setSelectedEmotion] = useState<number | null>(null);
   const [intensity, setIntensity] = useState(50);
+  
 
   const handleSave = () => {
     // Determine the mood to save
     let moodToSave: MoodLog['mood'] = 'Neutral';
-
+    
     // Priority 1: Text selection
     if (selectedEmotion !== null) {
-      const emotionsList: MoodLog['mood'][] = [
-        'Anxious',
-        'Sad',
-        'Angry',
-        'Happy',
-        'Relieved',
-        'Confused',
-        'Tired',
-        'Grateful'
-      ];
-      if (emotionsList[selectedEmotion]) {
-        moodToSave = emotionsList[selectedEmotion];
+      if (indexToMoodMap[selectedEmotion]) {
+        moodToSave = indexToMoodMap[selectedEmotion];
       }
-    }
+    } 
     // Priority 2: Emoji selection
     else if (selectedEmoji !== null) {
       moodToSave = indexToMoodMap[selectedEmoji] || 'Neutral';
     }
 
     const today = new Date().toISOString().split('T')[0];
-
+    
     logMood({
       date: today,
       mood: moodToSave,
+      intensity: intensity,
       note: `Emotional First Aid Session. Intensity: ${intensity}/100`
     });
 
-    // Call onComplete with emotion data
-    onComplete({
-      emotion: moodToSave,
-      intensity: intensity
-    });
+    onComplete();
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-transparent">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-transparent z-50">
       <div className="w-full h-full relative flex flex-col items-center justify-center z-10">
+        
         {/* Top Content (Title etc.) */}
         <div className="absolute top-12 left-0 right-0 z-10 px-6 md:px-12">
           <div className="max-w-4xl mx-auto mt-[30px]">
@@ -90,101 +112,100 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
           </div>
         </div>
 
-        {/* Main Card Container */}
-        <div className="relative z-10 w-full max-w-4xl px-6 md:px-8">
+        {/* 
+            Main Card Container 
+        */}
+        <div className="relative z-10 w-full max-w-5xl px-4 md:px-8">
           <div
-            className="backdrop-blur-xl bg-slate-900/60 rounded-[24px] px-7 py-6 shadow-2xl border border-white/10 flex flex-col gap-6"
+            className="backdrop-blur-xl bg-slate-900/60 rounded-[24px] px-4 py-6 shadow-2xl border border-white/10 flex flex-col gap-6 translate-y-[30px] mx-auto w-full"
             style={{
               boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+              maxWidth: 'clamp(340px, 78vw, 720px)', // ✅ 手机-平板-桌面自适应
             }}
           >
-            {/* Emotions Scroll Container */}
-            <div className="w-full overflow-x-auto py-4 -my-4 scrollbar-hide">
-              {/*
-                目标：
-                - 尽量铺满一行：justify-between + 每个 item flex-1
-                - 放大：icon wrapper / icon size / label 字号
-                - 居中：items-center
-                - 屏幕太窄：仍可横向滚动（外层 overflow-x-auto）
-              */}
-              <div className="w-full px-2">
-                <div className="min-w-[760px] w-full flex flex-row items-start justify-between gap-4">
-                  {ZeneWeEmotions.map((EmotionIcon, idx) => {
-                    const isSelected = selectedEmoji === idx;
-                    const label = t.emotion.emotions?.[idx] ?? '';
+            {/* 
+                Emotions Scroll Container
+            */}
+            <div className="w-full overflow-x-auto py-2 -my-2 scrollbar-hide">
+              <div
+                className="min-w-[560px] grid gap-x-[2px] gap-y-3 justify-items-center"
+                style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}
+                > 
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((idx) => {
+                  const isPos = idx < 8;
+                  const label = LABELS[idx];
+                  const isSelected = selectedEmoji === idx;
+                  
+                  const EmotionIcon = ZeneWeEmotions[idx];
+                  const iconColor = isPos ? POS_COLORS[idx] : NEG_COLORS[idx - 8];
 
-                    return (
-                      <div
-                        key={`emotion-${idx}`}
-                        className="flex-1 min-w-[90px] flex flex-col items-center gap-4"
-                      >
-                        {/* Icon Wrapper */}
-                        <div className="relative w-[78px] h-[78px] flex items-center justify-center z-20 mb-2">
-                          {/* Selection Ring */}
-                          {isSelected && (
-                            <div
-                              className="absolute pointer-events-none z-30"
-                              style={{
-                                inset: '-7px',
-                                borderRadius: '24px',
-                                border: '2px solid rgba(160,120,255,0.9)',
-                                boxShadow:
-                                  '0 0 0 1px rgba(160,120,255,0.25), 0 0 18px rgba(160,120,255,0.22)',
-                              }}
-                            />
-                          )}
-
-                          {/* Icon Button */}
-                          <button
-                            onClick={() => {
-                              setSelectedEmoji(idx);
-                              setSelectedEmotion(idx);
-                            }}
-                            className={`
-                              relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 rounded-[20px]
-                              ${
+                  return (
+                    <div key={`mood-${idx}`} className="flex flex-col items-center gap-2">
+                       {/* Icon */}
+                       <div 
+                         className="relative w-[56px] h-[56px] flex items-center justify-center z-20"
+                       >
+                         {isSelected && (
+                           <div 
+                             className="absolute pointer-events-none z-30"
+                             style={{
+                               inset: '-6px',
+                               borderRadius: '20px',
+                               border: `2px solid ${isPos ? 'rgba(251, 191, 36, 0.9)' : 'rgba(160,120,255,0.9)'}`, // Gold for Pos, Purple for Neg
+                               boxShadow: isPos 
+                                 ? '0 0 0 1px rgba(251, 191, 36, 0.3), 0 0 18px rgba(251, 191, 36, 0.4)'
+                                 : '0 0 0 1px rgba(160,120,255,0.25), 0 0 18px rgba(160,120,255,0.22)'
+                             }}
+                           />
+                         )}
+                         <button
+                           onClick={() => {
+                             setSelectedEmoji(idx);
+                             setSelectedEmotion(idx);
+                           }}
+                           className={`
+                             relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 rounded-[18px]
+                             ${
                                 isSelected
-                                  ? 'bg-violet-500/10 scale-100'
-                                  : 'bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 opacity-90 hover:opacity-100'
-                              }
-                            `}
-                          >
+                                 ? 'bg-white/10 scale-100' 
+                                 : 'bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 opacity-90 hover:opacity-100'
+                             }
+                           `}
+                         >
                             <div className="w-full h-full flex items-center justify-center overflow-visible">
-                              <EmotionIcon
-                                size={74}
-                                className="filter drop-shadow-sm transition-transform duration-300 overflow-visible"
-                              />
+                               <EmotionIcon size={56} color={iconColor} className="filter drop-shadow-sm transition-transform duration-300" />
                             </div>
-                          </button>
-                        </div>
+                         </button>
+                       </div>
 
-                        {/* Label Button */}
-                        <button
-                          onClick={() => {
-                            setSelectedEmotion(idx);
-                            setSelectedEmoji(idx);
-                          }}
-                          className={`
-                            relative z-10 w-full max-w-[110px] h-[38px] rounded-full text-sm font-medium transition-all flex items-center justify-center
-                            whitespace-nowrap
-                            ${
-                              selectedEmotion === idx
-                                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]'
-                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
-                            }
-                          `}
-                        >
-                          {label}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                       {/* Label */}
+                       <button
+                         onClick={() => {
+                             setSelectedEmotion(idx);
+                             setSelectedEmoji(idx); 
+                         }}
+                         className={`
+                           w-[64px] h-[28px] mb-2 rounded-full text-xs font-medium transition-all flex items-center justify-center
+                           ${
+                             isSelected
+                               ? (isPos 
+                                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                                   : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]')
+                               : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                           }
+                         `}
+                         style={{ width: 64, height: 28 }}   // ✅ 强制和设计图一致
+                       >
+                         {label}
+                       </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Intensity Slider Section */}
-            <div className="w-full">
+            <div className="w-full mt-2">
               <label className="block text-white mb-4 tracking-wide font-medium">
                 {language === 'zh' ? '强度' : 'Intensity'}
               </label>

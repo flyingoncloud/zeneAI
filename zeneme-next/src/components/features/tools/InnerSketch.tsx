@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../ui/tooltip';
-import { Check, Loader2, MessageCircle } from 'lucide-react';
+import { Check, Loader2, MessageCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadSketch } from '../../../lib/api';
 
@@ -53,6 +53,8 @@ export const InnerSketch: React.FC = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [analysisStep, setAnalysisStep] = useState(0);
+  // Undo History
+  const [history, setHistory] = useState<ImageData[]>([]);
 
   // Button States
   const [isSaved, setIsSaved] = useState(false);
@@ -98,9 +100,44 @@ export const InnerSketch: React.FC = () => {
     };
   }, [setExitAction, clearExitAction]);
 
+const saveState = () => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  setHistory((prev) => {
+    const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const next = [...prev, snapshot];
+    if (next.length > 30) next.shift(); // 限制撤销步数，避免内存爆
+    return next;
+  });
+};
+
+const undo = () => {
+  if (history.length === 0) return;
+
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const previousState = history[history.length - 1];
+  const newHistory = history.slice(0, -1);
+
+  ctx.putImageData(previousState, 0, 0);
+  setHistory(newHistory);
+
+  // 如果撤销到最初空白状态，顺带把 hasDrawn 复位
+  if (newHistory.length === 0) {
+    setHasDrawn(false);
+  }
+};
+  
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    saveState(); // ✅ 新增：每一笔开始前保存快照
 
     setIsDrawing(true);
     setHasDrawn(true);
@@ -166,6 +203,7 @@ export const InnerSketch: React.FC = () => {
     setResult(null);
     setHasDrawn(false);
     setIsSaved(false);
+    setHistory([]);
   };
 
   const analyzeDrawing = async () => {
@@ -366,18 +404,42 @@ export const InnerSketch: React.FC = () => {
               <SafeIcon icon={Icons.Eraser} size={18} />
             </Button>
             <div className="w-px h-8 bg-white/10 mx-1" />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={clearCanvas} className="bg-slate-900/50 border-white/10 text-gray-400 hover:bg-slate-800 hover:text-white transition-all">
-                    <SafeIcon icon={Icons.RotateCcw} size={18} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="bg-slate-900/80 border-white/10 text-slate-200 backdrop-blur-md">
-                  <p>{t.sketch.clear}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              <TooltipProvider>
+                {/* Undo */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={undo}
+                    disabled={history.length === 0}
+                    className="bg-slate-900/50 border-white/10 text-gray-400 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-40 disabled:hover:bg-slate-900/50 disabled:hover:text-gray-400"
+                  >
+                  <Undo2 size={18} />
+                    </Button>
+                      </TooltipTrigger>
+                        <TooltipContent className="bg-slate-900/80 border-white/10 text-slate-200 backdrop-blur-md">
+                          <p>撤销</p>
+                          </TooltipContent>
+                </Tooltip>
+
+                {/* Clear */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                  <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={clearCanvas}
+                  className="bg-slate-900/50 border-white/10 text-gray-400 hover:bg-slate-800 hover:text-white transition-all"
+                >
+                <SafeIcon icon={Icons.RotateCcw} size={18} />
+                </Button>
+                  </TooltipTrigger>
+                    <TooltipContent className="bg-slate-900/80 border-white/10 text-slate-200 backdrop-blur-md">
+                      <p>{t.sketch.clear}</p>
+                    </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
           </div>
         </div>
 
