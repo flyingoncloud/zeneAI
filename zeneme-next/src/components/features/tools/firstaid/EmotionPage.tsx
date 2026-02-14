@@ -5,7 +5,7 @@ import { ZeneWeEmotions } from '../../../ui/ZeneMeEmotions';
 
 
 interface EmotionPageProps {
-  onComplete: () => void;
+  onComplete: (emotionData: { emotion: string; intensity: number }) => void;
   onBack?: () => void;
 }
 
@@ -58,25 +58,25 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
   const [selectedEmoji, setSelectedEmoji] = useState<number | null>(null);
   const [selectedEmotion, setSelectedEmotion] = useState<number | null>(null);
   const [intensity, setIntensity] = useState(50);
-  
+
 
   const handleSave = () => {
     // Determine the mood to save
     let moodToSave: MoodLog['mood'] = 'Neutral';
-    
+
     // Priority 1: Text selection
     if (selectedEmotion !== null) {
       if (indexToMoodMap[selectedEmotion]) {
         moodToSave = indexToMoodMap[selectedEmotion];
       }
-    } 
+    }
     // Priority 2: Emoji selection
     else if (selectedEmoji !== null) {
       moodToSave = indexToMoodMap[selectedEmoji] || 'Neutral';
     }
 
     const today = new Date().toISOString().split('T')[0];
-    
+
     logMood({
       date: today,
       mood: moodToSave,
@@ -84,13 +84,13 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
       note: `Emotional First Aid Session. Intensity: ${intensity}/100`
     });
 
-    onComplete();
+    onComplete({ emotion: moodToSave, intensity });
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-transparent z-50">
       <div className="w-full h-full relative flex flex-col items-center justify-center z-10">
-        
+
         {/* Top Content (Title etc.) */}
         <div className="absolute top-12 left-0 right-0 z-10 px-6 md:px-12">
           <div className="max-w-4xl mx-auto mt-[30px]">
@@ -112,8 +112,8 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
           </div>
         </div>
 
-        {/* 
-            Main Card Container 
+        {/*
+            Main Card Container
         */}
         <div className="relative z-10 w-full max-w-5xl px-4 md:px-8">
           <div
@@ -123,36 +123,36 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
               maxWidth: 'clamp(340px, 78vw, 720px)', // ✅ 手机-平板-桌面自适应
             }}
           >
-            {/* 
+            {/*
                 Emotions Scroll Container
             */}
             <div className="w-full overflow-x-auto py-2 -my-2 scrollbar-hide">
               <div
                 className="min-w-[560px] grid gap-x-[2px] gap-y-3 justify-items-center"
                 style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}
-                > 
+                >
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((idx) => {
                   const isPos = idx < 8;
                   const label = LABELS[idx];
                   const isSelected = selectedEmoji === idx;
-                  
+
                   const EmotionIcon = ZeneWeEmotions[idx];
                   const iconColor = isPos ? POS_COLORS[idx] : NEG_COLORS[idx - 8];
 
                   return (
                     <div key={`mood-${idx}`} className="flex flex-col items-center gap-2">
                        {/* Icon */}
-                       <div 
+                       <div
                          className="relative w-[56px] h-[56px] flex items-center justify-center z-20"
                        >
                          {isSelected && (
-                           <div 
+                           <div
                              className="absolute pointer-events-none z-30"
                              style={{
                                inset: '-6px',
                                borderRadius: '20px',
                                border: `2px solid ${isPos ? 'rgba(251, 191, 36, 0.9)' : 'rgba(160,120,255,0.9)'}`, // Gold for Pos, Purple for Neg
-                               boxShadow: isPos 
+                               boxShadow: isPos
                                  ? '0 0 0 1px rgba(251, 191, 36, 0.3), 0 0 18px rgba(251, 191, 36, 0.4)'
                                  : '0 0 0 1px rgba(160,120,255,0.25), 0 0 18px rgba(160,120,255,0.22)'
                              }}
@@ -167,7 +167,7 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
                              relative z-20 w-full h-full flex items-center justify-center transition-all duration-300 rounded-[18px]
                              ${
                                 isSelected
-                                 ? 'bg-white/10 scale-100' 
+                                 ? 'bg-white/10 scale-100'
                                  : 'bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 opacity-90 hover:opacity-100'
                              }
                            `}
@@ -182,13 +182,13 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
                        <button
                          onClick={() => {
                              setSelectedEmotion(idx);
-                             setSelectedEmoji(idx); 
+                             setSelectedEmoji(idx);
                          }}
                          className={`
                            w-[64px] h-[28px] mb-2 rounded-full text-xs font-medium transition-all flex items-center justify-center
                            ${
                              isSelected
-                               ? (isPos 
+                               ? (isPos
                                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.4)]'
                                    : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]')
                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
