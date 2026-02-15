@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  MoreHorizontal, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
+import {
+  MoreHorizontal,
+  Settings,
+  HelpCircle,
+  LogOut,
   Book,
   Shield,
   Crown
@@ -18,6 +18,7 @@ import {
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { useZenemeStore } from '../../hooks/useZenemeStore';
+import { useAuthStore } from '../../hooks/useAuthStore';
 import { SettingsModal } from '../modals/SettingsModal';
 import { HelpModal } from '../modals/HelpModal';
 import { UserGuideModal } from '../modals/UserGuideModal';
@@ -29,13 +30,20 @@ interface SidebarFooterProps {
 
 export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) => {
   const { t, openUpgradeModal } = useZenemeStore();
-  // Mock User State
-  const [user, setUser] = useState({
-    name: 'Zeneme User',
-    email: 'user@zeneme.app',
+  const { user: authUser, logout } = useAuthStore();
+
+  // Use actual user data from auth store, with fallback for display
+  const user = authUser ? {
+    name: authUser.name || 'User',
+    email: authUser.email || authUser.phone || 'user@zeneme.app',
     avatar: 'https://github.com/shadcn.png',
-    isPro: false // Default to Free as per requirement
-  });
+    isPro: false // TODO: Add subscription status to user profile
+  } : {
+    name: 'Guest',
+    email: 'guest@zeneme.app',
+    avatar: 'https://github.com/shadcn.png',
+    isPro: false
+  };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -50,14 +58,14 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
 
   return (
     <div className="p-4 border-t border-white/5 space-y-3 bg-black/20">
-      
+
       {/* Account Area with Popover */}
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
-          <div 
+          <div
             className={`
               group flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all duration-200 outline-none
-              hover:bg-white/5 
+              hover:bg-white/5
               ${isSidebarOpen ? '' : 'justify-center'}
               ${isPopoverOpen ? 'bg-white/5' : ''}
             `}
@@ -73,7 +81,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
                 </div>
               )}
             </div>
-            
+
             {isSidebarOpen && (
               <div className="flex-1 overflow-hidden text-left">
                 <div className="flex items-center gap-2">
@@ -92,7 +100,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
                 </div>
               </div>
             )}
-            
+
             {isSidebarOpen && (
               <MoreHorizontal size={16} className="text-slate-500 group-hover:text-slate-300 transition-colors shrink-0" />
             )}
@@ -100,9 +108,9 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
         </PopoverTrigger>
 
         {/* Pull-up Panel Content */}
-        <PopoverContent 
-          side="top" 
-          align={isSidebarOpen ? "start" : "center"} 
+        <PopoverContent
+          side="top"
+          align={isSidebarOpen ? "start" : "center"}
           className="w-72 p-0 bg-slate-900/95 backdrop-blur-xl border-white/10 text-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
           sideOffset={16}
         >
@@ -137,8 +145,8 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
 
           {/* Section 2: Account Settings */}
           <div className="p-1">
-             <Button 
-               variant="ghost" 
+             <Button
+               variant="ghost"
                className="w-full justify-start h-9 px-3 text-slate-300 hover:text-white hover:bg-white/5"
                onClick={() => {
                  setIsPopoverOpen(false);
@@ -154,8 +162,8 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
 
           {/* Section 3: Help */}
           <div className="p-1">
-             <Button 
-                variant="ghost" 
+             <Button
+                variant="ghost"
                 className="w-full justify-start h-9 px-3 text-slate-300 hover:text-white hover:bg-white/5"
                 onClick={() => {
                   setIsPopoverOpen(false);
@@ -165,8 +173,8 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
                <Book size={16} className="mr-2 text-slate-400" />
                {t.common.userGuide}
              </Button>
-             <Button 
-                variant="ghost" 
+             <Button
+                variant="ghost"
                 className="w-full justify-start h-9 px-3 text-slate-300 hover:text-white hover:bg-white/5"
                 onClick={() => {
                   setIsPopoverOpen(false);
@@ -176,8 +184,8 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
                <Shield size={16} className="mr-2 text-slate-400" />
                {t.common.privacyPolicy}
              </Button>
-             <Button 
-                variant="ghost" 
+             <Button
+                variant="ghost"
                 className="w-full justify-start h-9 px-3 text-slate-300 hover:text-white hover:bg-white/5"
                 onClick={() => {
                   setIsPopoverOpen(false);
@@ -193,7 +201,14 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
 
           {/* Section 4: Logout */}
           <div className="p-1 pb-2">
-             <Button variant="ghost" className="w-full justify-start h-9 px-3 text-red-400 hover:text-red-300 hover:bg-red-500/10">
+             <Button
+               variant="ghost"
+               className="w-full justify-start h-9 px-3 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+               onClick={() => {
+                 setIsPopoverOpen(false);
+                 logout();
+               }}
+             >
                <LogOut size={16} className="mr-2" />
                {t.common.logout}
              </Button>
@@ -202,16 +217,16 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
       </Popover>
 
       {/* Settings Dialog */}
-      <SettingsModal 
-        open={isSettingsOpen} 
-        onOpenChange={setIsSettingsOpen} 
-        initialUser={user} 
+      <SettingsModal
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        initialUser={user}
       />
-      
+
       {/* Help Modal */}
-      <HelpModal 
-        open={isHelpOpen} 
-        onOpenChange={setIsHelpOpen} 
+      <HelpModal
+        open={isHelpOpen}
+        onOpenChange={setIsHelpOpen}
       />
 
       {/* User Guide Modal */}

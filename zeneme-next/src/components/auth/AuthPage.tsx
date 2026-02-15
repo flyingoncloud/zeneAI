@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/hooks/useAuthStore';
 import { motion } from 'motion/react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   sendPhoneVerificationCode,
@@ -31,6 +31,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const [username, setUsername] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
 
   React.useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -56,6 +58,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
         if (result.success) {
           setCountdown(result.expires_in);
+          setCodeSent(true);
           toast.success('验证码已发送');
         }
       } catch (error) {
@@ -75,7 +78,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
         const result = await sendEmailVerificationCode({ email });
 
         if (result.success) {
-          setCountdown(600); // 10 minutes
+          setCountdown(60); // 60 seconds
+          setCodeSent(true);
           toast.success('验证码已发送到您的邮箱');
         }
       } catch (error) {
@@ -295,7 +299,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                       disabled={countdown > 0}
                       className="w-28 h-11 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xs"
                     >
-                      {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                      {countdown > 0 ? `${countdown}s` : (codeSent ? '重新发送' : '获取验证码')}
                     </Button>
                   </div>
                 </div>
@@ -342,7 +346,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                           disabled={countdown > 0 || !email}
                           className="w-28 h-11 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xs"
                         >
-                          {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                          {countdown > 0 ? `${countdown}s` : (codeSent ? '重新发送' : '获取验证码')}
                         </Button>
                       </div>
                     </div>
@@ -351,13 +355,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs text-white/80 pl-1">密码</label>
-                  <input
-                    type="password"
-                    className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 pr-12 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      autoComplete={view === 'register' ? 'new-password' : 'current-password'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

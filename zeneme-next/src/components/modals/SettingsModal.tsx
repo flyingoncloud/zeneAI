@@ -24,6 +24,7 @@ import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Crown, Shield, LogOut, AlertTriangle, User, CreditCard } from 'lucide-react';
 import { useZenemeStore } from '../../hooks/useZenemeStore';
+import { useAuthStore } from '../../hooks/useAuthStore';
 
 interface SettingsModalProps {
   open: boolean;
@@ -35,24 +36,26 @@ interface SettingsModalProps {
   };
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ 
-  open, 
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  open,
   onOpenChange,
   initialUser = { name: 'Zeneme User', email: 'user@zeneme.app', isPro: false }
 }) => {
-  const { 
-    t, 
-    isPro, 
-    setProStatus, 
-    openUpgradeModal, 
-    freeSessionsLeft 
+  const {
+    t,
+    isPro,
+    setProStatus,
+    openUpgradeModal,
+    freeSessionsLeft
   } = useZenemeStore();
-  
+
+  const { logout } = useAuthStore();
+
   const [activeTab, setActiveTab] = useState('account');
   const [formData, setFormData] = useState(initialUser);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+
   // Subscription Management States
   const [showManageSub, setShowManageSub] = useState(false);
   const [showCancelSubConfirm, setShowCancelSubConfirm] = useState(false);
@@ -66,7 +69,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleLogout = () => {
     setShowLogoutConfirm(false);
     onOpenChange(false);
-    console.log('Logged out');
+    logout();
+    // Force page reload to ensure clean logout
+    window.location.reload();
   };
 
   const handleDeleteAccount = () => {
@@ -95,7 +100,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[520px] bg-[#1a1d2e] border-white/10 text-slate-200 shadow-2xl p-0 gap-0 overflow-hidden rounded-xl">
-          
+
           {/* Fixed Header */}
           <div className="p-6 pb-4 bg-[#1a1d2e] border-b border-white/5 relative z-10">
             <DialogHeader>
@@ -106,19 +111,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {t.settings.description}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="mt-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="w-full grid grid-cols-2 bg-slate-950/50 p-1 h-11 rounded-lg">
-                  <TabsTrigger 
-                    value="account" 
+                  <TabsTrigger
+                    value="account"
                     className="text-xs font-medium data-[state=active]:bg-slate-800 data-[state=active]:text-slate-100 transition-all"
                   >
                     <User size={14} className="mr-2 opacity-70" />
                     {t.common.accountAndPlan}
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="security" 
+                  <TabsTrigger
+                    value="security"
                     className="text-xs font-medium data-[state=active]:bg-slate-800 data-[state=active]:text-slate-100 transition-all"
                   >
                     <Shield size={14} className="mr-2 opacity-70" />
@@ -133,27 +138,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="max-h-[55vh] overflow-y-auto custom-scrollbar bg-[#161825]">
             {activeTab === 'account' && (
               <div className="p-6 space-y-6 animate-in fade-in-50 duration-300">
-                
+
                 {/* Profile Fields */}
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="username" className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{t.common.username}</Label>
-                    <Input 
-                      id="username" 
-                      value={formData.name} 
+                    <Input
+                      id="username"
+                      value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="bg-black/20 border-white/10 text-slate-200 focus:border-indigo-500/50 h-10" 
+                      className="bg-black/20 border-white/10 text-slate-200 focus:border-indigo-500/50 h-10"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{t.common.email}</Label>
                     <div className="relative">
-                       <Input 
-                        id="email" 
-                        value={formData.email} 
+                       <Input
+                        id="email"
+                        value={formData.email}
                         readOnly
-                        className="bg-black/20 border-white/10 text-slate-500 cursor-not-allowed h-10" 
+                        className="bg-black/20 border-white/10 text-slate-500 cursor-not-allowed h-10"
                       />
                       <Badge variant="outline" className="absolute right-2 top-2.5 text-[10px] py-0 h-5 border-white/10 text-emerald-500/80 bg-emerald-500/10">{t.common.verified}</Badge>
                     </div>
@@ -165,7 +170,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* Plan Section */}
                 <div className="space-y-3">
                    <Label className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{t.common.subscription}</Label>
-                   
+
                    {!showManageSub ? (
                      <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-900/50 to-slate-900/30 border border-white/5">
                         <div className="flex items-center gap-4">
@@ -178,8 +183,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 {isPro && <Badge className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 text-[10px] h-5 px-1.5 border-0">{t.common.active}</Badge>}
                               </p>
                               <p className="text-xs text-slate-400 mt-0.5">
-                                {isPro 
-                                  ? `${t.common.nextBilling}: 2026/02/12` 
+                                {isPro
+                                  ? `${t.common.nextBilling}: 2026/02/12`
                                   : `${t.upgrade.remaining} ${freeSessionsLeft} ${t.upgrade.times} / ${t.upgrade.used} ${5-freeSessionsLeft} ${t.upgrade.times}`
                                 }
                               </p>
@@ -205,7 +210,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             &times;
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                              <span className="text-slate-400">{t.upgrade.planLabel}</span>
@@ -226,8 +231,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                              {cancelSuccessMsg}
                            </div>
                         ) : (
-                           <Button 
-                             variant="outline" 
+                           <Button
+                             variant="outline"
                              onClick={() => setShowCancelSubConfirm(true)}
                              className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 h-8 text-xs"
                            >
