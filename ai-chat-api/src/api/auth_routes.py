@@ -585,6 +585,160 @@ async def social_login(
 
 
 # ============================================================================
+# WeChat OAuth Endpoints
+# ============================================================================
+
+# In-memory storage for WeChat OAuth state tokens (in production, use Redis)
+wechat_oauth_states = {}
+
+@router.get("/wechat/login-url")
+async def get_wechat_login_url():
+    """
+    Generate WeChat OAuth login URL with QR code
+
+    Returns URL that displays QR code for user to scan with WeChat app
+    """
+    try:
+        from src.services.wechat_oauth import get_wechat_login_url, is_configured
+
+        if not is_configured():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="WeChat OAuth not configured. Please set WECHAT_APP_ID and WECHAT_APP_SECRET in .env"
+            )
+
+        # Generate state token for CSRF protection
+        state = secrets.token_urlsafe(32)
+
+        # Store state with expiration (5 minutes)
+        wechat_oauth_states[state] = {
+            'created_at': datetime.utcnow(),
+            'expires_at': datetime.utcnow() + timedelta(minutes=5)
+        }
+
+        # Generate WeChat OAuth URL
+        login_url = get_wechat_login_url(state)
+
+        logger.info(f"[Auth] Generated WeChat login URL with state: {state[:8]}...")
+
+        return {
+            'success': True,
+            'login_url': login_url,
+            'state': state
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Auth] Error generating WeChat login URL: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.get("/wechat/callback")
+async def wechat_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Handle WeChat OAuth callback
+
+    WeChat redirects here after user scans QR code and authorizes
+    """
+    try:
+        from src.services.wechat_oauth import exchange_code_for_token, get_user_info
+
+        # Verify state token
+        if state not in wechat_oauth_states:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired state token"
+            )
+
+        state_data = wechat_oauth_states[state]
+
+        # Check expiration
+        if datetime.utcnow() > state_data['expires_at']:
+            del wechat_oauth_states[state]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="State token expired"
+            )
+
+        # Remove used state token
+        del wechat_oauth_states[state]
+
+        # Exchange code for access token
+        token_data = exchange_code_for_token(code)
+        if not token_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to exchange code for token"
+            )
+
+        access_token = token_data['access_token']
+        openid = token_data['openid']
+        unionid = token_data.get('unionid')  # May not be available
+
+        # Get user info from WeChat
+        wechat_user = get_user_info(access_token, openid)
+        if not wechat_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to get user info from WeChat"
+            )
+
+        # Create or update user in database
+        # Use unionid if available (consistent across apps), otherwise use openid
+        provider_id = unionid or openid
+        user_id = f"wechat_{hashlib.md5(provider_id.encode()).hexdigest()}"
+
+        # Check if user exists
+        existing_user = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
+        ).first()
+
+        user_data = {
+            'user_id': user_id,
+            'username': wechat_user.get('nickname', 'WeChat User'),
+            'auth_provider': 'wechat',
+            'provider_id': provider_id,
+            'avatar_url': wechat_user.get('headimgurl'),
+        }
+
+        user = create_or_update_user(db, user_data)
+
+        # Generate authentication token
+        auth_token = generate_token()
+
+        logger.info(f"[Auth] WeChat login successful for openid: {openid}")
+
+        return AuthResponse(
+            success=True,
+            message="WeChat login successful",
+            user={
+                'id': user.user_id,
+                'name': user.username,
+                'avatar': user.avatar_url,
+                'provider': 'wechat',
+            },
+            token=auth_token
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Auth] Error in WeChat callback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ============================================================================
 # Utility Endpoints
 # ============================================================================
 

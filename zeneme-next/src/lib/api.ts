@@ -1239,3 +1239,67 @@ export async function loginWithSocial(request: SocialLoginRequest): Promise<Auth
     throw error;
   }
 }
+
+
+/**
+ * Get WeChat OAuth login URL
+ */
+export async function getWeChatLoginUrl(): Promise<{
+  success: boolean;
+  login_url?: string;
+  state?: string;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/wechat/login-url`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting WeChat login URL:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Handle WeChat OAuth callback
+ */
+export async function handleWeChatCallback(code: string, state: string): Promise<AuthResponse> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/auth/wechat/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error handling WeChat callback:', error);
+    throw error;
+  }
+}
