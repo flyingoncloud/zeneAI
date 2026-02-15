@@ -44,7 +44,7 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#0F1115] text-slate-200 overflow-hidden">
+    <div className="flex h-screen w-full bg-[#F7F8FC] text-[#111827] overflow-hidden">
       {/* Sidebar */}
       <div className="w-[240px] bg-[#12131A] border-r border-white/[0.04] flex flex-col shrink-0">
         {/* Brand */}
@@ -53,7 +53,7 @@ export const AdminLayout: React.FC = () => {
             <span className="text-white text-sm">Z</span>
           </div>
           <div>
-            <p className="text-sm text-white tracking-wide">ZeneWe</p>
+            <p className="text-sm text-[#111827] tracking-wide">ZeneWe</p>
             <p className="text-[10px] text-slate-500">内视快测 Admin</p>
           </div>
         </div>
@@ -68,8 +68,8 @@ export const AdminLayout: React.FC = () => {
                 onClick={() => setCurrentView(item.id)}
                 className={`w-full h-10 px-3 rounded-xl flex items-center gap-3 text-sm transition-all cursor-pointer relative ${
                   isActive
-                    ? 'bg-violet-500/10 text-white border border-violet-500/20 shadow-[0_0_12px_rgba(139,92,246,0.08)]'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent'
+                    ? 'bg-[rgba(109,40,217,0.08)] text-[#111827] border border-[rgba(109,40,217,0.18)] shadow-[0_1px_3px_rgba(109,40,217,0.06)]'
+                    : 'text-[#4B5563] hover:text-[#111827] hover:bg-[#F3F5FA] border border-transparent'
                 }`}
               >
                 {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-violet-400 rounded-r-full" />}
@@ -87,9 +87,9 @@ export const AdminLayout: React.FC = () => {
         <div className="px-3 pb-4 space-y-1">
           <div className="h-px bg-white/[0.04] mx-2 mb-2" />
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/10 border border-white/[0.06] flex items-center justify-center text-xs text-white shrink-0">A</div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/10 border border-white/[0.06] flex items-center justify-center text-xs text-[#6D28D9] shrink-0">A</div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-white truncate">Admin</p>
+              <p className="text-xs text-black truncate">Admin</p>
               <p className="text-[10px] text-slate-600 truncate">admin@zeneme.com</p>
             </div>
           </div>

@@ -62,14 +62,14 @@ export const QuestionsList: React.FC = () => {
   };
 
   const templateColors: Record<TemplateType, string> = {
-    F1: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-    F2: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-    F3: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
-    F4: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20',
-    F5: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    F6: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    F7: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-    F8: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+    F1: 'text-violet-700 bg-violet-100 border-violet-200',
+    F2: 'text-blue-700 bg-blue-100 border-blue-200',
+    F3: 'text-indigo-700 bg-indigo-100 border-indigo-200',
+    F4: 'text-fuchsia-700 bg-fuchsia-100 border-fuchsia-200',
+    F5: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+    F6: 'text-amber-700 bg-amber-100 border-amber-200',
+    F7: 'text-cyan-700 bg-cyan-100 border-cyan-200',
+    F8: 'text-rose-700 bg-rose-100 border-rose-200',
   };
 
   return (
@@ -91,8 +91,8 @@ export const QuestionsList: React.FC = () => {
       <div className="shrink-0 px-6 pt-6 pb-4">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-xl text-white">题库管理</h1>
-            <p className="text-xs text-slate-500 mt-1">管理内视快测所有题目</p>
+            <h1 className="text-xl text-[#111827]">题库管理</h1>
+            <p className="text-xs text-[#111111] mt-1">管理内视快测所有题目</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-400 bg-white/5 border border-white/[0.06] px-3 py-1.5 rounded-lg">
@@ -116,7 +116,7 @@ export const QuestionsList: React.FC = () => {
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="搜索题号、标题或题干…"
-              className="w-full h-9 pl-9 pr-4 bg-[#13141A] border border-white/[0.06] rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+              className="w-full h-9 pl-9 pr-4 bg-[#F3F5FA] border border-[#E6EAF2] rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
             />
           </div>
 
@@ -186,7 +186,7 @@ export const QuestionsList: React.FC = () => {
       {/* Table */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {/* Table Header */}
-        <div className="grid gap-4 px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/[0.04] sticky top-0 bg-[#0F1115] z-10" style={{ gridTemplateColumns: '60px minmax(200px, 1fr) 80px 140px 120px 100px 120px 90px' }}>
+        <div className="grid gap-4 px-4 py-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider border-b border-white/[0.04] sticky top-0 bg-[#0F1115] z-10" style={{ gridTemplateColumns: '60px minmax(200px, 1fr) 80px 140px 120px 100px 120px 90px' }}>
           <div>ID</div>
           <div>题目</div>
           <div>模板</div>
@@ -208,18 +208,18 @@ export const QuestionsList: React.FC = () => {
             {filtered.map((q) => (
               <div
                 key={q.id}
-                className="grid gap-4 px-4 py-2.5 items-center border-b border-white/[0.02] group hover:bg-white/[0.02] transition-colors cursor-pointer"
+                className="grid gap-4 px-4 py-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider border-b border-[#E6EAF2] sticky top-0 bg-[#F3F5FA] z-10"
                 style={{ gridTemplateColumns: '60px minmax(200px, 1fr) 80px 140px 120px 100px 120px 90px' }}
                 onClick={() => handleEdit(q.id)}
               >
                 {/* ID */}
-                <div className="text-sm text-white font-medium">
+                <div className="text-sm text-[#111827] font-medium">
                   Q{q.id}
                 </div>
 
                 {/* Title - Single line with truncate */}
                 <div className="min-w-0 overflow-hidden">
-                  <p className="text-sm text-slate-200 truncate whitespace-nowrap">{q.stem || q.internalTitle}</p>
+                  <p className="text-sm text-[#111827] truncate whitespace-nowrap">{q.stem || q.internalTitle}</p>
                 </div>
 
                 {/* Template */}
@@ -241,7 +241,7 @@ export const QuestionsList: React.FC = () => {
                       {q.category.replace(/能力$/, '')}
                     </span>
                   ) : (
-                    <span className="text-slate-600">--</span>
+                    <span className="text-[#9CA3AF]">--</span>
                   )}
                 </div>
 
@@ -259,7 +259,7 @@ export const QuestionsList: React.FC = () => {
                 </div>
 
                 {/* Updated */}
-                <div className="text-sm text-slate-500 truncate whitespace-nowrap">{q.updatedAt}</div>
+                <div className="text-sm text-[#6B7280] truncate whitespace-nowrap">{q.updatedAt}</div>
 
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>

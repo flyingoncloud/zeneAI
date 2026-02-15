@@ -3,7 +3,7 @@ import { useAdminStore, MediaItem } from '@/hooks/useAdminStore';
 import { Search, Upload, Image as ImageIcon, Video, Trash2, ExternalLink, X, Grid, List, Loader2, CheckCircle2, AlertCircle, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const MediaLibrary: React.FC = () => {
   const { mediaItems, addMediaItem, removeMediaItem, reloadMediaItems } = useAdminStore();
@@ -156,7 +156,7 @@ export const MediaLibrary: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden bg-[#F7F8FC]">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -169,13 +169,13 @@ export const MediaLibrary: React.FC = () => {
       <div className="shrink-0 px-6 pt-6 pb-4">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-xl text-white">媒体库</h1>
-            <p className="text-xs text-slate-500 mt-1">管理题目使用的图片和视频资源</p>
+            <h1 className="text-xl text-[#111827] font-bold">媒体库</h1>
+            <p className="text-xs text-[#6B7280] mt-1">管理题目使用的图片和视频资源</p>
           </div>
           <button
             onClick={handleUploadClick}
             disabled={uploading}
-            className="h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm flex items-center gap-2 hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-600/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium flex items-center gap-2 hover:shadow-lg hover:shadow-violet-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? (
               <>
@@ -191,12 +191,12 @@ export const MediaLibrary: React.FC = () => {
 
         {/* Upload Progress */}
         {uploading && (
-          <div className="mb-4 bg-[#13141A] border border-white/[0.06] rounded-xl p-4">
+          <div className="mb-4 bg-white border border-[#E6EAF2] rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">上传进度</span>
-              <span className="text-xs text-violet-400">{uploadProgress}%</span>
+              <span className="text-xs text-[#6B7280]">上传进度</span>
+              <span className="text-xs text-violet-600 font-bold">{uploadProgress}%</span>
             </div>
-            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-[#F3F5FA] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
@@ -207,68 +207,68 @@ export const MediaLibrary: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-[320px]">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="搜索文件名…"
-              className="w-full h-9 pl-9 pr-4 bg-[#13141A] border border-white/[0.06] rounded-lg text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+              className="w-full h-9 pl-9 pr-4 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-violet-500/40 transition-colors shadow-sm"
             />
           </div>
 
-          <div className="flex items-center bg-[#13141A] border border-white/[0.06] rounded-lg overflow-hidden">
+          <div className="flex items-center bg-white border border-[#E6EAF2] rounded-lg overflow-hidden shadow-sm">
             {(['all', 'image', 'video'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`h-9 px-3 text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${filter === f ? 'bg-violet-500/15 text-violet-300' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`h-9 px-3 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${filter === f ? 'bg-violet-50 text-violet-600' : 'text-[#6B7280] hover:bg-gray-50'}`}
               >
                 {f === 'all' ? '全部' : f === 'image' ? <><ImageIcon size={12} /> 图片</> : <><Video size={12} /> 视频</>}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center bg-[#13141A] border border-white/[0.06] rounded-lg overflow-hidden ml-auto">
-            <button onClick={() => setViewMode('grid')} className={`h-9 px-2.5 transition-colors cursor-pointer ${viewMode === 'grid' ? 'text-violet-300 bg-violet-500/15' : 'text-slate-500 hover:text-slate-300'}`}>
+          <div className="flex items-center bg-white border border-[#E6EAF2] rounded-lg overflow-hidden ml-auto shadow-sm">
+            <button onClick={() => setViewMode('grid')} className={`h-9 px-2.5 transition-colors cursor-pointer ${viewMode === 'grid' ? 'text-violet-600 bg-violet-50' : 'text-[#6B7280] hover:bg-gray-50'}`}>
               <Grid size={14} />
             </button>
-            <button onClick={() => setViewMode('list')} className={`h-9 px-2.5 transition-colors cursor-pointer ${viewMode === 'list' ? 'text-violet-300 bg-violet-500/15' : 'text-slate-500 hover:text-slate-300'}`}>
+            <button onClick={() => setViewMode('list')} className={`h-9 px-2.5 transition-colors cursor-pointer ${viewMode === 'list' ? 'text-violet-600 bg-violet-50' : 'text-[#6B7280] hover:bg-gray-50'}`}>
               <List size={14} />
             </button>
           </div>
 
-          <span className="text-sm text-slate-500">{filtered.length} 项</span>
+          <span className="text-sm text-[#6B7280] font-medium">{filtered.length} 项</span>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-violet-500/10 flex items-center justify-center mb-4">
-              <ImageIcon size={28} className="text-violet-400/40" />
+          <div className="flex flex-col items-center justify-center h-full text-center py-20 bg-white rounded-2xl border border-dashed border-[#E6EAF2]">
+            <div className="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center mb-4">
+              <ImageIcon size={28} className="text-violet-200" />
             </div>
-            <p className="text-slate-400 text-sm mb-2">暂无媒体文件</p>
-            <p className="text-slate-600 text-xs">点击"上传文件"按钮添加图片或视频</p>
+            <p className="text-[#111827] font-semibold text-sm mb-1">暂无媒体文件</p>
+            <p className="text-[#9CA3AF] text-xs font-medium">点击上传文件按钮添加图片或视频</p>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-4 gap-4">
             {filtered.map(item => (
               <div
                 key={item.id}
-                className="group bg-[#13141A] border border-white/[0.06] rounded-xl overflow-hidden hover:border-violet-500/30 transition-all"
+                className="group bg-white border border-[#E6EAF2] rounded-xl overflow-hidden hover:border-violet-500/30 hover:shadow-lg transition-all"
               >
                 <div
-                  className="aspect-video bg-black/30 relative overflow-hidden cursor-pointer"
+                  className="aspect-video bg-[#F9FAFB] relative overflow-hidden cursor-pointer"
                   onClick={() => setPreviewItem(item)}
                 >
                   {item.type === 'image' ? (
                     <img src={`${API_BASE_URL}${item.url}`} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-500/10 to-rose-600/5">
-                      <Video size={28} className="text-rose-400/40" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-50 to-rose-100/50">
+                      <Video size={28} className="text-rose-300" />
                     </div>
                   )}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="px-1.5 py-0.5 rounded-md bg-black/60 text-[10px] text-white backdrop-blur-sm">{item.type === 'image' ? 'IMG' : 'VID'}</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-white/90 text-[10px] text-[#111827] font-bold shadow-sm border border-[#E6EAF2]">{item.type === 'image' ? 'IMG' : 'VID'}</span>
                   </div>
                   <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -276,51 +276,53 @@ export const MediaLibrary: React.FC = () => {
                         e.stopPropagation();
                         handleDelete(item);
                       }}
-                      className="w-7 h-7 rounded-lg bg-red-500/80 hover:bg-red-500 flex items-center justify-center text-white backdrop-blur-sm transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-lg bg-red-500 text-white hover:bg-red-600 flex items-center justify-center shadow-lg transition-colors cursor-pointer"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
                 <div className="p-3">
-                  <p className="text-xs text-slate-300 truncate">{item.name}</p>
-                  <p className="text-[10px] text-slate-600 mt-1">{item.size} · {item.uploadedAt}</p>
+                  <p className="text-xs text-[#374151] font-semibold truncate">{item.name}</p>
+                  <p className="text-[10px] text-[#9CA3AF] font-medium mt-1">{item.size} · {item.uploadedAt}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="space-y-1">
-            {filtered.map(item => (
-              <div
-                key={item.id}
-                className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.02] transition-colors"
-              >
+          <div className="bg-white border border-[#E6EAF2] rounded-xl overflow-hidden shadow-sm">
+            <div className="divide-y divide-[#E6EAF2]">
+              {filtered.map(item => (
                 <div
-                  className="w-12 h-12 rounded-lg overflow-hidden bg-black/30 shrink-0 border border-white/[0.04] cursor-pointer"
-                  onClick={() => setPreviewItem(item)}
+                  key={item.id}
+                  className="group flex items-center gap-4 p-3 hover:bg-[#F9FBFF] transition-colors"
                 >
-                  {item.type === 'image' ? (
-                    <img src={`${API_BASE_URL}${item.url}`} alt={item.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Video size={18} className="text-rose-400/40" /></div>
-                  )}
+                  <div
+                    className="w-12 h-12 rounded-lg overflow-hidden bg-[#F9FAFB] shrink-0 border border-[#E6EAF2] cursor-pointer"
+                    onClick={() => setPreviewItem(item)}
+                  >
+                    {item.type === 'image' ? (
+                      <img src={`${API_BASE_URL}${item.url}`} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-rose-50"><Video size={18} className="text-rose-300" /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#374151] font-semibold truncate">{item.name}</p>
+                    <p className="text-[11px] text-[#9CA3AF] font-medium">{item.size} · {item.uploadedAt}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${item.type === 'image' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-rose-600 bg-rose-50 border-rose-100'}`}>
+                    {item.type === 'image' ? 'Image' : 'Video'}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-200 truncate">{item.name}</p>
-                  <p className="text-[11px] text-slate-500">{item.size} · {item.uploadedAt}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] border ${item.type === 'image' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20'}`}>
-                  {item.type === 'image' ? 'Image' : 'Video'}
-                </span>
-                <button
-                  onClick={() => handleDelete(item)}
-                  className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-red-400 hover:text-red-300 transition-all cursor-pointer"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -330,47 +332,47 @@ export const MediaLibrary: React.FC = () => {
         {previewItem && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-[#111827]/40 backdrop-blur-sm"
             onClick={() => setPreviewItem(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#1A1B23] border border-white/[0.08] rounded-2xl w-full max-w-[600px] overflow-hidden shadow-2xl"
+              className="bg-white border border-[#E6EAF2] rounded-2xl w-full max-w-[700px] overflow-hidden shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.04]">
-                <p className="text-sm text-white truncate">{previewItem.name}</p>
-                <button onClick={() => setPreviewItem(null)} className="w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400 cursor-pointer"><X size={16} /></button>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F7]">
+                <p className="text-sm text-[#111827] font-bold truncate">{previewItem.name}</p>
+                <button onClick={() => setPreviewItem(null)} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-[#6B7280] cursor-pointer transition-colors"><X size={18} /></button>
               </div>
-              <div className="aspect-video bg-black">
+              <div className="aspect-video bg-[#F9FAFB] flex items-center justify-center">
                 {previewItem.type === 'image' ? (
-                  <img src={`${API_BASE_URL}${previewItem.url}`} alt="" className="w-full h-full object-contain" />
+                  <img src={`${API_BASE_URL}${previewItem.url}`} alt="" className="max-w-full max-h-full object-contain shadow-sm" />
                 ) : (
                   <video src={`${API_BASE_URL}${previewItem.url}`} controls className="w-full h-full" />
                 )}
               </div>
-              <div className="px-5 py-3 flex items-center justify-between border-t border-white/[0.04]">
-                <span className="text-xs text-slate-500">{previewItem.size} · {previewItem.uploadedAt}</span>
+              <div className="px-6 py-4 flex items-center justify-between border-t border-[#F1F3F7] bg-[#F9FAFB]/50">
+                <span className="text-xs text-[#9CA3AF] font-medium">{previewItem.size} · {previewItem.uploadedAt}</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => copyUrl(previewItem.url)}
-                    className="h-8 px-3 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-violet-200"
                   >
-                    <Copy size={12} /> 复制 URL
+                    <Copy size={14} /> 复制 URL
                   </button>
                   <button
                     onClick={() => handleDelete(previewItem)}
-                    className="h-8 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-xl bg-white border border-red-100 text-red-500 hover:bg-red-50 text-xs font-bold transition-all cursor-pointer"
                   >
-                    <Trash2 size={12} /> 删除
+                    <Trash2 size={14} /> 删除
                   </button>
                   <a
                     href={previewItem.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-8 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs flex items-center gap-1.5 transition-colors"
+                    className="h-9 px-4 rounded-xl bg-white border border-[#E6EAF2] text-[#4B5563] text-xs font-bold flex items-center gap-1.5 hover:bg-gray-50 transition-all"
                   >
-                    <ExternalLink size={12} /> 打开
+                    <ExternalLink size={14} /> 查看详情
                   </a>
                 </div>
               </div>
@@ -384,14 +386,14 @@ export const MediaLibrary: React.FC = () => {
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-[#1A1B23] border border-white/[0.08] rounded-xl px-5 py-3 shadow-2xl flex items-center gap-2"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-[#111827] text-white rounded-xl px-5 py-3 shadow-2xl flex items-center gap-3"
           >
             {toast.type === 'success' ? (
-              <CheckCircle2 size={16} className="text-green-400" />
+              <CheckCircle2 size={18} className="text-emerald-400" />
             ) : (
-              <AlertCircle size={16} className="text-red-400" />
+              <AlertCircle size={18} className="text-red-400" />
             )}
-            <span className={`text-sm ${toast.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+            <span className="text-sm font-bold">
               {toast.message}
             </span>
           </motion.div>
