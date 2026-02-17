@@ -531,7 +531,7 @@ export const Sidebar: React.FC = () => {
         <Sheet open={isSidebarOpen} onOpenChange={toggleSidebar}>
           <SheetContent
             side="left"
-            className="p-0 border-r border-white/10 bg-slate-900/95 backdrop-blur-xl w-[85%] max-w-[360px] text-slate-200 shadow-2xl"
+            className="p-0 border-r border-white/10 !bg-[#0f172a] text-slate-200 shadow-2xl flex flex-col h-full outline-none !z-[100] w-[85%] max-w-[360px]"
           >
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <SheetDescription className="sr-only">Navigation menu</SheetDescription>

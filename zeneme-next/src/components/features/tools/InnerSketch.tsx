@@ -362,13 +362,14 @@ const undo = () => {
   return (
     <div className="flex flex-col h-full bg-transparent p-4 md:p-6 overflow-hidden">
       <div className="w-full h-full flex flex-col gap-6">
-        <div className="flex justify-between items-center backdrop-blur-sm p-4 rounded-xl border border-white/5 bg-slate-900/30">
+        <div className="flex flex-col gap-4 px-2">
           <div>
             <h2 className="text-2xl font-bold text-white tracking-wide">{t.sketch.title}</h2>
             <p className="text-gray-400 text-sm">{t.sketch.subtitle}</p>
           </div>
-          <div className="flex gap-2 items-center">
-            <div className="flex items-center gap-1.5 mr-2 bg-slate-900/60 border border-white/10 p-1.5 rounded-full backdrop-blur-md">
+          <div className="w-full flex">
+            <div className="flex items-center gap-2 w-fit bg-slate-900/60 border border-white/10 p-2 rounded-full backdrop-blur-md ml-auto">
+              <div className="flex items-center gap-1.5 mr-2">
               {COLORS.map((c) => (
                 <button
                   key={c}
@@ -442,6 +443,7 @@ const undo = () => {
               </TooltipProvider>
           </div>
         </div>
+      </div> 
 
         {/*
             Container with SOLID BG color to visually act as the "Paper".
