@@ -51,6 +51,7 @@ export type MoodLog = {
   note?: string;
   intensity?: number; // 0-100
   timestamp?: string; // ISO timestamp for multiple entries per day
+  source?: 'manual' | 'first-aid' | 'sketch' | 'test' | 'chat';
 };
 
 export type SavedReport = {
@@ -99,7 +100,11 @@ interface ZenemeContextType {
   conversationId: number | undefined;
   setSessionId: (id: string | undefined) => void;
   setConversationId: (id: number | undefined) => void;
-
+  
+  // Danmaku Interaction
+  danmakuPreviewText: string | null;
+  
+  setDanmakuPreviewText: (text: string | null) => void;
   messages: Message[]; // Derived from current session
   addMessage: (
     content: string,
@@ -175,6 +180,9 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Pending module completion - triggers a continuation message when returning to chat
   const [pendingModuleCompletion, setPendingModuleCompletion] = useState<string | null>(null);
 
+  // Danmaku State
+  const [danmakuPreviewText, setDanmakuPreviewText] = useState<string | null>(null);
+  
   // Exit Action Management for TopBar
   const [exitMessage, setExitMessage] = useState<string | null>(null);
   const [exitModuleToComplete, setExitModuleToComplete] = useState<string | null>(null);
@@ -397,6 +405,8 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         isUpgradeModalOpen,
         upgradeSource,
         openUpgradeModal,
+        danmakuPreviewText,
+        setDanmakuPreviewText,
         closeUpgradeModal,
         freeSessionsLeft,
         decrementFreeSessions

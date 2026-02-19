@@ -198,7 +198,20 @@ export function BreathingArcTimer({
 
       style={{ width: size, height: size / 2 + 40, zIndex: 9999 }}
     >
-      <div className="relative" style={{ width: size, height: size / 2 }}>
+    {/* 2. 插入原生 CSS：这是最稳的办法，不依赖 Tailwind */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .mobile-scale-fix {
+          transform: scale(0.65); /* 手机端强制缩小 */
+          transform-origin: center center;
+          transition: transform 0.3s ease;
+        }
+        @media (min-width: 768px) {
+          .mobile-scale-fix {
+            transform: scale(1); /* 电脑端恢复原状 */
+          }
+        }
+      `}} />
+      <div className="relative mobile-scale-fix" style={{ width: size, height: size / 2 }}>
         <svg
           width={size}
           height={size / 2 + strokeWidth}

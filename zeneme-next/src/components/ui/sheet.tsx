@@ -36,7 +36,9 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-40 bg-black/50",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out " +
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 " +
+        "fixed inset-0 z-9998 bg-black/0 backdrop-blur-sm pointer-events-auto",
         className,
       )}
       {...props}
@@ -52,22 +54,44 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
 }) {
+  // ✅ HARD FIX: 强制把 fixed 的定位锁死在视口
+  const forceStyle: React.CSSProperties = {
+    position: "fixed",
+    top: side === "top" ? 0 : 0,
+    bottom: side === "bottom" ? 0 : 0,
+    left: side === "left" ? 0 : undefined,
+    right: side === "right" ? 0 : undefined,
+
+    // 这两行是“更硬”的保险（避免某些移动端奇怪的合成/滚动偏移）
+    transform: "translate3d(0,0,0)",
+    WebkitTransform: "translate3d(0,0,0)",
+    zIndex: 9999,
+    background: "#0f172a", // ✅ 纯色不透明（你菜单暗蓝）
+    opacity: 1,
+    // 合并外部 style（但我们放在后面覆盖它）
+    ...(props.style || {}),
+  };
+
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        {...props}
+        style={forceStyle}
         className={cn(
-          "fixed z-50 gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
-          side === "right" && "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
-          side === "left" && "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+          "z-[9999] gap-4 shadow-2xl transition ease-in-out " +
+            "data-[state=closed]:duration-300 data-[state=open]:duration-500 pointer-events-auto",
+          side === "right" &&
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right h-full w-3/4 border-l sm:max-w-sm",
+          side === "left" &&
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left h-full w-3/4 border-r sm:max-w-sm",
           side === "top" &&
-            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
+            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top w-full h-auto border-b",
           side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom w-full h-auto border-t",
           className,
         )}
-        {...props}
       >
         {children}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

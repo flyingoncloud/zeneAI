@@ -16,7 +16,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "../ui/hover-card";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from '../ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '../ui/sheet';
 import { useIsMobile } from '../ui/use-mobile';
 import { cn } from '../ui/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -512,35 +512,41 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
 export const Sidebar: React.FC = () => {
   const { isSidebarOpen, toggleSidebar, currentView } = useZenemeStore();
   const isMobile = useIsMobile();
-
   // Mobile Implementation (Drawer)
   if (isMobile) {
-    return (
-      <>
-        {!isSidebarOpen && !['test', 'report-detail'].includes(currentView) && (
+  return (
+    <Sheet>
+      {!['test', 'report-detail'].includes(currentView) && (
+        <SheetTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            onClick={toggleSidebar}
             className="fixed top-6 left-6 z-50 text-slate-400 hover:text-white hover:bg-slate-900/40 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 backdrop-blur-sm border border-white/5 shadow-sm"
+            onClick={(e) => {
+              // 防止点击后按钮保持 focus 导致 aria-hidden 冲突
+              e.stopPropagation();
+              (e.currentTarget as HTMLButtonElement).blur();
+            }}
           >
             <SafeIcon icon={Icons.Menu as unknown as SafeIconComponent} size={22} />
           </Button>
-        )}
+        </SheetTrigger>
+      )}
 
-        <Sheet open={isSidebarOpen} onOpenChange={toggleSidebar}>
-          <SheetContent
-            side="left"
-            className="p-0 border-r border-white/10 !bg-[#0f172a] text-slate-200 shadow-2xl flex flex-col h-full outline-none !z-[100] w-[85%] max-w-[360px]"
-          >
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-            <SheetDescription className="sr-only">Navigation menu</SheetDescription>
-            <SidebarContent isCollapsed={false} onClose={() => toggleSidebar()} isMobile={true} />
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
+      <SheetContent
+        side="left"
+        className="p-0 border-r border-white/10 !bg-[#0f172a] text-slate-200 shadow-2xl flex flex-col h-full outline-none !z-[9999] w-[85%] max-w-[360px]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <SheetTitle className="sr-only">Menu</SheetTitle>
+        <SheetDescription className="sr-only">Navigation menu</SheetDescription>
+
+        <SidebarContent isCollapsed={false} isMobile />
+      </SheetContent>
+    </Sheet>
+  );
+}
 
   // Desktop Implementation (Sidebar)
   return (

@@ -260,7 +260,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
 
             <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
             <p className="text-gray-400 text-lg max-w-3xl">
-              四步呼吸法也叫箱式呼吸法，每步4秒合计16秒；吸气4秒—停4秒—呼气4秒—停4秒；通过节律呼吸激活副交感神经，打断情绪反应，让大脑恢复稳定与掌控。保持这个节奏，您会感受到内心重归平静。
+              四步呼吸法（箱式呼吸）：吸气 4 秒 → 停 4 秒 → 呼气 4 秒 → 停 4 秒。用稳定节奏激活副交感神经，让你更快恢复平静与掌控感。
             </p>
           </div>
         </div>

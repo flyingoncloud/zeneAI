@@ -117,19 +117,51 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
         */}
         <div className="relative z-10 w-full max-w-5xl px-4 md:px-8">
           <div
-            className="backdrop-blur-xl bg-slate-900/60 rounded-[24px] px-4 py-6 shadow-2xl border border-white/10 flex flex-col gap-6 translate-y-[30px] mx-auto w-full"
+            className="backdrop-blur-xl bg-slate-900/60 rounded-[24px] px-4 py-6 shadow-2xl border border-white/10 flex flex-col gap-6 mx-auto w-full"
             style={{
               boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
               maxWidth: 'clamp(340px, 78vw, 720px)', // ✅ 手机-平板-桌面自适应
+              transform: 'translateY(70px)', 
             }}
           >
             {/*
                 Emotions Scroll Container
             */}
-            <div className="w-full overflow-x-auto py-2 -my-2 scrollbar-hide">
+            <div className="w-full max-w-full overflow-x-auto custom-scrollbar pb-2"
+                style={{
+                      overflowX: 'auto',     // ✅ 强制
+                      overflowY: 'hidden',   // ✅ 避免竖向出现
+                      WebkitOverflowScrolling: 'touch',
+                      touchAction: 'pan-x',
+                      scrollbarGutter: 'stable', // ✅ 桌面端更容易看到滚动条
+                      }}>
+              {/* 2. 注入滚动条样式 (针对 Webkit 内核浏览器如 Chrome/Safari/大多数手机浏览器) */}
+              <style dangerouslySetInnerHTML={{__html: `
+                .custom-scrollbar::-webkit-scrollbar {
+                  height: 8px !important; /* 稍微加高一点 */
+                  display: block;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                  background: rgba(0, 0, 0, 0.2) !important; /* 轨道背景色 */
+                  border-radius: 99px;
+                  margin: 0 20px; /* 左右留白，不让滚动条贴边 */
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                  background: rgba(255, 255, 255, 0.2) !important; /* 滑块颜色 */
+                  border-radius: 99px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background: rgba(255, 255, 255, 0.4) !important;
+                }
+                /* Firefox 兼容 */
+                .custom-scrollbar {
+                  scrollbar-width: thin;
+                  scrollbar-color: rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2);
+                }  
+              `}} />
               <div
-                className="min-w-[560px] grid gap-x-[2px] gap-y-3 justify-items-center"
-                style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}
+                className="grid gap-x-2 gap-y-3 justify-items-center"
+                style={{ minWidth: '700px', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}
                 >
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((idx) => {
                   const isPos = idx < 8;

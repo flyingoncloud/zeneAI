@@ -1,7 +1,25 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useAnimationFrame, motion, MotionValue } from 'motion/react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
+import { cn } from '../../ui/utils';
 
+// --- Configuration ---
+const MAX_BUBBLES = 12;
+const MIN_BUBBLES = 6;
+const SPAWN_INTERVAL = 1800; // ms
+
+// Mobile-specific config
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_SPEED = 140; // px/s
+const MOBILE_MIN_DURATION = 8;
+const MOBILE_MAX_DURATION = 18;
+const MOBILE_TRACK_COUNT = 4;
+// Track → zone mapping: tracks 0,1 = top zone; tracks 2,3 = bottom zone
+const MOBILE_TRACK_ZONE: ('top' | 'bottom')[] = ['top', 'top', 'bottom', 'bottom'];
+// Track position as % within its own zone container
+const MOBILE_TRACK_ZONE_POSITIONS = [25, 65, 25, 68]; // % within zone
+const MOBILE_TRACK_MIN_GAP = 2200; // ms – same track minimum delay
+
+// --- Messages ---
 const MESSAGES = [
   "DDL快到了，心跳加速",
   "KPI 压在头上，喘不过气",
@@ -13,7 +31,6 @@ const MESSAGES = [
   "愿意听我说的人不多",
   "好想有个树洞",
   "先把自己抱住",
-  // 新增内容
   "我被裁员了！",
   "突然发现父母老了！泪目了",
   "看错人了！这个所谓好友今天终于背刺了我",
@@ -25,473 +42,381 @@ const MESSAGES = [
   "今天街上被一个痞子拦住抢了钱"
 ];
 
-// Configuration
-const BUBBLE_COUNT_DESKTOP = 15;
-const BUBBLE_COUNT_MOBILE = 10; // ~66% of desktop
-
-// Gaps
-const MIN_GAP_X_DESKTOP = 64;
-const MIN_GAP_X_MOBILE = 96; // 80-120 range
-
-const MIN_GAP_Y_DESKTOP = 48;
-const MIN_GAP_Y_MOBILE = 52; // 44-60 range
-
-// Physics
-const VELOCITY_MIN = 35;
-const VELOCITY_MAX = 55;
-const VELOCITY_MOBILE_FIXED = 40; // Strictly constant for mobile
-
-// Sway Config
-const SWAY_AMP_MIN_DESKTOP = 24;
-const SWAY_AMP_MAX_DESKTOP = 46;
-const SWAY_AMP_MOBILE_FIXED = 8; // Reduced and constant for mobile
-
-const SWAY_PERIOD_MIN = 1.8;
-const SWAY_PERIOD_MAX = 3.5;
-
-// Visual
-const COLORS = [
-  { fill: 'hsla(240, 50%, 20%, 0.25)', border: 'hsla(240, 50%, 80%, 0.15)', glow: 'transparent' },
-  { fill: 'hsla(220, 50%, 20%, 0.25)', border: 'hsla(220, 50%, 80%, 0.15)', glow: 'transparent' },
-  { fill: 'hsla(260, 50%, 20%, 0.25)', border: 'hsla(260, 50%, 80%, 0.15)', glow: 'transparent' },
-];
-
-type BubbleConfig = {
+interface BubbleData {
   id: string;
   text: string;
+  left: number; // percentage 0-100 (desktop)
+  duration: number; // seconds
+  sway: number; // pixels (desktop)
+  delay: number; // seconds
+  colorHue: number;
+  size: 'normal' | 'large';
+  // Mobile-specific
+  track?: number; // 0 | 1 | 2
+  estimatedWidth?: number; // px
+}
 
-  // Dimensions
-  width: number;
-  height: number;
+export const SplashDanmakuLayer: React.FC = () => {
+  const { messages, addMessage, setDanmakuPreviewText } = useZenemeStore();
+  
+  // Only show when there are no messages (Welcome State)
+  const isWelcomeState = messages.length === 0;
 
-  // Placement
-  baseX: number; // The "center" anchor
-  initialY: number;
+  const [bubbles, setBubbles] = useState<BubbleData[]>([]);
+  const bubblesRef = useRef<BubbleData[]>([]); // Ref for instant access in interval
+  const spawnTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Motion
-  velocity: number;
-  amplitudeX: number;
-  period: number;
-  phase: number;
-  startDelay: number;
-  scale: number;
+  // --- Mobile detection ---
+  const [isMobile, setIsMobile] = useState(false);
+  const isMobileRef = useRef(false);
 
-  // Dynamic offset for collision avoidance
-  offsetX: number;
-
-  // Visual
-  fill: string;
-  border: string;
-  glow: string;
-
-  // Motion Values
-  xMV: MotionValue<number>;
-  yMV: MotionValue<number>;
-  opacityMV: MotionValue<number>;
-  scaleMV: MotionValue<number>;
-};
-
-const random = (min: number, max: number) => min + Math.random() * (max - min);
-
-const estimateSize = (text: string, scale: number) => {
-  // Rough estimation based on text length (assuming font size ~14)
-  const baseWidth = Math.min(280, Math.max(140, text.length * 10));
-  const width = baseWidth * scale;
-
-  // ---- NEW: estimate wrapped lines and compute height ----
-  // Tailwind: px-4 py-3 => horizontal padding 32px, vertical padding 24px
-  const paddingX = 32;
-  const paddingY = 24;
-
-  // text-sm ~= 14px; leading-snug ~= ~18px (approx)
-  const approxCharW = 14;
-  const approxLineH = 18;
-
-  const usableW = Math.max(1, baseWidth - paddingX);
-  const charsPerLine = Math.max(6, Math.floor(usableW / approxCharW));
-  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
-
-  // Keep at least the original 44px baseline
-  const baseHeight = Math.max(44, paddingY + lines * approxLineH);
-  const height = baseHeight * scale;
-
-  return { width, height };
-};
-
-
-const checkOverlap = (
-  c1: { x: number, y: number, w: number, h: number },
-  others: { x: number, y: number, w: number, h: number }[],
-  gapX: number,
-  gapY: number
-) => {
-  for (const o of others) {
-    // Use center-to-center distance approx or AABB
-    const dx = Math.abs(c1.x - o.x);
-    const dy = Math.abs(c1.y - o.y);
-    const minW = (c1.w + o.w)/2 + gapX;
-    const minH = (c1.h + o.h)/2 + gapY;
-
-    if (dx < minW && dy < minH) return true;
-  }
-  return false;
-};
-
-export const SplashDanmakuLayer = () => {
-  const { isSidebarOpen } = useZenemeStore();
-  const [bubbles, setBubbles] = useState<BubbleConfig[]>([]);
-  const bubblesRef = useRef<BubbleConfig[]>([]);
-
-  // Determine Safe Rect based on Container (relative coordinates)
-  const getSafeRect = useCallback(() => {
-    // Since this component is inside "absolute inset-0" of ChatInterface (which is flex-1 right of Sidebar),
-    // our (0,0) is already at the left edge of the main content area.
-    // So "leftBound" relative to us is just the padding.
-
-    const isDesktop = window.innerWidth >= 768;
-    const rightSidebarWidth = 0; // Placeholder for future right sidebar
-
-    // Calculate Container Width (Window - Left Sidebar)
-    // Note: We use window.innerWidth logic to approximate container width,
-    // but strictly speaking we are rendering relative to container.
-    // Container Width = Window - (SidebarOpen ? 280 : 72)
-
-    const sidebarW = isDesktop ? (isSidebarOpen ? 280 : 72) : 0;
-    const containerW = window.innerWidth - sidebarW;
-
-    const safeLeft = 16; // leftBound = mainContentLeft (0) + 16
-    const safeRight = containerW - rightSidebarWidth - 16; // rightBound = mainContentRight (containerW) - 16
-
-    const safeTop = 12; // topBound = headerBottom (assumed 0 relative or offset) + 12?
-    // Actually TopBar is above ChatInterface in flex col. ChatInterface starts below TopBar.
-    // So top=0 is just below TopBar. safeTop = 12 is correct.
-
-    const h = window.innerHeight; // Height is roughly window height minus topbar
-    // But let's just use window height for physics calculation as it floats up
-
-    return { safeLeft, safeRight, safeTop, h, containerW };
-  }, [isSidebarOpen]);
-
-  // Re-clamp bubbles when sidebar changes (Layout Shift)
   useEffect(() => {
-    const { safeLeft, safeRight } = getSafeRect();
-    const currentBubbles = bubblesRef.current;
-
-    currentBubbles.forEach(b => {
-      // Adjust bounds check
-      const minX = safeLeft + b.width/2;
-      const maxX = safeRight - b.width/2;
-
-      if (b.baseX < minX) b.baseX = minX + random(0, 20);
-      else if (b.baseX > maxX) b.baseX = maxX - random(0, 20);
-    });
-  }, [isSidebarOpen, getSafeRect]);
-
-  // Initial Generation
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const { safeLeft, safeRight, h } = getSafeRect();
-    const isMobile = window.innerWidth < 768;
-
-    // Config based on device
-    const bubbleCount = isMobile ? BUBBLE_COUNT_MOBILE : BUBBLE_COUNT_DESKTOP;
-    const gapX = isMobile ? MIN_GAP_X_MOBILE : MIN_GAP_X_DESKTOP;
-    const gapY = isMobile ? MIN_GAP_Y_MOBILE : MIN_GAP_Y_DESKTOP;
-
-    // Message Pool
-    const pool1 = [...MESSAGES].sort(() => 0.5 - Math.random());
-    const pool2 = [...MESSAGES].sort(() => 0.5 - Math.random());
-    const pool3 = [...MESSAGES].sort(() => 0.5 - Math.random()).slice(0, 2);
-    const textPool = [...pool1, ...pool2, ...pool3];
-
-    const generated: BubbleConfig[] = [];
-
-    // Calculate batches for mobile vs desktop proportionally
-    const batch1Limit = Math.floor(bubbleCount * 0.45);
-
-    for (let i = 0; i < bubbleCount; i++) {
-      const isBatch1 = i < batch1Limit;
-      const text = textPool[i];
-
-      const scale = random(0.85, 1.15);
-      const { width, height } = estimateSize(text, scale);
-
-      let placed = false;
-
-      for (let attempt = 0; attempt < 50; attempt++) {
-        const yMin = isBatch1 ? 1.1 : 1.4;
-        const yMax = isBatch1 ? 1.5 : 1.9;
-        const initialY = h * random(yMin, yMax);
-
-        // Generate X within safe bounds
-        const padding = isMobile ? 24 : 16;
-        // Recalculate bounds based on specific mobile padding requirement
-        // For desktop, safeLeft/Right from getSafeRect (16px) is fine.
-
-        const minX = (isMobile ? padding : safeLeft) + width/2;
-        // safeRight is containerW - 16. For mobile we want containerW - 24.
-        const containerW = window.innerWidth - (isMobile ? 0 : (isSidebarOpen ? 280 : 72));
-        const maxBound = containerW - padding;
-        const maxX = maxBound - width/2;
-
-        if (minX >= maxX) continue;
-
-        let x = random(minX, maxX);
-
-        if (isMobile) {
-          // Mobile: Random distribution with right-side penalty
-          // If falls in rightmost 20%, reroll once to avoid clustering on right
-          const range = maxX - minX;
-          if (x > minX + range * 0.8) {
-            x = random(minX, maxX);
-          }
-        }
-
-        // Check overlap with existing
-        const overlap = checkOverlap(
-          { x, y: initialY, w: width, h: height },
-          generated.map(g => ({ x: g.baseX, y: g.initialY, w: g.width, h: g.height })),
-          gapX,
-          gapY
-        );
-
-        if (!overlap) {
-          placed = true;
-          const color = COLORS[i % COLORS.length];
-
-          const isDesktopNow = window.innerWidth >= 768;
-          const velocity = isMobile
-            ? VELOCITY_MOBILE_FIXED
-            : random(VELOCITY_MIN, VELOCITY_MAX);
-
-          const amplitudeX = isMobile
-            ? SWAY_AMP_MOBILE_FIXED
-            : random(SWAY_AMP_MIN_DESKTOP, SWAY_AMP_MAX_DESKTOP);
-
-          const period = random(SWAY_PERIOD_MIN, SWAY_PERIOD_MAX);
-          const phase = random(0, Math.PI * 2);
-          const startDelay = random(0, 0.9);
-
-          generated.push({
-            id: `b-${i}`,
-            text,
-            width,
-            height,
-            baseX: x,
-            initialY,
-            velocity,
-            amplitudeX,
-            period,
-            phase,
-            startDelay,
-            scale,
-            offsetX: 0,
-            fill: color.fill,
-            border: color.border,
-            glow: color.glow,
-            xMV: new MotionValue(x),
-            yMV: new MotionValue(initialY),
-            opacityMV: new MotionValue(0),
-            scaleMV: new MotionValue(scale),
-          });
-
-          break;
-        }
-      }
-
-      // If not placed, fallback (push somewhere)
-      if (!placed) {
-        const fallbackX = safeLeft + width + 20;
-        const fallbackY = h * (1.8 + i*0.05);
-        generated.push({
-          id: `b-${i}`,
-          text,
-          width,
-          height,
-          baseX: fallbackX,
-          initialY: fallbackY,
-          velocity: 150,
-          amplitudeX: 20,
-          period: 2.5,
-          phase: 0,
-          startDelay: 0,
-          scale,
-          offsetX: 0,
-          fill: `hsla(240, 50%, 20%, 0.25)`,
-          border: `hsla(240, 50%, 80%, 0.15)`,
-          glow: `transparent`,
-          xMV: new MotionValue(fallbackX),
-          yMV: new MotionValue(fallbackY),
-          opacityMV: new MotionValue(0),
-          scaleMV: new MotionValue(scale),
-        });
-      }
-    }
-
-    //  避免在 effect 里同步 setState：推到下一帧执行（逻辑等价）
-    const raf = requestAnimationFrame(() => {
-      setBubbles(generated);
-      bubblesRef.current = generated;
-    });
-
-    return () => cancelAnimationFrame(raf);
+    const check = () => {
+      const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      isMobileRef.current = mobile;
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[10]">
-      {/* z-index changed to 10 to be below buttons (z-30 is usually buttons) */}
-      {bubbles.map(b => (
-        <BubbleRenderer key={b.id} config={b} allBubblesRef={bubblesRef} />
-      ))}
-    </div>
-  );
-};
+  // Track-based spawn timing for mobile (last spawn timestamp per track)
+  const trackLastSpawnRef = useRef<number[]>([0, 0, 0, 0]);
 
-const BubbleRenderer = ({
-  config,
-  allBubblesRef
-}: {
-  config: BubbleConfig,
-  allBubblesRef: React.MutableRefObject<BubbleConfig[]>
-}) => {
-  const { isSidebarOpen } = useZenemeStore();
-  const startTimeRef = useRef<number | null>(null);
+  // --- Estimate bubble width from text ---
+  const estimateBubbleWidth = (text: string, size: 'normal' | 'large') => {
+    const charW = size === 'large' ? 15 : 14;
+    // px-4 = 32px horizontal padding
+    return text.length * charW + 40;
+  };
 
-  //  用 ref 保存 offsetX，避免直接修改 props/config（immutability）
-  const offsetXRef = useRef<number>(config.offsetX);
+  // --- Spawner Logic ---
+  const spawnBubble = useCallback(() => {
+    if (!isWelcomeState) return;
+    if (bubblesRef.current.length >= MAX_BUBBLES) return;
 
-  // Keep initial offset (if any) in sync without mutating props
-  useEffect(() => {
-    offsetXRef.current = config.offsetX;
-  }, [config.offsetX]);
+    const mobile = isMobileRef.current;
 
-  useAnimationFrame((time) => {
-    if (startTimeRef.current === null) {
-      startTimeRef.current = time;
-    }
-    const elapsed = (time - startTimeRef.current) / 1000;
-    if (elapsed < config.startDelay) return;
-
-    const activeTime = elapsed - config.startDelay;
-    const dt = 1/60;
-
-    // 1. Opacity
-    if (activeTime < 0.15) {
-      config.opacityMV.set(activeTime / 0.15);
-    } else {
-      config.opacityMV.set(1);
-    }
-
-    // 2. Y Motion
-    const nextY = config.initialY - (config.velocity * activeTime);
-
-    // 3. X Motion (Base + Sway + Global Offset)
-    const sway = Math.sin(activeTime * (2 * Math.PI / config.period) + config.phase) * config.amplitudeX;
-
-    // 4. Safe Rect Calculation (Relative to Container)
-    // Re-calculate dynamically because container width might change or sidebar might toggle
-
-    const isDesktop = window.innerWidth >= 768;
-    const sidebarW = isDesktop ? (isSidebarOpen ? 280 : 72) : 0;
-    const containerW = window.innerWidth - sidebarW;
-
-    // Define boundaries relative to THIS component
-    const padding = !isDesktop ? 24 : 16; // Mobile 24px, Desktop 16px
-    const safeLeft = padding;
-    const safeRight = containerW - padding;
-
-    // 5. Dynamic Avoidance & Clamping
-    // No Global Offset needed anymore, we work in container coords directly
-    const idealX = config.baseX + sway + offsetXRef.current;
-
-    // A. Strict Clamping
-    const minCenter = safeLeft + config.width/2;
-    const maxCenter = safeRight - config.width/2;
-
-    let currentX = idealX;
-
-    if (currentX < minCenter) {
-      currentX = minCenter;
-      offsetXRef.current += 20 * dt;
-    } else if (currentX > maxCenter) {
-      currentX = maxCenter;
-      offsetXRef.current -= 20 * dt;
-    }
-
-    // B. Buttons Exclusion Zone
-    // Roughly center area relative to container
-    const exLeft = containerW * 0.20;
-    const exRight = containerW * 0.80;
-    const exTop = window.innerHeight * 0.72;
-    const exBottom = window.innerHeight * 0.95;
-
-    const inY = nextY > exTop && nextY < exBottom;
-    const inX = currentX > exLeft && currentX < exRight;
-
-    if (inY && inX) {
-      const distLeft = Math.abs(currentX - exLeft);
-      const distRight = Math.abs(currentX - exRight);
-      const push = 120 * dt;
-      if (distLeft < distRight) offsetXRef.current -= push;
-      else offsetXRef.current += push;
-    }
-
-    // C. Bubble Avoidance
-    const others = allBubblesRef.current;
-    const isMobile = window.innerWidth < 768;
-    const gapX = isMobile ? MIN_GAP_X_MOBILE : MIN_GAP_X_DESKTOP;
-    const gapY = isMobile ? MIN_GAP_Y_MOBILE : MIN_GAP_Y_DESKTOP;
-
-    for (const o of others) {
-      if (o.id === config.id) continue;
-      const ox = o.xMV.get();
-      const oy = o.yMV.get();
-      const dy = Math.abs(nextY - oy);
-      const dx = Math.abs(currentX - ox);
-
-      if (dy < (config.height + o.height)/2 + gapY && dx < (config.width + o.width)/2 + gapX) {
-        const dir = currentX > ox ? 1 : -1;
-        offsetXRef.current += dir * (30 * dt);
+    if (mobile) {
+      // ====== MOBILE: right-to-left on tracks ======
+      const now = Date.now();
+      // Find tracks with enough gap since last spawn
+      const availableTracks: number[] = [];
+      for (let i = 0; i < MOBILE_TRACK_COUNT; i++) {
+        if (now - trackLastSpawnRef.current[i] >= MOBILE_TRACK_MIN_GAP) {
+          availableTracks.push(i);
+        }
       }
+      if (availableTracks.length === 0) return; // All tracks busy
+
+      const track = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+      trackLastSpawnRef.current[track] = now;
+
+      const text = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+      const isLarge = Math.random() > 0.7;
+      const size: 'normal' | 'large' = isLarge ? 'large' : 'normal';
+      const estimatedWidth = estimateBubbleWidth(text, size);
+
+      const screenWidth = window.innerWidth;
+      let duration = (screenWidth + estimatedWidth + 32) / MOBILE_SPEED;
+      duration = Math.max(MOBILE_MIN_DURATION, Math.min(MOBILE_MAX_DURATION, duration));
+
+      const colorHue = 230 + Math.random() * 40;
+
+      const newBubble: BubbleData = {
+        id: Math.random().toString(36).substring(7),
+        text,
+        left: 0,
+        duration,
+        sway: 0,
+        delay: 0,
+        colorHue,
+        size,
+        track,
+        estimatedWidth,
+      };
+
+      setBubbles(prev => {
+        const next = [...prev, newBubble];
+        bubblesRef.current = next;
+        return next;
+      });
+
+    } else {
+      // ====== DESKTOP: existing bottom-to-top logic ======
+      const text = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+
+      const isLeft = Math.random() > 0.5;
+      let candidateLeft = 0;
+      if (isLeft) {
+        candidateLeft = 5 + Math.random() * 25; 
+      } else {
+        candidateLeft = 70 + Math.random() * 25;
+      }
+
+      const tooClose = bubblesRef.current.some(b => Math.abs(b.left - candidateLeft) < 12);
+      if (tooClose) return;
+
+      const duration = 15 + Math.random() * 10;
+      const sway = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 40);
+      const colorHue = 230 + Math.random() * 40;
+
+      const newBubble: BubbleData = {
+        id: Math.random().toString(36).substring(7),
+        text,
+        left: candidateLeft,
+        duration,
+        sway,
+        delay: 0,
+        colorHue,
+        size: Math.random() > 0.7 ? 'large' : 'normal',
+      };
+
+      setBubbles(prev => {
+        const next = [...prev, newBubble];
+        bubblesRef.current = next;
+        return next;
+      });
+    }
+  }, [isWelcomeState]);
+
+  // --- Lifecycle ---
+  useEffect(() => {
+    // 1. 如果不在 welcome 状态，直接跳过不执行任何操作
+    if (!isWelcomeState) return;
+
+    // 2. 初始化：批量生成初始气泡
+    const initialCount = 4;
+    for(let i=0; i<initialCount; i++) {
+        setTimeout(spawnBubble, i * 300);
     }
 
-    // Final strict clamp
-    currentX = Math.max(minCenter, Math.min(maxCenter, currentX));
+    // 3. 设置循环：定时生成气泡
+    spawnTimerRef.current = setInterval(spawnBubble, SPAWN_INTERVAL);
 
-    config.yMV.set(nextY);
-    config.xMV.set(currentX);
-  });
+    return () => {
+        if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
+        // 将重置状态和 refs 的操作放在这里，而不是在 effect 主体中同步调用
+        setBubbles([]);
+        bubblesRef.current = [];
+        trackLastSpawnRef.current = [0, 0, 0, 0];
+    };
+  }, [isWelcomeState, spawnBubble]);
+
+  // --- Handlers ---
+  const handleBubbleClick = (e: React.MouseEvent, bubble: BubbleData) => {
+    if (isMobile) return; // Mobile bubbles are non-interactive
+    e.stopPropagation();
+    addMessage(bubble.text, 'user');
+    setDanmakuPreviewText(null);
+    
+    setBubbles(prev => {
+        const next = prev.filter(b => b.id !== bubble.id);
+        bubblesRef.current = next;
+        return next;
+    });
+  };
+
+  const handleMouseEnter = (text: string) => {
+    if (isMobile) return;
+    setDanmakuPreviewText(text);
+  };
+
+  const handleMouseLeave = () => {
+    if (isMobile) return;
+    setDanmakuPreviewText(null);
+  };
+
+  const handleAnimationEnd = (id: string) => {
+    setBubbles(prev => {
+        const next = prev.filter(b => b.id !== id);
+        bubblesRef.current = next;
+        return next;
+    });
+  };
+
+  if (!isWelcomeState) return null;
+
+  // --- Mobile: split bubbles into two zones ---
+  const topBubbles = bubbles.filter(b => MOBILE_TRACK_ZONE[b.track ?? 0] === 'top');
+  const bottomBubbles = bubbles.filter(b => MOBILE_TRACK_ZONE[b.track ?? 0] === 'bottom');
+
+  const renderMobileBubble = (bubble: BubbleData) => {
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 400;
+    const bw = bubble.estimatedWidth ?? 200;
+    const travel = -(screenW + bw + 32);
+
+    return (
+      <div
+        key={bubble.id}
+        className="danmaku-bubble-mobile"
+        style={{
+          left: `calc(100% + 16px)`,
+          top: `${MOBILE_TRACK_ZONE_POSITIONS[bubble.track ?? 0]}%`,
+          '--travel': `${travel}px`,
+          animationDuration: `${bubble.duration}s`,
+          animationDelay: '0s',
+        } as React.CSSProperties}
+        onAnimationEnd={() => handleAnimationEnd(bubble.id)}
+      >
+        <div
+          className={cn(
+            "px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-sm whitespace-nowrap",
+            "bg-slate-900/60 border-white/10 text-slate-200"
+          )}
+          style={{
+            fontSize: bubble.size === 'large' ? '15px' : '14px',
+            lineHeight: '1.4',
+          }}
+        >
+          {bubble.text}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <motion.div
-      style={{
-        x: config.xMV,
-        y: config.yMV,
-        scale: config.scaleMV,
-        opacity: config.opacityMV,
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        willChange: 'transform, opacity',
-        zIndex: 10,
-      }}
-    >
-      <div
-        className="rounded-2xl px-4 py-3 backdrop-blur-md border shadow-[0_8px_22px_rgba(0,0,0,0.25)]"
-        style={{
-                width: config.width,
-                minHeight: config.height,
-                height: 'auto',
-                overflow: 'hidden',
-                background: config.fill,
-                borderColor: config.border,
-                boxShadow: `0 0 14px ${config.glow}`,
+    <>
+      <style>
+        {`
+          /* ===== Desktop: bottom → top ===== */
+          @keyframes floatUp {
+            0% {
+              bottom: -60px;
+              transform: translateX(0) scale(0.85);
+              opacity: 0;
+            }
+            15% {
+              opacity: 1;
+              transform: translateX(calc(var(--sway) * 0.2)) scale(0.9);
+            }
+            50% {
+              transform: translateX(var(--sway)) scale(1.15);
+            }
+            85% {
+              opacity: 1;
+              transform: translateX(calc(var(--sway) * 0.5)) scale(0.8);
+            }
+            100% {
+              bottom: 110vh;
+              transform: translateX(0) scale(0.6);
+              opacity: 0;
+            }
+          }
+
+          /* ===== Mobile: right → left ===== */
+          @keyframes scrollLeft {
+            0% {
+              transform: translateX(0);
+              opacity: 0;
+            }
+            3% {
+              opacity: 1;
+            }
+            92% {
+              opacity: 1;
+            }
+            100% {
+              transform: translateX(var(--travel));
+              opacity: 0;
+            }
+          }
+          
+          /* Desktop bubble */
+          .danmaku-bubble-desktop {
+            position: absolute;
+            will-change: transform, bottom, opacity;
+            animation-name: floatUp;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            cursor: pointer;
+            user-select: none;
+            z-index: 10;
+            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+          }
+          .danmaku-bubble-desktop:hover {
+            animation-play-state: paused;
+            z-index: 50;
+            filter: brightness(1.2);
+          }
+
+          /* Mobile bubble */
+          .danmaku-bubble-mobile {
+            position: absolute;
+            will-change: transform, opacity;
+            animation-name: scrollLeft;
+            animation-timing-function: linear;
+            animation-fill-mode: forwards;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+          }
+        `}
+      </style>
+
+      {isMobile ? (
+        <>
+          {/* ===== Zone A — Top safe area (below nav, above title) ===== */}
+          <div
+            className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+            style={{
+              top: 'calc(69px + env(safe-area-inset-top, 0px))',
+              height: 'clamp(100px, 16vh, 160px)',
+              zIndex: 1,
+            }}
+          >
+            {topBubbles.map(renderMobileBubble)}
+          </div>
+
+          {/* ===== Zone B — Bottom safe area (below cards, above home indicator) ===== */}
+          <div
+            className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+            style={{
+              bottom: 'calc(69px + env(safe-area-inset-bottom, 0px))',
+              height: 'clamp(130px, 22vh, 200px)',
+              zIndex: 1,
+            }}
+          >
+            {bottomBubbles.map(renderMobileBubble)}
+          </div>
+        </>
+      ) : (
+        /* ===== Desktop: full-screen container (unchanged) ===== */
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {bubbles.map(bubble => (
+            <div
+              key={bubble.id}
+              className="danmaku-bubble-desktop pointer-events-auto"
+              style={{
+                left: `${bubble.left}%`,
+                '--sway': `${bubble.sway}px`,
+                animationDuration: `${bubble.duration}s`,
+                animationDelay: '0s',
+              } as React.CSSProperties}
+              onClick={(e) => handleBubbleClick(e, bubble)}
+              onMouseEnter={() => handleMouseEnter(bubble.text)}
+              onMouseLeave={handleMouseLeave}
+              onAnimationEnd={() => handleAnimationEnd(bubble.id)}
+            >
+              <div 
+                className={cn(
+                  "px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-sm transition-all duration-300",
+                  "bg-slate-900/60 border-white/10 text-slate-200",
+                  "hover:bg-violet-600/90 hover:border-violet-400 hover:text-white hover:shadow-violet-500/30"
+                )}
+                style={{
+                  maxWidth: '220px',
+                  fontSize: bubble.size === 'large' ? '15px' : '14px',
+                  lineHeight: '1.4',
                 }}
-      >
-        <p className="text-white/85 text-sm font-medium leading-snug">
-          {config.text}
-        </p>
-      </div>
-    </motion.div>
+              >
+                {bubble.text}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 };
