@@ -30,7 +30,29 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
         code: "2.2.1",
         name: "自我内在系统分析",
         nameEn: "Internal System Analysis",
-        description: "Understanding of internal psychological systems"
+        description: "Understanding of internal psychological systems",
+        children: {
+          "2.2.1.1": {
+            code: "2.2.1.1",
+            name: "管理者",
+            nameEn: "Managers"
+          },
+          "2.2.1.2": {
+            code: "2.2.1.2",
+            name: "消防员",
+            nameEn: "Firefighters"
+          },
+          "2.2.1.3": {
+            code: "2.2.1.3",
+            name: "流亡者",
+            nameEn: "Exiles"
+          },
+          "2.2.1.4": {
+            code: "2.2.1.4",
+            name: "自性",
+            nameEn: "Self"
+          }
+        }
       },
       "2.2.2": {
         code: "2.2.2",

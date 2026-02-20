@@ -14,7 +14,7 @@ Adds:
 Run this migration after the database is initialized.
 """
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Boolean, DateTime, Text, text
 from sqlalchemy.dialects.postgresql import JSON as JSONB
 from datetime import datetime
 import sys
@@ -33,12 +33,12 @@ def upgrade():
 
     with engine.connect() as conn:
         # Check if columns already exist
-        result = conn.execute("""
+        result = conn.execute(text("""
             SELECT column_name
             FROM information_schema.columns
             WHERE table_name = 'user_profiles'
             AND column_name IN ('phone_number', 'password_hash', 'auth_provider')
-        """)
+        """))
         existing_columns = [row[0] for row in result]
 
         if existing_columns:
@@ -49,60 +49,60 @@ def upgrade():
         print("Adding authentication fields...")
 
         # Add phone authentication fields
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20),
             ADD COLUMN IF NOT EXISTS phone_country_code VARCHAR(10) DEFAULT '+61'
-        """)
+        """))
         print("✓ Added phone_number and phone_country_code")
 
         # Add password field
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)
-        """)
+        """))
         print("✓ Added password_hash")
 
         # Add authentication provider fields
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50),
             ADD COLUMN IF NOT EXISTS provider_id VARCHAR(255)
-        """)
+        """))
         print("✓ Added auth_provider and provider_id")
 
         # Add account status and tracking fields
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
             ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP
-        """)
+        """))
         print("✓ Added is_active and last_login_at")
 
         # Add extra_data if it doesn't exist (for backward compatibility)
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb
-        """)
+        """))
         print("✓ Added extra_data (if not exists)")
 
         # Create indexes for better query performance
-        conn.execute("""
+        conn.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_user_profiles_phone
             ON user_profiles(phone_number, phone_country_code)
-        """)
+        """))
         print("✓ Created index on phone_number")
 
-        conn.execute("""
+        conn.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_user_profiles_email
             ON user_profiles(email)
-        """)
+        """))
         print("✓ Created index on email")
 
-        conn.execute("""
+        conn.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_user_profiles_auth_provider
             ON user_profiles(auth_provider, provider_id)
-        """)
+        """))
         print("✓ Created index on auth_provider")
 
         conn.commit()
@@ -116,7 +116,7 @@ def downgrade():
     with engine.connect() as conn:
         print("Removing authentication fields...")
 
-        conn.execute("""
+        conn.execute(text("""
             ALTER TABLE user_profiles
             DROP COLUMN IF EXISTS phone_number,
             DROP COLUMN IF EXISTS phone_country_code,
@@ -125,14 +125,14 @@ def downgrade():
             DROP COLUMN IF EXISTS provider_id,
             DROP COLUMN IF EXISTS is_active,
             DROP COLUMN IF EXISTS last_login_at
-        """)
+        """))
 
         # Drop indexes
-        conn.execute("""
+        conn.execute(text("""
             DROP INDEX IF EXISTS idx_user_profiles_phone,
             DROP INDEX IF EXISTS idx_user_profiles_email,
             DROP INDEX IF EXISTS idx_user_profiles_auth_provider
-        """)
+        """))
 
         conn.commit()
         print("✅ Rollback completed successfully!")

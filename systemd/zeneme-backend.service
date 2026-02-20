@@ -1,0 +1,31 @@
+# Systemd service for Zeneme Backend (FastAPI)
+# Install: sudo cp systemd/zeneme-backend.service /etc/systemd/system/
+# Enable: sudo systemctl enable zeneme-backend
+# Start: sudo systemctl start zeneme-backend
+# Status: sudo systemctl status zeneme-backend
+# Logs: sudo journalctl -u zeneme-backend -f
+
+[Unit]
+Description=Zeneme AI Backend (FastAPI)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/zeneAI/ai-chat-api
+Environment="PATH=/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/local/bin/uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/home/ubuntu/zeneAI/ai-chat-api/backend.log
+StandardError=append:/home/ubuntu/zeneAI/ai-chat-api/backend-error.log
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

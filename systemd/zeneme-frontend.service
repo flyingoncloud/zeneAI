@@ -1,0 +1,32 @@
+# Systemd service for Zeneme Frontend (Next.js)
+# Install: sudo cp systemd/zeneme-frontend.service /etc/systemd/system/
+# Enable: sudo systemctl enable zeneme-frontend
+# Start: sudo systemctl start zeneme-frontend
+# Status: sudo systemctl status zeneme-frontend
+# Logs: sudo journalctl -u zeneme-frontend -f
+
+[Unit]
+Description=Zeneme AI Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/zeneAI/zeneme-next
+Environment="PATH=/home/ubuntu/.nvm/versions/node/v20.11.0/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="NODE_ENV=production"
+ExecStart=/home/ubuntu/.nvm/versions/node/v20.11.0/bin/npm start
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/home/ubuntu/zeneAI/zeneme-next/frontend.log
+StandardError=append:/home/ubuntu/zeneAI/zeneme-next/frontend-error.log
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

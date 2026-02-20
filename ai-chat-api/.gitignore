@@ -20,6 +20,9 @@ build/
 *.sqlite
 *.sqlite3
 
+# Reports
+reports/
+
 # IDE
 .vscode/
 .idea/
