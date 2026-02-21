@@ -241,13 +241,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
               onClick={() => setMethod('phone')}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${method === 'phone' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}
             >
-              手机登录
+              {view === 'login' ? '手机登录' : '手机注册'}
             </button>
             <button
               onClick={() => setMethod('email')}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${method === 'email' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}
             >
-              邮箱登录
+              {view === 'login' ? '邮箱登录' : '邮箱注册'}
             </button>
           </div>
 
