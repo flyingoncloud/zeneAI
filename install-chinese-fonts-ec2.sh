@@ -20,13 +20,16 @@ echo -e "\n[1/5] Updating package manager..."
 sudo yum update -y
 
 echo -e "\n[2/5] Installing Chinese font packages..."
-# Install common Chinese fonts
+# Try to install available fonts from repository
+echo "Attempting to install fonts from repository..."
 sudo yum install -y \
-    wqy-microhei-fonts \
-    wqy-zenhei-fonts \
     dejavu-sans-fonts \
     dejavu-serif-fonts \
-    dejavu-sans-mono-fonts
+    dejavu-sans-mono-fonts \
+    google-noto-sans-cjk-fonts \
+    google-noto-serif-cjk-fonts 2>/dev/null || {
+    echo "Repository fonts not available, will download manually"
+}
 
 echo -e "\n[3/5] Updating font cache..."
 sudo fc-cache -fv

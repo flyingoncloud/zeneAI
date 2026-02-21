@@ -10,38 +10,74 @@ logger = logging.getLogger(__name__)
 
 # Set font for Chinese characters
 def setup_chinese_font():
-    """Setup Chinese font for matplotlib with better detection"""
+    """Setup Chinese font for matplotlib with enhanced detection"""
     # Try multiple Chinese fonts in order of preference
-    chinese_fonts = [
+    chinese_font_patterns = [
+        # Exact names
         'SimHei',           # 黑体 (Windows)
         'Microsoft YaHei',  # 微软雅黑 (Windows)
         'PingFang SC',      # 苹方 (macOS)
         'Heiti SC',         # 黑体-简 (macOS)
         'STHeiti',          # 华文黑体 (macOS)
         'WenQuanYi Micro Hei',  # 文泉驿微米黑 (Linux)
-        'Noto Sans CJK SC', # 思源黑体 (Linux)
-        'Arial Unicode MS'  # Fallback
+        'WenQuanYi Zen Hei',    # 文泉驿正黑 (Linux)
+        'Noto Sans CJK SC',     # 思源黑体 (Linux)
+        'Noto Sans CJK',        # 思源黑体 (Linux, generic)
+        'Noto Serif CJK SC',    # 思源宋体 (Linux)
+        'Droid Sans Fallback',  # Android fallback
+        'Arial Unicode MS',     # Fallback
+        # Partial matches (will search for these substrings)
+        'Noto',
+        'WenQuanYi',
+        'Droid',
+        'CJK'
     ]
 
     # Get available fonts
     fm = FontManager()
-    available_fonts = set([f.name for f in fm.ttflist])
+    available_fonts = {f.name: f for f in fm.ttflist}
 
-    # Try to find a Chinese font
+    logger.info(f"Total fonts available: {len(available_fonts)}")
+
+    # Try exact match first
     font_found = None
-    for font in chinese_fonts:
-        if font in available_fonts:
-            font_found = font
-            logger.info(f"Using Chinese font: {font}")
+    for font_name in chinese_font_patterns[:12]:  # First 12 are exact names
+        if font_name in available_fonts:
+            font_found = font_name
+            logger.info(f"✓ Found Chinese font (exact match): {font_name}")
             break
 
+    # If no exact match, try partial match
+    if not font_found:
+        for pattern in chinese_font_patterns[12:]:  # Last 4 are patterns
+            for font_name in available_fonts.keys():
+                if pattern.lower() in font_name.lower():
+                    font_found = font_name
+                    logger.info(f"✓ Found Chinese font (partial match): {font_name} (matched pattern: {pattern})")
+                    break
+            if font_found:
+                break
+
     if font_found:
-        plt.rcParams['font.sans-serif'] = [font_found]
+        plt.rcParams['font.sans-serif'] = [font_found, 'DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
+        logger.info(f"✓ Chinese font configured successfully: {font_found}")
         return True
     else:
-        # Log warning but continue with default
-        logger.warning("No Chinese font found. Chinese characters may display as boxes. Available fonts: " + str(list(available_fonts)[:10]))
+        # Log detailed warning
+        logger.warning("=" * 80)
+        logger.warning("⚠️  NO CHINESE FONT FOUND!")
+        logger.warning("Chinese characters will display as boxes (□)")
+        logger.warning("")
+        logger.warning("Available fonts (first 20):")
+        for i, font_name in enumerate(list(available_fonts.keys())[:20]):
+            logger.warning(f"  {i+1}. {font_name}")
+        logger.warning("")
+        logger.warning("To fix this issue:")
+        logger.warning("1. Install Chinese fonts: bash install-chinese-fonts-simple.sh")
+        logger.warning("2. Restart backend: pm2 restart zeneai-backend")
+        logger.warning("=" * 80)
+
         plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
         return False
