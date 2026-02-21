@@ -147,7 +147,11 @@ class QuestionnaireProgressService:
         logger.info(f"Question {question_id}: text='{question.text[:50]}...', category={question.category}, template={question.template}")
 
         # SKIP special templates that send non-score values
-        SKIP_TEMPLATES = ['F6', 'F7']  # F6=animal ranking, F7=direction dial
+        SKIP_TEMPLATES = ['F7']  # F7=direction dial (sends 0-360 degrees)
+
+        # F6 ranking conversion: rank 1→5 points, rank 2→3 points, rank 3→1 point
+        F6_RANK_TO_SCORE = {1: 5, 2: 3, 3: 1}
+
         if question.template in SKIP_TEMPLATES:
             logger.warning(f"⚠️ SKIPPING scoring for template {question.template} question {question_id} - special template sends non-score values")
 
@@ -181,6 +185,12 @@ class QuestionnaireProgressService:
                 'category_scores': progress.category_scores,
                 'is_completed': False
             }
+
+        # Convert F6 ranking to score (rank 1→5, rank 2→3, rank 3→1)
+        if question.template == 'F6':
+            converted_score = F6_RANK_TO_SCORE.get(answer_value, 0)
+            logger.info(f"F6 ranking conversion: rank {answer_value} → score {converted_score}")
+            answer_value = converted_score
 
         # Update answers - Store by question_number for consistency with scoring
         # Create new dict to ensure SQLAlchemy detects change
@@ -398,7 +408,7 @@ class QuestionnaireProgressService:
         logger.info(f"📊 Calculating total possible scores for ALL dimensions:")
 
         # Templates to skip (they send non-score values)
-        SKIP_TEMPLATES = ['F6', 'F7']  # F6=animal ranking, F7=direction dial
+        SKIP_TEMPLATES = ['F7']  # F7=direction dial (sends 0-360 degrees)
 
         # Get ALL published questions in the questionnaire (not just answered ones)
         all_questions = db.query(AssessmentQuestion).filter(
@@ -419,18 +429,22 @@ class QuestionnaireProgressService:
                 logger.warning(f"   Q{q.question_number} (cat {q.category}): No dimension mapping")
                 continue
 
-            # Sum all option scores for this question
+            # Get maximum score for this question (not sum of all options)
             if q.options and isinstance(q.options, list) and len(q.options) > 0:
                 # Try 'score' first, fall back to 'value' for legacy questions
                 option_scores = [opt.get('score', opt.get('value', 0)) for opt in q.options if isinstance(opt, dict)]
-                total_for_question = sum(option_scores)
-                dimension_total_possible_scores[dimension] += total_for_question
-                logger.info(f"   Q{q.question_number} (cat {q.category}): options={option_scores}, sum={total_for_question} → {dimension}")
+                max_score = max(option_scores) if option_scores else 0
+                dimension_total_possible_scores[dimension] += max_score
+                logger.info(f"   Q{q.question_number} (cat {q.category}): options={option_scores}, max={max_score} → {dimension}")
             elif q.template == 'F1':
                 # F1 template with empty options - assume standard 1-5 scale
-                # Total possible = 1+2+3+4+5 = 15
-                dimension_total_possible_scores[dimension] += 15
-                logger.info(f"   Q{q.question_number} (cat {q.category}): F1 default [1,2,3,4,5], sum=15 → {dimension}")
+                # Maximum possible = 5
+                dimension_total_possible_scores[dimension] += 5
+                logger.info(f"   Q{q.question_number} (cat {q.category}): F1 default [1,2,3,4,5], max=5 → {dimension}")
+            elif q.template == 'F6':
+                # F6 ranking template - max score is 5 (rank 1 converts to 5 points)
+                dimension_total_possible_scores[dimension] += 5
+                logger.info(f"   Q{q.question_number} (cat {q.category}): F6 ranking, max=5 → {dimension}")
 
         logger.info(f"📊 Total possible scores per dimension (ALL questions): {dimension_total_possible_scores}")
 
@@ -440,12 +454,13 @@ class QuestionnaireProgressService:
             total_possible = dimension_total_possible_scores.get(dimension, 0)
 
             if total_possible > 0:
-                # Normalize to 0-100 scale
+                # Normalize to 0-100 scale as integer
                 normalized_score = (actual_score / total_possible) * 100
-                # Cap at 100% (in case of data issues like duplicate answers or zero-scored options)
+                # Cap at 100% (in case of data issues)
                 normalized_score = min(normalized_score, 100)
-                normalized_scores[dimension] = round(normalized_score, 2)
-                logger.info(f"   {dimension}: {actual_score}/{total_possible} = {normalized_score:.2f}/100")
+                # Round to integer
+                normalized_scores[dimension] = round(normalized_score)
+                logger.info(f"   {dimension}: {actual_score}/{total_possible} = {normalized_score:.2f}/100 → {normalized_scores[dimension]}")
             else:
                 normalized_scores[dimension] = 0
                 logger.info(f"   {dimension}: No questions in database → 0/100")
