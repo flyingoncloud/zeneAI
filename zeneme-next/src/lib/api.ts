@@ -774,7 +774,7 @@ export async function getQuestionnaireResponses(conversationId: number): Promise
 export interface PsychologyReportStatus {
   ok: boolean;
   report_id: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'not_found';
   progress?: number;
   current_step?: string;
   estimated_time_remaining?: number;

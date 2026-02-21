@@ -97,7 +97,7 @@ export const InnerQuickTest: React.FC = () => {
 
   // Report generation state
   const [reportId, setReportId] = useState<number | null>(null);
-  const [reportStatus, setReportStatus] = useState<string>('');
+  const [reportStatus, setReportStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | 'not_found' | ''>('');
   const [reportProgress, setReportProgress] = useState<number>(0);
   const [reportData, setReportData] = useState<any>(null);
 
