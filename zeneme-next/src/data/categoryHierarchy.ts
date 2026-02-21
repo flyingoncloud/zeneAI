@@ -18,7 +18,27 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
     code: "2.1",
     name: "情绪觉察",
     nameEn: "Emotional Awareness",
-    description: "Ability to recognize and understand emotions"
+    description: "Ability to recognize and understand emotions",
+    children: {
+      "2.1.1": {
+        code: "2.1.1",
+        name: "情绪识别与表达",
+        nameEn: "Emotion Recognition and Expression",
+        description: "Ability to identify and express emotions"
+      },
+      "2.1.2": {
+        code: "2.1.2",
+        name: "情绪调节与恢复",
+        nameEn: "Emotion Regulation and Recovery",
+        description: "Ability to regulate emotions and recover from distress"
+      },
+      "2.1.3": {
+        code: "2.1.3",
+        name: "情绪倾向与风险",
+        nameEn: "Emotional Tendencies and Risks",
+        description: "Emotional patterns and potential risks"
+      }
+    }
   },
   "2.2": {
     code: "2.2",

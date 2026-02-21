@@ -302,6 +302,9 @@ class QuestionnaireProgressService:
         # Mapping from category IDs to dimension names
         CATEGORY_TO_DIMENSION = {
             '2.1': 'emotional_regulation',      # 情绪调节能力
+            '2.1.1': 'emotional_regulation',    # Emotion Recognition and Expression
+            '2.1.2': 'emotional_regulation',    # Emotion Regulation and Recovery
+            '2.1.3': 'emotional_regulation',    # Emotional Tendencies and Risks
             '2.2': 'cognitive_flexibility',     # 认知重构能力
             '2.2.1': 'cognitive_flexibility',
             '2.2.1.1': 'cognitive_flexibility',  # Managers
@@ -485,6 +488,7 @@ class QuestionnaireProgressService:
                 relationship_sensitivity_score=relationship_sensitivity,
                 internal_conflict_score=internal_conflict,
                 growth_potential_score=growth_potential,
+                sub_dimension_scores=category_scores,  # Store category scores for sub-category analysis
                 extra_data={'conversation_id': progress.conversation_id}
             )
             db.add(assessment)
@@ -497,6 +501,7 @@ class QuestionnaireProgressService:
             assessment.relationship_sensitivity_score = relationship_sensitivity
             assessment.internal_conflict_score = internal_conflict
             assessment.growth_potential_score = growth_potential
+            assessment.sub_dimension_scores = category_scores  # Store category scores for sub-category analysis
 
         db.commit()
         db.refresh(assessment)

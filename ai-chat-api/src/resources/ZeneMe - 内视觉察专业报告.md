@@ -49,7 +49,7 @@
 ### 1.1 心理状态概览
 此部分如一幅心灵概览图，为你汇聚并照亮整体心理状态的五个核心心智指数。透过关键指标的摘要，助你一眼洞见内心的基本轮廓与能量流动。
 
-![Header Image](extracted_images/image24.png)
+![Radar Chart](extracted_images/radar_chart.png)
 
 ### 1.2 个人五大核心心智雷达图释义
 本图展示 Zeneme 心智结构评估中的五大关键维度：
@@ -65,7 +65,44 @@
 5. **成长潜能指数（{{mind_indices.growth_potential}}）**
    评估学习意愿、心理韧性、自我修复与成长动力。分数越高，表示未来可发展性越强。
 
-![Radar Chart](extracted_images/radar_chart.png)
+
+
+### 1.3 五大维度详细解读
+
+以下是基于你的得分对每个维度的详细解读，包括当前状态评估和个性化建议。
+
+{% for dimension_key, details in dimension_details.items() %}
+#### {{details.code}} {{details.dimension}}（{{details.dimension_en}}）
+**得分**：{{details.score}} / 100 - {{details.range_label}}
+
+**维度说明**：{{details.description}}
+
+**你的状态**：{{details.interpretation}}
+
+**发展建议**：
+{% for recommendation in details.recommendations %}
+- {{recommendation}}
+{% endfor %}
+
+{% endfor %}
+
+### 1.4 子类别活跃度分析
+
+在主要类别下，我们进一步分析了各个子类别的活跃程度，帮助你更精准地了解自己的心理模式。
+
+{% for category_code, analysis in subcategory_analysis.items() %}
+#### {{category_code}} 类别分析
+
+**最活跃子类别**：{{analysis.highest_subcategory.name}}（{{analysis.highest_subcategory.name_en}}）- {{analysis.highest_subcategory.score}}分
+{{analysis.highest_subcategory.interpretation}}
+
+**最不活跃子类别**：{{analysis.lowest_subcategory.name}}（{{analysis.lowest_subcategory.name_en}}）- {{analysis.lowest_subcategory.score}}分
+{{analysis.lowest_subcategory.interpretation}}
+
+**综合分析**：{{analysis.summary}}
+
+---
+{% endfor %}
 
 ---
 
@@ -78,16 +115,52 @@
 情绪觉察是指能够及时识别并理解自己在不同情境下所产生的情绪；分值越高，说明情绪调节更稳定。
 
 #### 用户目前的状况
-图中的红点坐标显示你在三个维度上的当前状态：情绪识别与表达、情绪调节与恢复、以及情绪倾向与风险。这些信息可以帮助你更好地了解自己，并找到进一步优化情绪管理的方法。
+以下三个维度显示你在情绪觉察方面的当前状态，这些信息可以帮助你更好地了解自己，并找到进一步优化情绪管理的方法。
 
-![Emotional Insight Chart](extracted_images/image5.png)
+**情绪识别与表达能力**：
 
-- **情绪识别、表达能力**：{{emotional_insight.status.recognition_expression}}
-- **情绪调节和恢复能力**：{{emotional_insight.status.regulation_recovery}}
-- **情绪倾向与风险指数**：{{emotional_insight.status.tendency_risk}}
+![情绪识别与表达](extracted_images/emotion_recognition_expression.png)
+
+{{emotional_insight.status.recognition_expression}}
+
+**情绪调节与恢复能力**：
+
+![情绪调节与恢复](extracted_images/emotion_regulation_recovery.png)
+
+{{emotional_insight.status.regulation_recovery}}
+
+**情绪倾向与风险指数**：
+
+![情绪倾向与风险](extracted_images/emotion_tendency_risk.png)
+
+{{emotional_insight.status.tendency_risk}}
+
+{% if subcategory_analysis['2.1'] %}
+**子类别活跃度分析**：
+
+在情绪觉察维度中，你的**{{subcategory_analysis['2.1'].highest_subcategory.name}}**能力最为突出（{{subcategory_analysis['2.1'].highest_subcategory.score}}分），{{subcategory_analysis['2.1'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.1'].lowest_subcategory.name}}**相对较弱（{{subcategory_analysis['2.1'].lowest_subcategory.score}}分），{{subcategory_analysis['2.1'].lowest_subcategory.interpretation}}
+{% endif %}
 
 #### 对用户的影响
-你的分值属于中等偏高，仅反映你在情绪调节方面的当下状态，并不代表你的整体能力。这些分值显示你在情绪识别、调节和风险管理方面具备一定基础，但仍有提升空间，意味着通过练习和自我调节可以进一步增强情绪稳定性和应对能力。
+{% if dimension_details.emotional_regulation %}
+{{dimension_details.emotional_regulation.interpretation}}
+{% else %}
+你的分值反映你在情绪调节方面的当下状态。这些分值显示你在情绪识别、调节和风险管理方面的表现，意味着通过练习和自我调节可以进一步增强情绪稳定性和应对能力。
+{% endif %}
+
+#### 专业解读与建议
+{% if dimension_details.emotional_regulation %}
+**当前状态评估**：{{dimension_details.emotional_regulation.range_label}}
+
+{{dimension_details.emotional_regulation.interpretation}}
+
+**个性化发展建议**：
+{% for recommendation in dimension_details.emotional_regulation.recommendations %}
+- {{recommendation}}
+{% endfor %}
+{% endif %}
 
 ---
 
@@ -123,7 +196,15 @@
 **用户目前的状况**：{{cognitive_insight.inner_system.current_status}}
 **对用户的影响**：{{cognitive_insight.inner_system.impact_analysis}}
 
-![Inner System Image](extracted_images/image1.jpg)
+{% if subcategory_analysis['2.2.1'] %}
+**子类别活跃度分析**：
+
+在自我内在系统中，你的**{{subcategory_analysis['2.2.1'].highest_subcategory.name}}**部分最为活跃（{{subcategory_analysis['2.2.1'].highest_subcategory.score}}分），{{subcategory_analysis['2.2.1'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.2.1'].lowest_subcategory.name}}**部分相对较弱（{{subcategory_analysis['2.2.1'].lowest_subcategory.score}}分），{{subcategory_analysis['2.2.1'].lowest_subcategory.interpretation}}
+{% endif %}
+
+![内在系统角色图](extracted_images/inner_system_roles.jpg)
 
 #### 2.2.2 自动思维模式
 **定义**
@@ -140,7 +221,15 @@
 **用户目前的状况**：{{cognitive_insight.automatic_thought.pattern}}
 **对用户的影响**：{{cognitive_insight.automatic_thought.impact}}
 
-![Automatic Thought Image](extracted_images/image2.png)
+{% if subcategory_analysis['2.2.2'] %}
+**子类别活跃度分析**：
+
+在自动思维模式中，你的**{{subcategory_analysis['2.2.2'].highest_subcategory.name}}**模式最为明显（{{subcategory_analysis['2.2.2'].highest_subcategory.score}}分），{{subcategory_analysis['2.2.2'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.2.2'].lowest_subcategory.name}}**模式较少出现（{{subcategory_analysis['2.2.2'].lowest_subcategory.score}}分），{{subcategory_analysis['2.2.2'].lowest_subcategory.interpretation}}
+{% endif %}
+
+![自动思维模式图](extracted_images/automatic_thought_patterns.png)
 
 #### 2.2.3 视角转换能力（Perspective Shifting）
 **定义**
@@ -156,6 +245,14 @@
 - ✅ **情绪视角转换（Emotional Perspective Taking）**：理解并采用他人的情绪立场，或从情绪化状态切换到理性状态。
 
 **用户目前的状况**：{{cognitive_insight.perspective_shifting.summary}} ({{cognitive_insight.perspective_shifting.stars}})
+
+{% if subcategory_analysis['2.2.3'] %}
+**子类别活跃度分析**：
+
+在视角转换能力中，你的**{{subcategory_analysis['2.2.3'].highest_subcategory.name}}**能力最强（{{subcategory_analysis['2.2.3'].highest_subcategory.score}}分），{{subcategory_analysis['2.2.3'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.2.3'].lowest_subcategory.name}}**能力相对较弱（{{subcategory_analysis['2.2.3'].lowest_subcategory.score}}分），{{subcategory_analysis['2.2.3'].lowest_subcategory.interpretation}}
+{% endif %}
 
 ![Perspective Shifting Image](extracted_images/perspective_bar_chart.png)
 
@@ -176,7 +273,26 @@
 **用户目前的状况**：{{cognitive_insight.narrative_structure.type}}
 **对用户的影响**：{{cognitive_insight.narrative_structure.summary}}
 
-![Narrative Structure Image](extracted_images/image6.png)
+{% if subcategory_analysis['2.2.4'] %}
+**子类别活跃度分析**：
+
+在内在叙事结构中，你的**{{subcategory_analysis['2.2.4'].highest_subcategory.name}}**叙事最为突出（{{subcategory_analysis['2.2.4'].highest_subcategory.score}}分），{{subcategory_analysis['2.2.4'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.2.4'].lowest_subcategory.name}}**叙事较少（{{subcategory_analysis['2.2.4'].lowest_subcategory.score}}分），{{subcategory_analysis['2.2.4'].lowest_subcategory.interpretation}}
+{% endif %}
+
+{% if dimension_details.cognitive_flexibility %}
+**认知灵活度整体评估**：{{dimension_details.cognitive_flexibility.range_label}}
+
+{{dimension_details.cognitive_flexibility.interpretation}}
+
+**个性化发展建议**：
+{% for recommendation in dimension_details.cognitive_flexibility.recommendations %}
+- {{recommendation}}
+{% endfor %}
+{% endif %}
+
+![叙事结构类型图](extracted_images/narrative_structure_types.png)
 
 ---
 
@@ -197,7 +313,15 @@
 - [{{ 'x' if relational_insight.attachment_pattern.avoidant else ' ' }}] 回避型:在关系中倾向保持情感距离，以减少受伤风险
 - [{{ 'x' if relational_insight.attachment_pattern.disorganized else ' ' }}] 混乱型:在渴望亲密与害怕靠近之间反复摇摆
 
-![Attachment Pattern Image](extracted_images/image12.png)
+{% if subcategory_analysis['2.3.1'] %}
+**子类别活跃度分析**：
+
+在依恋结构中，你的**{{subcategory_analysis['2.3.1'].highest_subcategory.name}}**依恋模式最为明显（{{subcategory_analysis['2.3.1'].highest_subcategory.score}}分），{{subcategory_analysis['2.3.1'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.3.1'].lowest_subcategory.name}}**依恋模式较弱（{{subcategory_analysis['2.3.1'].lowest_subcategory.score}}分），{{subcategory_analysis['2.3.1'].lowest_subcategory.interpretation}}
+{% endif %}
+
+![依恋结构模式图](extracted_images/attachment_pattern_types.png)
 
 #### 2.3.2 冲突触发点（Relational Triggers）
 **定义**
@@ -207,7 +331,7 @@
 
 **用户目前的状况**：{{relational_insight.conflict_triggers.status}}
 
-![Conflict Triggers Image](extracted_images/image7.png)
+![冲突触发点关系图](extracted_images/conflict_triggers_map.png)
 
 #### 2.3.3 共情能力（Empathy Index）
 **定义**
@@ -219,7 +343,7 @@
 **用户目前的状况**
 坐标图用于呈现你在不同共情维度上的相对位置，帮助你直观理解当前的共情倾向，而非对能力高低的评判。
 
-![Empathy Index Image](extracted_images/image8.png)
+![共情能力维度图](extracted_images/empathy_dimensions.png)
 
 #### 2.3.4 内在冲突度 (Inner Conflict Level)
 **定义**
@@ -228,7 +352,29 @@
 **用户目前的状况**
 内在冲突的呈现由低到高，帮助你理解当前哪些心理拉扯更需要被关注与整合。
 
-![Inner Conflict Image](extracted_images/image13.png)
+{% if dimension_details.relationship_sensitivity %}
+**关系敏感度整体评估**：{{dimension_details.relationship_sensitivity.range_label}}
+
+{{dimension_details.relationship_sensitivity.interpretation}}
+
+**个性化发展建议**：
+{% for recommendation in dimension_details.relationship_sensitivity.recommendations %}
+- {{recommendation}}
+{% endfor %}
+{% endif %}
+
+{% if dimension_details.internal_conflict %}
+**内在冲突度整体评估**：{{dimension_details.internal_conflict.range_label}}
+
+{{dimension_details.internal_conflict.interpretation}}
+
+**个性化发展建议**：
+{% for recommendation in dimension_details.internal_conflict.recommendations %}
+- {{recommendation}}
+{% endfor %}
+{% endif %}
+
+![内在冲突度图](extracted_images/inner_conflict_level.png)
 
 ---
 
@@ -240,7 +386,7 @@
 你在性格测试题中的情绪体验与决策方式中的倾向，评估结果显示你的性格类型：
 【{{personality_style.type}}】
 
-![Personality Style Image](extracted_images/image4.jpg)
+![性格类型图](extracted_images/personality_style_type.jpg)
 
 ---
 
@@ -267,6 +413,25 @@
 成长潜能逻辑：韧性强，意味着在挑战中保持能量并持续成长。
 **得分**：{{growth_potential.resilience}} 分
 
+{% if subcategory_analysis['2.5'] %}
+**子类别活跃度分析**：
+
+在成长潜能的三个维度中，你的**{{subcategory_analysis['2.5'].highest_subcategory.name}}**最为突出（{{subcategory_analysis['2.5'].highest_subcategory.score}}分），{{subcategory_analysis['2.5'].highest_subcategory.interpretation}}
+
+而**{{subcategory_analysis['2.5'].lowest_subcategory.name}}**相对较弱（{{subcategory_analysis['2.5'].lowest_subcategory.score}}分），{{subcategory_analysis['2.5'].lowest_subcategory.interpretation}}
+{% endif %}
+
+{% if dimension_details.growth_potential %}
+**成长潜能整体评估**：{{dimension_details.growth_potential.range_label}}
+
+{{dimension_details.growth_potential.interpretation}}
+
+**个性化发展建议**：
+{% for recommendation in dimension_details.growth_potential.recommendations %}
+- {{recommendation}}
+{% endfor %}
+{% endif %}
+
 ![Growth Potential Chart](extracted_images/growth_bar_chart.png)
 
 ---
@@ -277,7 +442,7 @@
 
 基于以上内视觉察报告，您已经对自我有了深度的了解。我们根据您的内在系统、认知结构和性格特征，为您提供以下不同视角的个人发展专属建议。从多个心理学视角出发，为你设计了一套循序渐进的心智训练建议，帮助你将觉察转化为行动，将潜在能力转化为真实的发展力量。希望您通过独有的高级心智训练系统，实现个体化全面发展，为您点亮前行之路。
 
-![Development Plan Header](extracted_images/image9.png)
+![发展建议标题图](extracted_images/development_plan_header.png)
 
 ### 3.1 自我 ID 原型复盘(Identity Archetypes Mapping)
 **定义**

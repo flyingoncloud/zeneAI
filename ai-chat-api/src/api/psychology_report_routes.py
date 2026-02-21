@@ -20,13 +20,17 @@ from src.database.psychology_models import PsychologyAssessment, PsychologyRepor
 from src.services.psychology.dominant_elements import identify_all_dominant_elements
 from src.services.psychology.analysis_generator import generate_all_analysis_texts
 from src.services.psychology.personality_classifier import classify_and_save_personality
+from src.services.psychology.pattern_detector import detect_all_patterns
 from src.services.psychology.report_assembler import assemble_report_data
 from src.services.psychology.docx_generator import generate_psychology_report_docx
 from src.resources.drawing_utils import (
     draw_radar_chart,
     draw_perspective_bar_chart,
     draw_relational_rating_scale,
-    draw_growth_bar_chart
+    draw_growth_bar_chart,
+    draw_emotion_recognition_expression,
+    draw_emotion_regulation_recovery,
+    draw_emotion_tendency_risk
 )
 
 logger = logging.getLogger(__name__)
@@ -86,8 +90,7 @@ def generate_report_background(
     report_id: int,
     assessment_id: int,
     user_id: str,
-    language: str,
-    db_session: Session
+    language: str
 ):
     """
     Background task for report generation.
@@ -95,19 +98,34 @@ def generate_report_background(
     Steps:
     1. Identify dominant elements
     2. Generate analysis texts
-    3. Classify personality style
+    3. Classify personality style and detect patterns
     4. Assemble report data
     5. Generate charts
     6. Generate DOCX report
     7. Update report status
+
+    Note: Creates its own database session to avoid issues with closed sessions.
     """
+    db_session = None
+
     try:
+        # Create a new database session for the background task
+        from src.database.database import SessionLocal
+        # Import all models to avoid relationship resolution issues
+        from src.database import models
+        from src.database import progress_models
+
+        db_session = SessionLocal()
+
         logger.info(f"Starting background report generation for report_id={report_id}")
+        logger.info(f"Database session created successfully")
 
         # Get assessment
         assessment = db_session.query(PsychologyAssessment).filter(
             PsychologyAssessment.id == assessment_id
         ).first()
+
+        logger.info(f"Assessment query completed: found={assessment is not None}")
 
         if not assessment:
             raise ValueError(f"Assessment {assessment_id} not found")
@@ -126,8 +144,8 @@ def generate_report_background(
             language=language
         )
 
-        # Step 3: Classify personality style
-        logger.info("Step 3: Classifying personality style")
+        # Step 3: Classify personality style and detect patterns
+        logger.info("Step 3: Classifying personality style and detecting patterns")
         dimension_scores = {
             'emotional_regulation': assessment.emotional_regulation_score or 0,
             'cognitive_flexibility': assessment.cognitive_flexibility_score or 0,
@@ -142,14 +160,30 @@ def generate_report_background(
             db_session=db_session
         )
 
+        # Get category scores from assessment for pattern detection and sub-category analysis
+        category_scores = assessment.sub_dimension_scores or {}
+
+        # Detect IFS parts, cognitive patterns, and narrative types
+        logger.info("Detecting IFS parts, cognitive patterns, and narrative types")
+        pattern_results = detect_all_patterns(
+            assessment_id=assessment_id,
+            category_scores=category_scores,
+            db_session=db_session,
+            user_id=user_id
+        )
+        logger.info(f"Pattern detection complete: {len(pattern_results['ifs_parts'])} IFS parts, "
+                   f"{len(pattern_results['cognitive_patterns'])} cognitive patterns")
+
         # Step 4: Assemble report data
         logger.info("Step 4: Assembling report data")
+
         report_data = assemble_report_data(
             assessment_id=assessment_id,
             dominant_elements=dominant_elements,
             analysis_texts=analysis_texts,
             db_session=db_session,
-            language=language
+            language=language,
+            category_scores=category_scores  # Pass category scores for sub-category analysis
         )
 
         # Step 5: Generate charts
@@ -165,6 +199,25 @@ def generate_report_background(
         draw_perspective_bar_chart(report_data, str(charts_dir / "perspective_bar_chart.png"))
         draw_relational_rating_scale(report_data, str(charts_dir / "relational_rating_scale.png"))
         draw_growth_bar_chart(report_data, str(charts_dir / "growth_bar_chart.png"))
+
+        # Generate emotional awareness sub-category charts
+        # Get scores from category_scores (2.1.1, 2.1.2, 2.1.3)
+        emotion_recognition_score = category_scores.get('2.1.1', 50)  # Default to 50 if not found
+        emotion_regulation_score = category_scores.get('2.1.2', 50)
+        emotion_tendency_score = category_scores.get('2.1.3', 50)
+
+        draw_emotion_recognition_expression(
+            emotion_recognition_score,
+            str(charts_dir / "emotion_recognition_expression.png")
+        )
+        draw_emotion_regulation_recovery(
+            emotion_regulation_score,
+            str(charts_dir / "emotion_regulation_recovery.png")
+        )
+        draw_emotion_tendency_risk(
+            emotion_tendency_score,
+            str(charts_dir / "emotion_tendency_risk.png")
+        )
 
         logger.info(f"Charts generated in {charts_dir}")
 
@@ -204,21 +257,42 @@ def generate_report_background(
 
     except Exception as e:
         logger.error(f"Error in background report generation: {e}", exc_info=True)
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error details: report_id={report_id}, assessment_id={assessment_id}")
 
         # Update report status to failed
         try:
+            # Create a new session if the previous one failed
+            if db_session is None:
+                from src.database.database import SessionLocal
+                db_session = SessionLocal()
+                logger.info("Created new database session for error handling")
+
             report = db_session.query(PsychologyReport).filter(
                 PsychologyReport.id == report_id
             ).first()
 
             if report:
                 report.generation_status = 'failed'
-                report.error_message = str(e)
+                report.error_message = f"{type(e).__name__}: {str(e)}"
                 db_session.commit()
+                logger.info(f"Updated report {report_id} status to 'failed'")
+            else:
+                logger.error(f"Report {report_id} not found in database for error update")
         except Exception as update_error:
-            logger.error(f"Failed to update report status to failed: {update_error}")
+            logger.error(f"Failed to update report status to failed: {update_error}", exc_info=True)
 
-        db_session.rollback()
+        if db_session:
+            db_session.rollback()
+
+    finally:
+        # Always close the database session
+        if db_session:
+            try:
+                db_session.close()
+                logger.info(f"Database session closed for report {report_id}")
+            except Exception as close_error:
+                logger.error(f"Error closing database session: {close_error}")
 
 
 @router.post("/report/generate", response_model=ReportGenerationResponse)
@@ -257,6 +331,21 @@ async def generate_report(
                 error=f"Assessment must be at least 70% complete (current: {completion_percentage}%)"
             )
 
+        # Check if there's already a pending or processing report for this assessment
+        existing_report = db.query(PsychologyReport).filter(
+            PsychologyReport.assessment_id == request.assessment_id,
+            PsychologyReport.generation_status.in_(['pending', 'processing'])
+        ).first()
+
+        if existing_report:
+            logger.info(f"Found existing {existing_report.generation_status} report {existing_report.id} for assessment {request.assessment_id}")
+            return ReportGenerationResponse(
+                ok=True,
+                report_id=existing_report.id,
+                status=existing_report.generation_status,
+                estimated_completion_time=30
+            )
+
         # Create psychology_reports record with status "pending"
         report = PsychologyReport(
             user_id=assessment.user_id,
@@ -279,8 +368,7 @@ async def generate_report(
             report_id=report.id,
             assessment_id=request.assessment_id,
             user_id=assessment.user_id,
-            language=request.language,
-            db_session=db
+            language=request.language
         )
 
         return ReportGenerationResponse(

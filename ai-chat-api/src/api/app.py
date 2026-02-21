@@ -1304,8 +1304,7 @@ def submit_questionnaire_response(
                     report_id=report.id,
                     assessment_id=assessment.id,
                     user_id=user_id,  # Use the same user_id (with fallback)
-                    language='zh',
-                    db_session=db
+                    language='zh'
                 )
 
         return {
@@ -1506,8 +1505,7 @@ def save_questionnaire_answer(
                         report_id=result['report_id'],
                         assessment_id=assessment.id,
                         user_id=progress.user_id,
-                        language='zh',
-                        db_session=db
+                        language='zh'
                     )
 
         return result

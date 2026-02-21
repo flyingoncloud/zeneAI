@@ -191,8 +191,8 @@ class DocxReportGenerator:
         # Check if image exists
         if os.path.exists(image_path):
             try:
-                # Add image with appropriate width
-                doc.add_picture(image_path, width=Inches(5.5))
+                # Add image with appropriate width (reduced from 5.5 to 4.5 inches)
+                doc.add_picture(image_path, width=Inches(4.5))
                 # Center the image
                 last_paragraph = doc.paragraphs[-1]
                 last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER

@@ -109,10 +109,45 @@ export const InnerQuickTest: React.FC = () => {
 
   // Poll for report status
   useEffect(() => {
-    if (!reportId || reportStatus === 'completed' || reportStatus === 'failed') {
+    if (!reportId) {
       return;
     }
 
+    // Immediately check status on mount or when reportId changes
+    const checkStatus = async () => {
+      try {
+        const status = await getPsychologyReportStatus(reportId);
+        setReportStatus(status.status);
+        setReportProgress(status.progress || 0);
+
+        if (status.status === 'failed' || status.status === 'not_found') {
+          toast.error('报告生成失败，请重试或联系客服。');
+          setTimeout(() => {
+            resetTest();
+          }, 2000);
+          return;
+        }
+
+        if (status.status === 'completed') {
+          if (status.report_data) {
+            setReportData(status.report_data);
+          }
+          toast.success('报告生成完成！您可以下载查看。');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking initial report status:', error);
+      }
+    };
+
+    checkStatus();
+
+    // If already completed or failed, don't start polling
+    if (reportStatus === 'completed' || reportStatus === 'failed') {
+      return;
+    }
+
+    // Start polling for pending/processing reports
     const pollInterval = setInterval(async () => {
       try {
         const status = await getPsychologyReportStatus(reportId);
@@ -127,12 +162,22 @@ export const InnerQuickTest: React.FC = () => {
           }
           toast.success('报告生成完成！您可以下载查看。');
           clearInterval(pollInterval);
-        } else if (status.status === 'failed') {
-          toast.error('报告生成失败，请联系客服。');
+        } else if (status.status === 'failed' || status.status === 'not_found') {
+          toast.error('报告生成失败，请重试或联系客服。');
           clearInterval(pollInterval);
+          // Reset to main page after 2 seconds
+          setTimeout(() => {
+            resetTest();
+          }, 2000);
         }
       } catch (error) {
         console.error('Error polling report status:', error);
+        // If polling fails multiple times, also reset
+        toast.error('无法获取报告状态，请重试。');
+        clearInterval(pollInterval);
+        setTimeout(() => {
+          resetTest();
+        }, 2000);
       }
     }, 2000); // Poll every 2 seconds
 
@@ -765,9 +810,9 @@ export const InnerQuickTest: React.FC = () => {
                   className="w-full h-full object-contain"
                 />
               )}
-             </div> 
+             </div>
             </div>
-          </div>  
+          </div>
           )}
 
           <div className="max-w-2xl mx-auto w-full">
@@ -1159,7 +1204,7 @@ export const InnerQuickTest: React.FC = () => {
                       display: 'grid',
                       gridTemplateColumns: currentQuestion.options.length <= 4 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
                       gap: '1rem',
-                      gridAutoRows: '1fr', 
+                      gridAutoRows: '1fr',
                       }}
                   >
                     {currentQuestion.options.map((option: QuestionOption) => (

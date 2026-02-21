@@ -22,6 +22,8 @@ from src.services.psychology.status_calculator import (
     calculate_perspective_shifting_summary,
     calculate_attachment_boolean_flags
 )
+from src.services.psychology.dimension_descriptions import interpret_all_dimensions
+from src.services.psychology.subcategory_analyzer import analyze_all_subcategories
 
 logger = logging.getLogger(__name__)
 
@@ -331,13 +333,15 @@ def get_personality_style_section(
 
 
 def get_growth_potential_section(
-    assessment: PsychologyAssessment
+    assessment: PsychologyAssessment,
+    db_session: Session
 ) -> Dict[str, int]:
     """
-    Get growth potential breakdown.
+    Get growth potential breakdown with normalized sub-category scores.
 
     Args:
         assessment: PsychologyAssessment record
+        db_session: Database session
 
     Returns:
         {
@@ -349,15 +353,101 @@ def get_growth_potential_section(
     """
     logger.info(f"Getting growth potential for assessment {assessment.id}")
 
-    # Get sub-dimension scores
+    # Get sub-dimension scores (raw category scores)
     sub_scores = assessment.sub_dimension_scores or {}
-    growth_sub_scores = sub_scores.get('growth_potential', {})
+
+    # Map category codes to field names
+    # '2.5.1' -> insight_depth, '2.5.2' -> psychological_plasticity, '2.5.3' -> resilience
+    raw_scores = {
+        'insight_depth': sub_scores.get('2.5.1', 0),
+        'psychological_plasticity': sub_scores.get('2.5.2', 0),
+        'resilience': sub_scores.get('2.5.3', 0)
+    }
+
+    logger.info(f"Raw growth sub-scores: {raw_scores}")
+
+    # Normalize each sub-category to 0-100 scale
+    # Need to calculate max possible score for each sub-category
+    from src.database.questionnaire_models import AssessmentQuestion
+    from src.database.progress_models import UserQuestionnaireProgress
+
+    # Get the progress record to find questionnaire_id
+    progress = db_session.query(UserQuestionnaireProgress).filter(
+        UserQuestionnaireProgress.user_id == assessment.user_id,
+        UserQuestionnaireProgress.status == 'completed'
+    ).order_by(UserQuestionnaireProgress.completed_at.desc()).first()
+
+    if not progress:
+        logger.warning(f"No completed progress found for user {assessment.user_id}, using raw scores")
+        return {
+            'total_score': assessment.growth_potential_score or 0,
+            'insight_depth': raw_scores['insight_depth'],
+            'psychological_plasticity': raw_scores['psychological_plasticity'],
+            'resilience': raw_scores['resilience']
+        }
+
+    # Calculate max possible scores for each sub-category
+    SKIP_TEMPLATES = ['F7']
+
+    # Map sub-categories to their questions
+    subcategory_max_scores = {
+        '2.5.1': 0,  # insight_depth
+        '2.5.2': 0,  # psychological_plasticity
+        '2.5.3': 0   # resilience
+    }
+
+    # Get all questions for growth potential sub-categories
+    growth_questions = db_session.query(AssessmentQuestion).filter(
+        AssessmentQuestion.questionnaire_id == progress.questionnaire_id,
+        AssessmentQuestion.status == 'published',
+        AssessmentQuestion.category.in_(['2.5.1', '2.5.2', '2.5.3'])
+    ).all()
+
+    logger.info(f"Found {len(growth_questions)} questions for growth potential sub-categories")
+
+    for q in growth_questions:
+        if q.template in SKIP_TEMPLATES:
+            continue
+
+        # Get maximum score for this question
+        if q.options and isinstance(q.options, list) and len(q.options) > 0:
+            option_scores = [opt.get('score', opt.get('value', 0)) for opt in q.options if isinstance(opt, dict)]
+            max_score = max(option_scores) if option_scores else 0
+            subcategory_max_scores[q.category] += max_score
+            logger.info(f"Q{q.question_number} (cat {q.category}): max={max_score}")
+        elif q.template == 'F1':
+            subcategory_max_scores[q.category] += 5
+            logger.info(f"Q{q.question_number} (cat {q.category}): F1 default max=5")
+        elif q.template == 'F6':
+            subcategory_max_scores[q.category] += 5
+            logger.info(f"Q{q.question_number} (cat {q.category}): F6 ranking max=5")
+
+    logger.info(f"Max possible scores per sub-category: {subcategory_max_scores}")
+
+    # Normalize to 0-100 scale
+    normalized_scores = {}
+    for field_name, category_code in [
+        ('insight_depth', '2.5.1'),
+        ('psychological_plasticity', '2.5.2'),
+        ('resilience', '2.5.3')
+    ]:
+        raw_score = raw_scores[field_name]
+        max_possible = subcategory_max_scores[category_code]
+
+        if max_possible > 0:
+            normalized = round((raw_score / max_possible) * 100)
+            normalized = min(normalized, 100)  # Cap at 100
+            normalized_scores[field_name] = normalized
+            logger.info(f"{field_name} ({category_code}): {raw_score}/{max_possible} = {normalized}/100")
+        else:
+            normalized_scores[field_name] = 0
+            logger.info(f"{field_name} ({category_code}): No questions found, defaulting to 0")
 
     return {
         'total_score': assessment.growth_potential_score or 0,
-        'insight_depth': growth_sub_scores.get('insight_depth', 0),
-        'psychological_plasticity': growth_sub_scores.get('plasticity', 0),
-        'resilience': growth_sub_scores.get('resilience', 0)
+        'insight_depth': normalized_scores['insight_depth'],
+        'psychological_plasticity': normalized_scores['psychological_plasticity'],
+        'resilience': normalized_scores['resilience']
     }
 
 
@@ -366,7 +456,8 @@ def assemble_report_data(
     dominant_elements: Dict[str, Optional[Dict]],
     analysis_texts: Dict[str, Optional[str]],
     db_session: Session,
-    language: str = 'zh'
+    language: str = 'zh',
+    category_scores: Optional[Dict[str, int]] = None
 ) -> Dict[str, Any]:
     """
     Assemble complete report data from all sources.
@@ -377,12 +468,15 @@ def assemble_report_data(
         analysis_texts: Analysis texts from generate_all_analysis_texts()
         db_session: Database session
         language: Output language (default 'zh')
+        category_scores: Optional category scores for sub-category analysis
 
     Returns:
         Complete report data matching report_data.json structure:
         {
             'user_info': {...},
             'mind_indices': {...},
+            'dimension_details': {...},  # NEW: Dimension interpretations
+            'subcategory_analysis': {...},  # NEW: Sub-category analysis
             'emotional_insight': {...},
             'cognitive_insight': {...},
             'relational_insight': {...},
@@ -400,10 +494,33 @@ def assemble_report_data(
     if not assessment:
         raise ValueError(f"Assessment {assessment_id} not found")
 
+    # Get dimension scores
+    dimension_scores = {
+        'emotional_regulation': assessment.emotional_regulation_score or 0,
+        'cognitive_flexibility': assessment.cognitive_flexibility_score or 0,
+        'relationship_sensitivity': assessment.relationship_sensitivity_score or 0,
+        'internal_conflict': assessment.internal_conflict_score or 0,
+        'growth_potential': assessment.growth_potential_score or 0
+    }
+
+    # Generate dimension interpretations
+    logger.info("Generating dimension interpretations")
+    dimension_details = interpret_all_dimensions(dimension_scores)
+
+    # Generate sub-category analysis if category_scores provided
+    subcategory_analysis = {}
+    if category_scores:
+        logger.info("Generating sub-category analysis")
+        subcategory_analysis = analyze_all_subcategories(category_scores)
+    else:
+        logger.warning("No category_scores provided, skipping sub-category analysis")
+
     # Assemble all sections
     report_data = {
         'user_info': get_user_info_section(assessment.user_id, db_session),
         'mind_indices': get_mind_indices_section(assessment),
+        'dimension_details': dimension_details,  # NEW
+        'subcategory_analysis': subcategory_analysis,  # NEW
         'emotional_insight': get_emotional_insight_section(assessment, db_session),
         'cognitive_insight': get_cognitive_insight_section(
             assessment, dominant_elements, analysis_texts, db_session
@@ -412,13 +529,13 @@ def assemble_report_data(
             assessment, analysis_texts, db_session
         ),
         'personality_style': get_personality_style_section(assessment_id, db_session),
-        'growth_potential': get_growth_potential_section(assessment)
+        'growth_potential': get_growth_potential_section(assessment, db_session)
     }
 
     # Validate all required sections present
     required_sections = [
-        'user_info', 'mind_indices', 'emotional_insight',
-        'cognitive_insight', 'relational_insight',
+        'user_info', 'mind_indices', 'dimension_details', 'subcategory_analysis',
+        'emotional_insight', 'cognitive_insight', 'relational_insight',
         'personality_style', 'growth_potential'
     ]
 
