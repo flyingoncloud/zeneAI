@@ -14,7 +14,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [completedCycle, setCompletedCycle] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
-
+  const [progressPercent, setProgressPercent] = useState(25);
   // ✅ 用 BreathingArcTimer 的 inhale 作为每个 16s 周期起点，强制背景“重置对齐”
   const [waveCycleKey, setWaveCycleKey] = useState(0);
 
@@ -232,7 +232,13 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 {t.breathing.stepLabel}
               </div>
               <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 w-1/3 rounded-full" />
+                {/* 👇 使用 motion.div 让进度条宽度平滑过渡 */}
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full" 
+                  initial={{ width: "25%" }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }} // 控制平滑滑动的动画时间
+                />
               </div>
             </div>
 
@@ -248,11 +254,17 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 isPlaying={isTimerRunning}
                 onPhaseChange={(p) => {
                   setBreathPhase(p);
-
-                  // ✅ inhale = 新一轮 16s 周期开始：背景重新对齐
+                  
+                  // 👇 核心逻辑：根据阶段精确控制 1/4 到 4/4 进度
                   if (p === 'inhale') {
+                    setProgressPercent(25);  // 吸气：1/4
                     setCompletedCycle(true);
                     setWaveCycleKey((k) => k + 1);
+                  } else if (p === 'hold') {
+                    // 通过判断之前的进度，区分是吸气后的保持，还是呼气后的保持
+                    setProgressPercent((prev) => (prev === 25 ? 50 : 100)); 
+                  } else if (p === 'exhale') {
+                    setProgressPercent(75);  // 呼气：3/4
                   }
                 }}
               />
