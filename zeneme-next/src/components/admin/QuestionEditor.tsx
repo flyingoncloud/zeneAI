@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAdminStore, TEMPLATE_INFO, CATEGORY_OPTIONS, TemplateType, AdminOption, MediaItem } from '@/hooks/useAdminStore';

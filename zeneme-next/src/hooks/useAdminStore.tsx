@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export type TemplateType = 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8';
 export type QuestionStatus = 'draft' | 'published';

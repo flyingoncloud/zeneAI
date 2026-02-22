@@ -4,7 +4,7 @@ import "./globals.css"; // 引入你上传的 globals.css
 import ClientLayout from "@/components/ClientLayout"; // 下一步创建这个文件
 
 export const metadata: Metadata = {
-  title: "Zeneme Web App",
+  title: "ZeneWe Web App",
   description: "Your emotional companion",
 };
 
