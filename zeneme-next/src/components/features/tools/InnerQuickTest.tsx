@@ -61,7 +61,7 @@ function getOrCreateUserId(): string {
   return newId;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
@@ -283,6 +283,25 @@ export const InnerQuickTest: React.FC = () => {
     const startQuestionnaireWithProgress = async () => {
       // Don't wait for conversation - questionnaire can work independently
       // Just ensure we have a session ID
+      const resetProgressOnly = async () => {
+      const userId = getOrCreateUserId();
+      await fetch(`${API_BASE_URL}/api/questionnaire/progress/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, questionnaire_id: 'admin_created' }),
+  });
+  // 清本地状态，不 reload
+  setProgressId(null);
+  setQuestions([]);
+  setCurrentQIndex(0);
+  setCategoryScores({});
+  setReportId(null);
+  setReportStatus('');
+  setReportData(null);
+  setReportProgress(0);
+  setSubmissionState('idle');
+};
+
       if (!sessionId) {
         const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         setSessionId(newSessionId);
@@ -322,7 +341,23 @@ export const InnerQuickTest: React.FC = () => {
 
         setProgressId(result.progress.id);
         setQuestions(result.questions);
-        setCurrentQIndex(result.progress.current_question_index);
+
+        const len = result.questions.length;
+        const idx = result.progress.current_question_index ?? 0;
+
+        if (len > 0 && idx >= len) {
+        console.warn('[InnerQuickTest] stale progress detected, resetting...', { idx, len });
+
+        toast.warning('检测到问卷版本更新，正在为你重置进度…');
+
+        // 调你已有的 reset 接口，但别 reload（见下一条）
+        await resetProgressOnly(); // 你新写一个不 reload 的 reset
+        return;
+        }
+        
+        // 正常情况
+        setCurrentQIndex(idx);
+
         setCategoryScores(result.progress.category_scores || {});
 
         // If already completed, show result
@@ -768,63 +803,76 @@ export const InnerQuickTest: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      <div className="w-full h-1 bg-white/5">
-        <div
-          className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      
+      {/* 修复点 1: 移除外层滚动容器的 justify-center，避免内容超长时顶部被吞掉无法滚动 */}
+      <div className="flex-1 flex flex-col items-center p-4 md:p-8 overflow-y-auto">
+        
+        {/* 卡片容器：利用 my-auto 替代 justify-center 实现安全居中 */}
+        <div className="w-full max-w-3xl space-y-4 md:space-y-6 backdrop-blur-xl px-5 py-6 md:px-10 md:py-8 lg:p-10 rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl my-auto relative">
+          
+          {/* --- 头部区域：题号、进度条、题目文本 --- */}
+          <div className="space-y-4 text-left w-full">
+            <div className="text-slate-200 font-medium text-sm tracking-wide">
+              Question {currentQIndex + 1}/{totalQuestions}
+            </div>
+            
+            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
 
-      <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto">
-        <div className="w-full max-w-5xl space-y-6 backdrop-blur-sm p-4 md:p-6 lg:p-8 rounded-3xl border border-white/5 bg-slate-900/20 shadow-2xl my-auto">
-          <div className="space-y-2 text-center">
-            <span className="text-violet-400 font-semibold tracking-widest text-xs uppercase">
-              {t.test.question} {currentQIndex + 1} / {totalQuestions}
-            </span>
-            <h3 className="text-2xl md:text-3xl font-medium text-white leading-tight drop-shadow-lg">
+            <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug pt-2 md:pt-4 drop-shadow-lg">
               {currentQuestion?.text}
             </h3>
-            {/* Subtitle if present */}
+            
             {currentQuestion?.subtitle && (
-              <p className="text-sm text-violet-300/70 mt-2">
+              <p className="text-sm text-slate-300 mt-2">
                 {currentQuestion.subtitle}
               </p>
             )}
           </div>
 
-          {/* Display media if present (F3, F7, F8 templates) */}
-        {currentQuestion?.mediaUrl && (
-          <div className="w-full flex justify-center">
-            <div className="w-full md:w-2/5 max-w-xl rounded-xl overflow-hidden border border-white/10 bg-black/30 p-2 mx-auto">
-              <div className="w-full h-[240px] md:h-[360px] flex items-center justify-center">
-              {currentQuestion.mediaType === 'video' ? (
-                <video
-                  src={currentQuestion.mediaUrl}
-                  controls
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <img
-                  src={currentQuestion.mediaUrl}
-                  alt="Question media"
-                  className="w-full h-full object-contain"
-                />
-              )}
-             </div>
+          {/* --- 媒体展示区域 --- */}
+          {currentQuestion?.mediaUrl && currentQuestion.template !== 'F7' && (
+            <div className="w-full flex justify-center pt-2">
+              <div className="w-full md:w-[90%] max-w-xl rounded-2xl overflow-hidden border border-white/10 shadow-lg mx-auto h-[140px] md:h-[180px] relative flex-shrink-0 bg-slate-800/50">
+                {currentQuestion.mediaType === 'video' ? (
+                  <video
+                    src={currentQuestion.mediaUrl}
+                    controls
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={currentQuestion.mediaUrl}
+                    alt="Question media"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                )}
+              </div>
             </div>
-          </div>
           )}
 
-          <div className="max-w-2xl mx-auto w-full">
-            {/* Check template field for F1 Likert scale */}
+          {/* --- 选项区域 --- */}
+          <div className="max-w-2xl mx-auto w-full pt-4">
             {currentQuestion.template === 'F1' ? (
-              // F1: Likert scale with varying circle sizes (empty circles, no numbers)
-              <div className="space-y-6">
-                <div className="flex justify-center items-end gap-4">
+              <div className="space-y-4 md:space-y-6 w-full">
+                {/* 修复点 2: 修正了 items-center 的拼写错误 */}
+                <div className="flex justify-center items-center gap-2 md:gap-4 w-full">
                   {[1, 2, 3, 4, 5].map((value, idx) => {
-                    // Varying sizes: Large-Medium-Small-Medium-Large (96px-80px-64px-80px-96px)
-                    const sizes = [96, 80, 64, 80, 96];
-                    const size = sizes[idx];
+                    // 🚨 这里的数组严格控制着大小：
+                    // w-14 (手机端大号) / md:w-24 (PC端大号)
+                    // w-10 (手机端小号) / md:w-16 (PC端小号)
+                    const sizeClasses = [
+                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]", // [索引0] 大：56px / 96px (原 w-14/w-24)
+                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引1] 中：48px / 80px (原 w-12/w-20)
+                      "w-[40px] h-[40px] md:w-[64px] md:h-[64px]", // [索引2] 小：40px / 64px (原 w-10/w-16)
+                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引3] 中：48px / 80px 
+                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]"  // [索引4] 大：56px / 96px 
+                    ];
+                    const currentSizeClass = sizeClasses[idx];
 
                     return (
                       <button
@@ -832,7 +880,8 @@ export const InnerQuickTest: React.FC = () => {
                         onClick={() => handleAnswer(value)}
                         disabled={loading}
                         className={`
-                          rounded-full border-2 flex items-center justify-center transition-all
+                          rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
+                          ${currentSizeClass}
                           ${
                             currentAnswer === value
                               ? 'bg-violet-600 border-violet-500 shadow-[0_0_25px_rgba(139,92,246,0.5)]'
@@ -840,66 +889,60 @@ export const InnerQuickTest: React.FC = () => {
                           }
                           ${loading ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
-                        style={{ width: `${size}px`, height: `${size}px` }}
                       >
-                        {/* Empty circle - no text */}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Labels below circles */}
-                <div className="flex justify-between items-center">
-                  <div className="text-slate-300 font-medium text-sm">
+                <div className="flex justify-between items-center w-full px-[2px] md:px-0">
+                  <div className="text-slate-300 font-medium text-xs md:text-sm text-center w-14 md:w-24">
                     非常不同意
                   </div>
-                  <div className="text-slate-300 font-medium text-sm">
+                  <div className="text-slate-300 font-medium text-xs md:text-sm text-center w-14 md:w-24">
                     非常同意
                   </div>
                 </div>
               </div>
             ) : currentQuestion.template === 'F7' ? (
               // F7: Direction Dial 0-360 (Spatial Scene with Compass)
-              <div className="w-full flex flex-col gap-8 items-center justify-center pt-2 pb-8">
-                {/* Scene Area (Icons) - Top */}
+              // 修复 2：使用 grid-cols-2 实现左右分栏布局
+              <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center justify-center pt-4 pb-8">
+                
+                {/* --- 左侧：场景地图区域 --- */}
                 {(() => {
                   const defaultItems = [
-                    { id: 'cat', type: 'cat', x: 50, y: 55 },
-                    { id: 'house', type: 'house', x: 15, y: 50 },
-                    { id: 'tree', type: 'tree', x: 85, y: 75 },
-                    { id: 'car', type: 'car', x: 35, y: 20 },
-                    { id: 'sign', type: 'sign', x: 65, y: 25 },
-                    { id: 'traffic', type: 'traffic_light', x: 90, y: 45 },
-                    { id: 'flower', type: 'flower', x: 20, y: 80 },
+                    { id: 'car', type: 'car', x: 35, y: 25 },
+                    { id: 'sign', type: 'sign', x: 65, y: 30 },
+                    { id: 'house', type: 'house', x: 20, y: 60 },
+                    { id: 'cat', type: 'cat', x: 50, y: 65 },
+                    { id: 'traffic', type: 'traffic_light', x: 85, y: 55 },
+                    { id: 'flower', type: 'flower', x: 30, y: 85 },
+                    { id: 'tree', type: 'tree', x: 80, y: 80 },
                   ];
 
                   const iconMap: Record<string, string> = {
-                    house: '🏠',
-                    cat: '🐱',
-                    tree: '🌳',
-                    car: '🚗',
-                    sign: '🛑',
-                    traffic_light: '🚦',
-                    flower: '🌸',
+                    house: '🏠', cat: '🐱', tree: '🌳', car: '🚗',
+                    sign: '🛑', traffic_light: '🚦', flower: '🌸',
                   };
 
                   return (
-                    <div className="relative w-full h-[32rem] bg-slate-900/40 rounded-2xl border border-white/5 shadow-inner overflow-hidden">
+                    // 修复 3：不再用巨大的固定高度，改用 aspect-square 保持完美的正方形比例
+                    <div className="relative w-full aspect-square max-w-[320px] mx-auto bg-slate-800/60 rounded-[2rem] border border-white/5 shadow-inner overflow-hidden flex-shrink-0">
                       {defaultItems.map((item) => {
                         const icon = iconMap[item.type] || '🏠';
-
                         return (
                           <div
                             key={item.id}
-                            className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full transition-all duration-300"
+                            className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-300"
                             style={{
                               left: `${item.x}%`,
                               top: `${item.y}%`,
-                              width: '64px',
-                              height: '64px',
+                              width: '40px',
+                              height: '40px',
                             }}
                           >
-                            <span className="text-5xl drop-shadow-md opacity-80">{icon}</span>
+                            <span className="text-2xl drop-shadow-md opacity-80">{icon}</span>
                           </div>
                         );
                       })}
@@ -907,151 +950,113 @@ export const InnerQuickTest: React.FC = () => {
                   );
                 })()}
 
-                {/* Interaction Area (Compass) - Bottom */}
+                {/* --- 右侧：极简罗盘交互区域 --- */}
                 <div className="flex flex-col items-center gap-6 w-full">
                   <div
                     ref={dialRef}
                     style={{
-                      width: '280px',
-                      height: '280px',
-                      background: 'linear-gradient(to bottom, #475569, #334155)',
-                      border: '4px solid #64748b',
+                      width: '260px',
+                      height: '260px',
+                      background: '#1A1C29', // 对齐设计师的深色雷达底色
+                      border: '2px solid rgba(255,255,255,0.05)',
                       borderRadius: '50%',
                       position: 'relative',
                       cursor: 'pointer',
                       touchAction: 'none',
-                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                      boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.5)'
                     }}
                     onPointerDown={(e) => {
                       setIsDragging(true);
-                      // Snap immediately on click
                       if (!dialRef.current) return;
                       const rect = dialRef.current.getBoundingClientRect();
                       const cx = rect.left + rect.width / 2;
                       const cy = rect.top + rect.height / 2;
                       const dx = e.clientX - cx;
-                      const dy = e.clientY - cy;
-                      let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-                      deg += 90; // Rotate so top is 0°
+                      const cy_diff = e.clientY - cy;
+                      let deg = Math.atan2(cy_diff, dx) * (180 / Math.PI);
+                      deg += 90; 
                       if (deg < 0) deg += 360;
                       setDialAngle(Math.round(deg));
                     }}
                   >
-                    {/* Ticks */}
-                    {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
+                    {/* 雷达刻度线 (米字形贯穿) */}
+                    {[0, 45, 90, 135].map(deg => (
                       <div
                         key={deg}
                         style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: '50%',
-                          width: '3px',
-                          height: '50%',
-                          backgroundColor: '#cbd5e1',
-                          transformOrigin: 'bottom',
+                          position: 'absolute', top: 0, left: '50%',
+                          width: '1px', height: '100%',
+                          backgroundColor: 'rgba(255,255,255,0.1)',
                           transform: `translateX(-50%) rotate(${deg}deg)`
                         }}
-                      >
-                        <div style={{
-                          width: '100%',
-                          height: '12px',
-                          backgroundColor: '#e2e8f0',
-                          position: 'absolute',
-                          top: 0
-                        }} />
-                      </div>
+                      />
                     ))}
-
-                    {/* North Label */}
+                    
+                    {/* 雷达中间的辅助同心圆 */}
                     <div style={{
-                      position: 'absolute',
-                      top: '16px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      color: '#f1f5f9'
-                    }}>N</div>
+                      position: 'absolute', top: '50%', left: '50%',
+                      width: '80px', height: '80px',
+                      borderRadius: '50%',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      transform: 'translate(-50%, -50%)',
+                      pointerEvents: 'none'
+                    }} />
 
-                    {/* The Arrow */}
+                    {/* 紫色极简指针 */}
                     <div
                       style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: '3px',
-                        height: '40%',
+                        position: 'absolute', top: '50%', left: '50%',
+                        width: '3px', height: '50%',
                         backgroundColor: '#a78bfa',
                         transformOrigin: 'bottom',
                         transform: `translate(-50%, -100%) rotate(${dialAngle}deg)`,
                         transition: 'transform 75ms'
                       }}
                     >
+                      {/* 指针顶部水滴/圆点设计 */}
                       <div style={{
-                        position: 'absolute',
-                        top: '-15px',
-                        left: '50%',
+                        position: 'absolute', top: '-6px', left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '30px',
-                        height: '30px',
+                        width: '14px', height: '18px',
                         backgroundColor: '#a78bfa',
-                        borderRadius: '50%',
-                        boxShadow: '0 0 25px rgba(167, 139, 250, 1)'
-                      }} />
-                      {/* Arrow Head */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '-30px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '12px solid transparent',
-                        borderRight: '12px solid transparent',
-                        borderBottom: '18px solid #a78bfa'
+                        borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%', // 水滴形状
+                        boxShadow: '0 0 15px rgba(167, 139, 250, 0.8)'
                       }} />
                     </div>
 
-                    {/* Center Cap */}
+                    {/* 中心度数气泡 */}
                     <div style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      width: '60px',
-                      height: '60px',
-                      backgroundColor: '#475569',
+                      position: 'absolute', top: '50%', left: '50%',
+                      width: '40px', height: '40px',
+                      backgroundColor: '#1A1C29',
                       borderRadius: '50%',
-                      border: '4px solid #64748b',
+                      border: '2px solid rgba(255,255,255,0.1)',
                       transform: 'translate(-50%, -50%)',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      pointerEvents: 'none'
                     }}>
-                      <span style={{
-                        fontSize: '16px',
-                        color: '#f1f5f9',
-                        fontFamily: 'monospace',
-                        fontWeight: 'bold'
-                      }}>{Math.round(dialAngle)}°</span>
+                      <span style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 'bold' }}>
+                        {Math.round(dialAngle)}°
+                      </span>
                     </div>
                   </div>
 
-                  {/* Controls - Only Reset Button */}
+                  {/* 重置按钮 */}
                   <button
                     onClick={() => {
                       setDialAngle(0);
                       handleAnswer(0);
                     }}
-                    className="text-xs text-white/70 hover:text-white hover:bg-white/10 active:bg-white/20 transition-all px-4 py-2 rounded-lg flex items-center gap-2"
+                    className="text-sm text-slate-400 hover:text-white transition-all px-4 py-2 rounded-lg flex items-center gap-2"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     重置
                   </button>
                 </div>
               </div>
+            
             ) : currentQuestion?.options && currentQuestion.options.length > 0 ? (
                 currentQuestion.text.includes('排序') || currentQuestion.text.includes('ranking') || currentQuestion.text.includes('依次') ? (
                   // F6: Ranking question

@@ -232,12 +232,11 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 {t.breathing.stepLabel}
               </div>
               <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
-                {/* 👇 使用 motion.div 让进度条宽度平滑过渡 */}
+                {/* 👇 进度条宽度直接由 remainingSeconds 计算，从 0% 涨到 100% */}
                 <motion.div 
                   className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full" 
-                  initial={{ width: "25%" }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }} // 控制平滑滑动的动画时间
+                  animate={{ width: `${((60 - remainingSeconds) / 60) * 100}%` }}
+                  transition={{ duration: 1, ease: "linear" }} // 使用 linear 让每秒的过渡像水流一样平滑
                 />
               </div>
             </div>
@@ -255,16 +254,10 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 onPhaseChange={(p) => {
                   setBreathPhase(p);
                   
-                  // 👇 核心逻辑：根据阶段精确控制 1/4 到 4/4 进度
+                  // 👇 移除了进度条状态逻辑，只保留动画重置逻辑
                   if (p === 'inhale') {
-                    setProgressPercent(25);  // 吸气：1/4
                     setCompletedCycle(true);
                     setWaveCycleKey((k) => k + 1);
-                  } else if (p === 'hold') {
-                    // 通过判断之前的进度，区分是吸气后的保持，还是呼气后的保持
-                    setProgressPercent((prev) => (prev === 25 ? 50 : 100)); 
-                  } else if (p === 'exhale') {
-                    setProgressPercent(75);  // 呼气：3/4
                   }
                 }}
               />
