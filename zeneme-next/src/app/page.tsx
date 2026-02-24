@@ -25,6 +25,7 @@ import { HistoryReports } from "@/components/features/reports/HistoryReports";
 import { BreathingWelcome } from "@/components/features/tools/firstaid/BreathingWelcome";
 import { WelcomePage, AuthPage, GuestGate } from "@/components/auth";
 import { LOGIN_REQUIRED_EVENT } from "@/utils/authHelpers";
+import { WechatBanner } from "@/components/shared/WechatBanner";
 
 
 function HomeContent() {
@@ -307,6 +308,9 @@ React.useEffect(() => {
   // Main Application Layout
   return (
     <div className="flex h-screen w-full bg-transparent font-sans text-slate-200 overflow-hidden relative">
+      {/* WeChat Browser Suggestion Banner */}
+      <WechatBanner />
+
       {/* 背景图：public/3b6a5589c53301457230648f6d21f5eab8c4f69b.png */}
       <div className="absolute inset-0 -z-10">
         <Image
