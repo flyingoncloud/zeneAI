@@ -832,7 +832,7 @@ export async function downloadPsychologyReport(reportId: number): Promise<{
 
     // Get filename from Content-Disposition header or use default
     const contentDisposition = response.headers.get('Content-Disposition');
-    let filename = `ZeneMe心理报告_${reportId}.docx`;
+    let filename = `ZeneWe心理报告_${reportId}.docx`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);

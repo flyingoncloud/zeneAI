@@ -296,7 +296,7 @@ useEffect(() => {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-xs text-slate-400 leading-relaxed">
-              为了进行语音输入，zeneme 需要使用你的麦克风。
+              为了进行语音输入，zenewe 需要使用你的麦克风。
             </p>
             <div className="flex gap-2 pt-2">
               <Button
@@ -397,7 +397,7 @@ useEffect(() => {
             value={input}
             disabled={isGenerating}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isGenerating ? "ZeneMe 正在回复…" : (isListening ? "正在聆听..." : (placeholder || "聊聊你的心情吧"))}
+            placeholder={isGenerating ? "ZeneWe 正在回复…" : (isListening ? "正在聆听..." : (placeholder || "聊聊你的心情吧"))}
             className={`w-full px-6 py-4 pr-4 bg-slate-900/50 border rounded-full focus:outline-none focus:ring-2 transition-all backdrop-blur-sm shadow-inner z-10
                 ${isGenerating
                     ? 'border-white/5 bg-slate-800/20 text-slate-500 placeholder:text-slate-600 cursor-not-allowed'

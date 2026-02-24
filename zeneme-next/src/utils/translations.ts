@@ -79,7 +79,7 @@ export const translations = {
     },
     chat: {
       placeholder: 'Type your message...',
-      initialMessage: "Hello. I'm Zeneme, your emotional companion. How are you feeling right now?",
+      initialMessage: "Hello. I'm Zenewe, your emotional companion. How are you feeling right now?",
       aiResponse: "I hear you. It sounds like you're carrying a lot right now. Could you tell me more about what triggered these feelings?",
       dataCollection: 'Data Collection',
       messagesCount: 'Messages',
@@ -160,7 +160,7 @@ export const translations = {
         interpreting: 'Interpreting patterns...',
         generating: 'Generating insights...'
       },
-      resultTitle: 'Zeneme Analysis',
+      resultTitle: 'Zenewe Analysis',
       mockResult: "Your drawing shows a balance of energetic lines and open spaces. The circular motions in the upper left suggest a desire for connection, while the structured lines below indicate you're building a stable foundation for your thoughts. You might be feeling a mix of creative excitement and a need for order."
     },
     test: {
@@ -236,11 +236,11 @@ export const translations = {
     },
     help: {
       title: 'Help & Support',
-      subtitle: 'ZENEME Guide',
+      subtitle: 'ZENEWE Guide',
       items: [
         {
           trigger: 'How to use Inner Sketch',
-          content: 'Inner Sketch is a way to help you see your emotions in ZENEME. You can be aware of your current feelings through simple drawing and prompts. There is no right or wrong here, and you don\'t need to draw well. Just expressing truthfully is enough.'
+          content: 'Inner Sketch is a way to help you see your emotions in ZENEWE. You can be aware of your current feelings through simple drawing and prompts. There is no right or wrong here, and you don\'t need to draw well. Just expressing truthfully is enough.'
         },
         {
           trigger: 'Can I use it if I can\'t draw?',
@@ -256,7 +256,7 @@ export const translations = {
         },
         {
           trigger: 'Will my content be saved?',
-          content: 'ZENEME protects your privacy. Your content is only used for your personal experience and will not be made public.'
+          content: 'ZENEWE protects your privacy. Your content is only used for your personal experience and will not be made public.'
         },
         {
           trigger: 'What if I encounter problems?',
@@ -266,11 +266,11 @@ export const translations = {
     },
     userGuide: {
       title: 'User Guide',
-      subtitle: 'ZENEME Basics',
+      subtitle: 'ZENEWE Basics',
       sections: [
         {
-          title: 'What is ZENEME',
-          content: 'ZENEME is a space to help you perceive emotions and organize inner experiences. You can understand your current state more gently through dialogue, drawing, and recording.'
+          title: 'What is ZENEWE',
+          content: 'ZENEWE is a space to help you perceive emotions and organize inner experiences. You can understand your current state more gently through dialogue, drawing, and recording.'
         },
         {
           title: 'How to start a chat',
@@ -282,7 +282,7 @@ export const translations = {
         },
         {
           title: 'About Records & Reports',
-          content: 'During use, ZENEME will help you organize your expressions and generate personal records for you to better understand yourself.'
+          content: 'During use, ZENEWE will help you organize your expressions and generate personal records for you to better understand yourself.'
         },
         {
           title: 'Tips',
@@ -300,11 +300,11 @@ export const translations = {
       sections: [
         {
           title: 'We value your privacy',
-          content: 'ZENEME values your privacy and data security. Your trust is crucial to us.'
+          content: 'ZENEWE values your privacy and data security. Your trust is crucial to us.'
         },
         {
           title: 'Information Usage',
-          content: 'The content you generate in ZENEME is only used to provide you with functional experiences.'
+          content: 'The content you generate in ZENEWE is only used to provide you with functional experiences.'
         }
       ]
     },
@@ -449,7 +449,7 @@ export const translations = {
     },
     chat: {
       placeholder: '输入您的消息...',
-      initialMessage: "你好。我是 zeneme,你的情感伴侣。你现在感觉如何?",
+      initialMessage: "你好。我是 zenewe,你的情感伴侣。你现在感觉如何?",
       aiResponse: "我听到了。听起来你现在背负着很多。能多告诉我一点是什么触发了这些情绪吗?",
       dataCollection: '数据收集',
       messagesCount: '条对话',
@@ -523,14 +523,14 @@ export const translations = {
       analyzing: '正在分析你的涂鸦...',
       clear: '清空画布',
       save: '保存到本次记录',
-      share: '发送给 zeneme',
+      share: '发送给 zenewe',
       returnToChat: '返回对话',
       steps: {
         scanning: '正在扫描线条...',
         interpreting: '正在解读模式...',
         generating: '正在生成洞察...'
       },
-      resultTitle: 'zeneme 分析',
+      resultTitle: 'zenewe 分析',
       mockResult: "你的画作显示出能量线条与开放空间的平衡。左上角的圆周运动暗示着对连接的渴望,而下方的结构化线条表明你正在为思绪建立稳定的基础。你可能正感受到创造性的兴奋与对秩序需求的混合。"
     },
     test: {
@@ -606,11 +606,11 @@ export const translations = {
     },
     help: {
       title: '帮助与支持',
-      subtitle: 'zeneme 使用说明',
+      subtitle: 'zenewe 使用说明',
       items: [
         {
           trigger: '如何使用内视涂鸦',
-          content: '内视涂鸦是 zeneme 中用来帮助你看见情绪的一种方式。你可以通过简单的绘画和提示,觉察当下的感受。这里没有对错,也不需要画得好看。只要如实表达,就已经足够。'
+          content: '内视涂鸦是 zenewe 中用来帮助你看见情绪的一种方式。你可以通过简单的绘画和提示,觉察当下的感受。这里没有对错,也不需要画得好看。只要如实表达,就已经足够。'
         },
         {
           trigger: '我不会画画,可以使用吗?',
@@ -626,7 +626,7 @@ export const translations = {
         },
         {
           trigger: '我的内容会被保存吗?',
-          content: 'zeneme 会保护你的隐私。你的内容仅用于你的个人体验,不会被公开。'
+          content: 'zenewe 会保护你的隐私。你的内容仅用于你的个人体验,不会被公开。'
         },
         {
           trigger: '遇到问题怎么办?',
@@ -636,24 +636,24 @@ export const translations = {
     },
   userGuide: {
     title: '使用指南',
-    subtitle: 'ZeneMe 基础功能说明',
+    subtitle: 'ZeneWe 基础功能说明',
     sections: [
      {
-      title: '什么是 ZeneMe?',
+      title: '什么是 ZeneWe?',
       content:
-        'ZeneMe 是一个实现“自我探索”的心灵空间,陪你看见情绪、照见内在。清晰的内视觉察报告会结构化地呈现你当下的自我认知状态,帮助你遇见更好的自己。'
+        'ZeneWe 是一个实现“自我探索”的心灵空间,陪你看见情绪、照见内在。清晰的内视觉察报告会结构化地呈现你当下的自我认知状态,帮助你遇见更好的自己。'
       },
     {
       title: '如何获得专属内视觉察报告?',
       content:
         '你可以通过以下任意一种方式获得一份覆盖五个维度的专属内视觉察报告,帮助你更清楚地理解当下的状态与内在模式：\n' +
-        '1)直接对话：像聊天一样说出你此刻的感受与困扰,ZeneMe 会在对话中自然引导你补充关键内容,让报告所需信息更完整。\n' +
+        '1)直接对话：像聊天一样说出你此刻的感受与困扰,ZeneWe 会在对话中自然引导你补充关键内容,让报告所需信息更完整。\n' +
         '2)内视快测：用 5-8 分钟完成一组全面、系统的问题,快速梳理核心维度,提交后立刻生成报告。'
     },
     {
       title: '如何开始一次对话?',
       content:
-        '进入主界面后,从一个当下开始：把你此刻最强烈的感受写出来就好。你不必解释得清楚,ZeneMe 会陪你慢慢理顺。'
+        '进入主界面后,从一个当下开始：把你此刻最强烈的感受写出来就好。你不必解释得清楚,ZeneWe 会陪你慢慢理顺。'
     },
     {
       title: '什么是「情绪急救」?',
@@ -663,7 +663,7 @@ export const translations = {
     {
       title: '什么是「内视涂鸦」?',
       content:
-        '用简单涂鸦把难以言说的感受呈现出来;重点不在画得好, 而在让情绪被看见。ZeneMe 会根据画面捕捉线索,并引导你继续向内探索。'
+        '用简单涂鸦把难以言说的感受呈现出来;重点不在画得好, 而在让情绪被看见。ZeneWe 会根据画面捕捉线索,并引导你继续向内探索。'
     },
     {
       title: '什么是「内视快测」?',
@@ -673,7 +673,7 @@ export const translations = {
     {
       title: '关于记录与报告',
       content:
-        '在使用过程中,ZeneMe 会整理并保存你的表达,形成个人历史记录,让每一次输入都能沉淀为可回看的内容。'
+        '在使用过程中,ZeneWe 会整理并保存你的表达,形成个人历史记录,让每一次输入都能沉淀为可回看的内容。'
     },
     {
       title: '使用建议',
@@ -691,15 +691,15 @@ privacy: {
       sections: [
         {
           title: '声明与适用范围',
-          content: '（本文件由 AI 辅助生成，仅供参考，不构成法律意见；请在发布或使用前咨询合格律师/法务并进行必要修改。）\n\n生效日期：2026-01-16\n版本号：v1.0\n\n适用范围：本政策适用于你使用 ZeneMe（网站/应用/相关服务）时，我们对个人信息的处理方式。\n\n法律框架：我们遵循澳大利亚《Privacy Act 1988 (Cth)》及《Australian Privacy Principles（APPs）》管理个人信息。'
+          content: '（本文件由 AI 辅助生成，仅供参考，不构成法律意见；请在发布或使用前咨询合格律师/法务并进行必要修改。）\n\n生效日期：2026-01-16\n版本号：v1.0\n\n适用范围：本政策适用于你使用 ZeneWe（网站/应用/相关服务）时，我们对个人信息的处理方式。\n\n法律框架：我们遵循澳大利亚《Privacy Act 1988 (Cth)》及《Australian Privacy Principles（APPs）》管理个人信息。'
         },
         {
           title: '我们是谁（Who we are）',
-          content: 'ZeneMe 由 [公司法定名称]（ABN：[____]） 运营（下称“我们”或“ZeneMe”）。如你对隐私有任何问题，请通过本政策末尾“联系我们”与我们联系。'
+          content: 'ZeneWe 由 [公司法定名称]（ABN：[____]） 运营（下称“我们”或“ZeneWe”）。如你对隐私有任何问题，请通过本政策末尾“联系我们”与我们联系。'
         },
         {
           title: '关键定义（Definitions）',
-          content: '• 个人信息（Personal information）：可识别或可合理识别到个人身份的信息。\n• 敏感信息（Sensitive information）：包括健康信息、部分生物识别信息、宗教/政治观点等，受更高标准保护；ZeneMe 的对话与测评可能涉及你的健康/心理状态相关内容，因此通常属于敏感信息范畴。'
+          content: '• 个人信息（Personal information）：可识别或可合理识别到个人身份的信息。\n• 敏感信息（Sensitive information）：包括健康信息、部分生物识别信息、宗教/政治观点等，受更高标准保护；ZeneWe 的对话与测评可能涉及你的健康/心理状态相关内容，因此通常属于敏感信息范畴。'
         },
         {
           title: '我们收集哪些信息（What we collect）',
@@ -747,7 +747,7 @@ privacy: {
         },
         {
           title: '儿童与未成年人（Children）',
-          content: 'ZeneMe 不以儿童为主要服务对象。若我们发现未经监护人同意收集了未成年人的个人信息，我们将采取合理措施删除或停止处理。'
+          content: 'ZeneWe 不以儿童为主要服务对象。若我们发现未经监护人同意收集了未成年人的个人信息，我们将采取合理措施删除或停止处理。'
         },
         {
           title: '第三方链接（Third-party services）',
