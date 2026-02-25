@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import { cn } from '../../ui/utils';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // --- Configuration ---
 const MAX_BUBBLES = 12;
 const MIN_BUBBLES = 6;
 const SPAWN_INTERVAL = 1800; // ms
-
+type Props = {
+  onSendMessage: (text: string) => void;
+};
 // Mobile-specific config
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_SPEED = 140; // px/s
@@ -56,8 +59,8 @@ interface BubbleData {
   estimatedWidth?: number; // px
 }
 
-export const SplashDanmakuLayer: React.FC = () => {
-  const { messages, addMessage, setDanmakuPreviewText } = useZenemeStore();
+export const SplashDanmakuLayer: React.FC<Props> = ({ onSendMessage }) => {
+  const { messages, addMessage, setDanmakuPreviewText, setInputDraft } = useZenemeStore();
   
   // Only show when there are no messages (Welcome State)
   const isWelcomeState = messages.length === 0;
@@ -206,9 +209,9 @@ export const SplashDanmakuLayer: React.FC = () => {
 
   // --- Handlers ---
   const handleBubbleClick = (e: React.MouseEvent, bubble: BubbleData) => {
-    if (isMobile) return; // Mobile bubbles are non-interactive
     e.stopPropagation();
-    addMessage(bubble.text, 'user');
+    // ✅ 关键：走真实发送链路（page.tsx 会发请求 /chat/ → OpenAI）
+    onSendMessage(bubble.text);
     setDanmakuPreviewText(null);
     
     setBubbles(prev => {
@@ -250,7 +253,7 @@ export const SplashDanmakuLayer: React.FC = () => {
     return (
       <div
         key={bubble.id}
-        className="danmaku-bubble-mobile"
+        className="danmaku-bubble-mobile pointer-events-auto"  // ✅ 再保险
         style={{
           left: `calc(100% + 16px)`,
           top: `${MOBILE_TRACK_ZONE_POSITIONS[bubble.track ?? 0]}%`,
@@ -258,12 +261,15 @@ export const SplashDanmakuLayer: React.FC = () => {
           animationDuration: `${bubble.duration}s`,
           animationDelay: '0s',
         } as React.CSSProperties}
+        
+        onPointerUp={(e) => handleBubbleClick(e as any, bubble)} // ✅ 绑定发送
         onAnimationEnd={() => handleAnimationEnd(bubble.id)}
       >
         <div
           className={cn(
             "px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-sm whitespace-nowrap",
-            "bg-slate-900/60 border-white/10 text-slate-200"
+            "bg-slate-900/60 border-white/10 text-slate-200",
+            "pointer-events-auto" // ✅ inner 也可点（可选）
           )}
           style={{
             fontSize: bubble.size === 'large' ? '15px' : '14px',
@@ -348,9 +354,10 @@ export const SplashDanmakuLayer: React.FC = () => {
             animation-name: scrollLeft;
             animation-timing-function: linear;
             animation-fill-mode: forwards;
-            pointer-events: none;
+            pointer-events: auto;
             user-select: none;
             z-index: 10;
+            touch-action: manipulation;
           }
         `}
       </style>

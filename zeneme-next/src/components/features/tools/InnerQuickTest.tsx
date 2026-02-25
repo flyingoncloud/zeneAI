@@ -4,6 +4,8 @@ import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { ClipboardList, Loader2, MessageCircle } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
+import { motion } from 'framer-motion';
+import { CheckCircle2, Brain, Lightbulb, Download } from 'lucide-react';
 import {
   startQuestionnaire,
   saveQuestionnaireAnswer,
@@ -61,7 +63,7 @@ function getOrCreateUserId(): string {
   return newId;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
@@ -556,144 +558,155 @@ export const InnerQuickTest: React.FC = () => {
     }
 
     // Show success screen when report is completed
-    if (submissionState === 'success' || (reportId && reportStatus === 'completed')) {
-      // If we have report data, show it
-      if (reportData && reportData.mind_indices) {
-        return (
-          <div className="h-full overflow-y-auto bg-transparent p-6">
-            <div className="max-w-4xl mx-auto space-y-8">
-              {/* Header */}
-              <header className="text-center space-y-4 bg-gradient-to-br from-violet-900/40 to-purple-900/40 p-8 rounded-2xl backdrop-blur-md border border-white/10">
-                <h1 className="text-3xl font-bold text-white">感谢你完成我们 ZeneWe「心理能」内视快测</h1>
-                <p className="text-slate-300 max-w-2xl mx-auto">
-                  以下是你的心理能力评估结果。这份报告基于你的回答，展示了你在五个核心心理维度上的表现。
-                </p>
-                <Button
-                  onClick={async () => {
-                    if (reportId) {
-                      try {
-                        await downloadPsychologyReport(reportId);
-                      } catch (error) {
-                        console.error('Download error:', error);
-                        toast.error('下载失败，请重试');
-                      }
-                    }
-                  }}
-                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white px-8 py-3 text-lg"
-                >
-                  立即下载完整报告
-                </Button>
-              </header>
-
-              {/* Radar Chart */}
-              {reportId && (
-                <Card className="p-6 bg-slate-900/40 border-white/5 backdrop-blur-md">
-                  <h2 className="text-2xl font-bold text-white mb-6 text-center">五维心理能力雷达图</h2>
-                  <div className="flex justify-center">
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}/charts/report_${reportId}/radar_chart.png`}
-                      alt="心理能力雷达图"
-                      className="max-w-full h-auto rounded-lg"
-                      style={{ maxHeight: '500px' }}
-                      onError={(e) => {
-                        console.error('Failed to load radar chart');
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+  if (submissionState === 'success' || (reportId && reportStatus === 'completed')) {
+    // If we have report data, show it
+    if (reportData && reportData.mind_indices) {
+      return (
+        
+        <div className="h-full overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 custom-scrollbar relative z-10">
+          <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
+            
+            {/* 顶部 Header：套用设计师的 Grid 和动画，保留你的文案 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="md:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-violet-900/40 to-[#0E1630]/60 border border-violet-500/20 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-violet-500/5 group-hover:bg-violet-500/10 transition-colors" />
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-wide">感谢你完成我们 ZeneWe「心理能」内视快测</h3>
+                  <p className="text-slate-300 leading-relaxed font-light mb-6">
+                    以下是你的心理能力评估结果。这份报告基于你的回答，展示了你在五个核心心理维度上的表现。
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium">
+                      <CheckCircle2 size={14} /> 已完成分析
+                    </div>
                   </div>
-                </Card>
-              )}
+                </div>
+              </motion.div>
+              
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="p-6 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-900/40 border border-white/10">
+                <div className="w-12 h-12 rounded-full bg-violet-500/10 text-violet-400 flex items-center justify-center mb-4 border border-violet-500/20">
+                  <Brain size={24} />
+                </div>
+                <h4 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">能力摘要</h4>
+                <div className="text-2xl font-bold text-white mb-2">五维已生成</div>
+              </motion.div>
+            </div>
 
-              {/* Dimension Scores */}
+            {/* 雷达图：套用设计师的容器，内部完全使用你的本地 <img> 逻辑 */}
+            {reportId && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="p-6 rounded-2xl bg-slate-900/40 border border-white/10">
+                <h2 className="text-xl font-bold text-white mb-6 text-center">五维心理能力雷达图</h2>
+                <div className="w-full relative flex justify-center items-center" style={{ minHeight: 350 }}>
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL}/charts/report_${reportId}/radar_chart.png`}
+                    alt="心理能力雷达图"
+                    className="max-w-full h-auto rounded-lg"
+                    style={{ maxHeight: '500px' }}
+                    onError={(e) => {
+                      console.error('Failed to load radar chart');
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* 五大维度详解：使用你的真实数据，完全对齐设计师的文本与排版 */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Lightbulb size={18} className="text-violet-500" /> 五维解析
+              </h3>
               <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-white text-center mb-6">五大心理维度详解</h2>
+                {[
+                  {
+                    leftLabel: '情绪调节能力指数',
+                    score: reportData.mind_indices?.emotional_regulation || 0,
+                    phase: '情绪觉察发展阶段',
+                    desc: '能够觉察到部分情绪变化，但调节能力仍不稳定。',
+                  },
+                  {
+                    leftLabel: '认知灵活度指数',
+                    score: reportData.mind_indices?.cognitive_flexibility || 0,
+                    phase: '灵活思维整合阶段',
+                    desc: '能主动切换视角分析问题，愿意修正原有看法。',
+                  },
+                  {
+                    leftLabel: '关系敏感度指数',
+                    score: reportData.mind_indices?.relational_sensitivity || 0,
+                    phase: '关系平衡调整阶段',
+                    desc: '具备较强的共情能力，能敏锐捕捉他人情绪与需求。',
+                  },
+                  {
+                    leftLabel: '内在冲突度指数',
+                    score: reportData.mind_indices?.inner_conflict || 0,
+                    phase: '冲突显化整合阶段',
+                    desc: '内在常存在“想要”与“应该”之间的拉扯。',
+                  },
+                  {
+                    leftLabel: '成长潜能指数',
+                    score: reportData.mind_indices?.growth_potential || 0,
+                    phase: '潜能绽放阶段',
+                    desc: '成长已成为内在驱动力，拥有强烈的自我探索与心理韧性。',
+                  }
+                ].map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + (idx * 0.1) }}
+                    className="p-5 rounded-xl hover:border-violet-500/20 transition-all group bg-[#0E1630]/80 border border-white/5"
+                  >
+                    {/* 👇 退回设计师原本的 Flex 布局，去除所有多余的 w-full 👇 */}
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
+                      
+                      {/* 左侧：使用设计师的原版 class，保证大屏竖排定宽，小屏横排 */}
+                      <div className="flex-shrink-0 flex md:flex-col items-center gap-3 md:gap-1 md:w-32 md:border-r md:border-white/10 md:pr-4">
+                        <div className="text-4xl font-bold text-violet-400">{item.score}</div>
+                        <div className="text-xs text-slate-400 font-medium text-center">{item.leftLabel}</div>
+                      </div>
+                      
+                      {/* 右侧：纯粹的 flex-1，自动填满剩余空间 */}
+                      <div className="flex-1">
+                        <div className="text-base font-semibold text-white mb-2 tracking-wide flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-500 block" />
+                          {item.phase}
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed font-light">{item.desc}</p>
+                      </div>
 
-                {/* Emotional Regulation */}
-                <Card className="p-6 bg-slate-900/40 border-l-4 border-l-rose-500 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-white">情绪调节能力</h3>
-                    <span className="text-3xl font-bold text-rose-400">{reportData.mind_indices.emotional_regulation}</span>
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    情绪调节能力反映了你识别、理解和管理自己情绪的能力。较高的分数表明你能够有效地处理情绪波动，保持心理平衡。
-                  </p>
-                </Card>
-
-                {/* Cognitive Flexibility */}
-                <Card className="p-6 bg-slate-900/40 border-l-4 border-l-blue-500 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-white">认知重构能力</h3>
-                    <span className="text-3xl font-bold text-blue-400">{reportData.mind_indices.cognitive_flexibility}</span>
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    认知重构能力体现了你从不同角度看待问题、调整思维模式的灵活性。这项能力帮助你更好地应对挑战和变化。
-                  </p>
-                </Card>
-
-                {/* Relational Sensitivity */}
-                <Card className="p-6 bg-slate-900/40 border-l-4 border-l-green-500 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-white">关系互动能力</h3>
-                    <span className="text-3xl font-bold text-green-400">{reportData.mind_indices.relational_sensitivity}</span>
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    关系互动能力反映了你在人际关系中的敏感度和共情能力。较高的分数表明你能够理解他人的情感需求，建立健康的人际关系。
-                  </p>
-                </Card>
-
-                {/* Inner Conflict */}
-                <Card className="p-6 bg-slate-900/40 border-l-4 border-l-amber-500 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-white">内在对话能力</h3>
-                    <span className="text-3xl font-bold text-amber-400">{reportData.mind_indices.inner_conflict}</span>
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    内在对话能力体现了你与自己内心对话的质量。这项能力帮助你更好地理解自己的想法和感受，减少内心冲突。
-                  </p>
-                </Card>
-
-                {/* Growth Potential */}
-                <Card className="p-6 bg-slate-900/40 border-l-4 border-l-purple-500 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-white">成长潜力</h3>
-                    <span className="text-3xl font-bold text-purple-400">{reportData.mind_indices.growth_potential}</span>
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    成长潜力反映了你的心理韧性和自我提升的能力。较高的分数表明你具有良好的适应能力和持续成长的动力。
-                  </p>
-                </Card>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
+            </div>
 
-              {/* Download Button */}
-              <Card className="p-6 bg-gradient-to-br from-violet-900/20 to-purple-900/20 border-white/5 backdrop-blur-md text-center">
-                <h3 className="text-xl font-semibold text-white mb-4">获取完整专业报告</h3>
-                <p className="text-slate-300 mb-6">
-                  下载完整的 DOCX 报告，包含更详细的分析、专业建议和个性化成长方案。
-                </p>
-                <Button
-                  onClick={async () => {
-                    if (reportId) {
-                      try {
-                        await downloadPsychologyReport(reportId);
-                      } catch (error) {
-                        console.error('Download error:', error);
-                        toast.error('下载失败，请重试');
-                      }
+            {/* 底部按钮区：你的下载逻辑 + 你的返回/重测逻辑，套用设计师的排版 */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="pt-4 pb-12 flex flex-col items-center gap-6">
+              
+              {/* 主下载按钮 - 你的逻辑 */}
+              <Button 
+                size="lg" 
+                onClick={async () => {
+                  if (reportId) {
+                    try {
+                      await downloadPsychologyReport(reportId);
+                    } catch (error) {
+                      console.error('Download error:', error);
+                      toast.error('下载失败，请重试');
                     }
-                  }}
-                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white px-8 py-4 text-lg"
-                >
-                  <span className="text-xl mr-2">📥</span>
-                  下载完整报告 (DOCX)
-                </Button>
-              </Card>
+                  }
+                }} 
+                className="w-full md:w-[60%] h-14 text-base font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={20} /> 下载完整报告 (DOCX)
+              </Button>
 
-              {/* Action Buttons */}
-              <div className="flex gap-4 justify-center">
+              {/* 你的重测与返回对话按钮 - 你的逻辑，排版居中 */}
+              <div className="flex flex-wrap gap-4 justify-center w-full">
                 <Button
                   variant="outline"
                   onClick={resetTest}
-                  className="bg-transparent border-white/10 text-slate-300 hover:bg-white/5 hover:text-white"
+                  className="bg-transparent border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white"
                 >
                   <SafeIcon icon={Icons.RefreshCcw} className="mr-2 h-4 w-4" />
                   重新测试
@@ -710,10 +723,13 @@ export const InnerQuickTest: React.FC = () => {
                   返回对话
                 </Button>
               </div>
-            </div>
+
+            </motion.div>
           </div>
-        );
-      }
+        </div>
+      );
+    }
+  
 
       // Show success screen without report data (waiting to fetch)
       return (

@@ -36,10 +36,10 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             setIsTimerRunning(false);
             setShowNudge(true);
 
-            // Auto navigate after 1.5s (Strategy A)
+            // Auto navigate after 15s (Strategy A)
             autoNavTimeoutRef.current = setTimeout(() => {
               onComplete();
-            }, 1500);
+            }, 15000);
 
             return 0;
           }
@@ -248,7 +248,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
               </span>
             </div>
 
-            <div className="mb-8">
+           <div className="mb-8">
               <BreathingArcTimer
                 isPlaying={isTimerRunning}
                 onPhaseChange={(p) => {
@@ -297,7 +297,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="absolute bottom-28 z-50 flex flex-col items-center gap-4 bg-[#1e1e1e]/95 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4"
+            className="absolute bottom-28 z-100 flex flex-col items-center gap-4 bg-[#1e1e1e]/95 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4"
           >
             <div className="text-center space-y-1">
               <h3 className="text-white font-semibold text-lg">做得很好</h3>

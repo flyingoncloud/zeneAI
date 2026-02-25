@@ -136,6 +136,9 @@ interface ZenemeContextType {
   closeUpgradeModal: () => void;
   freeSessionsLeft: number; // For demo purposes, we track "5 sessions"
   decrementFreeSessions: () => void;
+
+  inputDraft: string;
+  setInputDraft: (draft: string) => void;
 }
 
 const ZenemeContext = createContext<ZenemeContextType | undefined>(undefined);
@@ -145,7 +148,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [credits, setCredits] = useState(5);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [language, setLanguage] = useState<Language>('zh'); // Default to Chinese
-
+  const [inputDraft, setInputDraft] = useState<string>('');
   // Subscription State
   const [isPro, setIsPro] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -393,6 +396,8 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         moodLogs,
         logMood,
         reports,
+        inputDraft,
+        setInputDraft,
         addReport,
         deleteReport,
         language,

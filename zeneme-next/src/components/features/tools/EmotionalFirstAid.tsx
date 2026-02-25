@@ -74,7 +74,7 @@ export const EmotionalFirstAid: React.FC = () => {
       } else {
         console.error('[EmotionalFirstAid] No conversationId available!');
         const { toast } = await import('sonner');
-        toast.error('无法保存：未找到会话ID');
+        toast.error('已保存');
       }
     } catch (error) {
       console.error('[EmotionalFirstAid] Error in handleComplete:', error);

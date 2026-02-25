@@ -192,11 +192,11 @@ export function BreathingArcTimer({
   const content = (
     <div
       className={cn(
-            "fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 translate-y-[120px] md:translate-y-[40px]",
+            "fixed left-1/2 top-1/2 z-10 -translate-x-1/2 translate-y-[120px] md:translate-y-[40px] pointer-events-none",
             className
             )}
 
-      style={{ width: size, height: size / 2 + 40, zIndex: 9999 }}
+      style={{ width: size, height: size / 2 + 40, zIndex: 10 }}
     >
     {/* 2. 插入原生 CSS：这是最稳的办法，不依赖 Tailwind */}
       <style dangerouslySetInnerHTML={{__html: `

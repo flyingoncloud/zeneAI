@@ -551,7 +551,7 @@ export const Sidebar: React.FC = () => {
   // Desktop Implementation (Sidebar)
   return (
     <div
-      className={`${isSidebarOpen ? 'w-[280px]' : 'w-[72px]'} bg-slate-900/60 backdrop-blur-xl border-r border-white/5 flex flex-col h-full z-20 relative transition-all duration-250 ease-out`}
+      className={`${isSidebarOpen ? 'w-[280px]' : 'w-[72px]'} bg-slate-900/60 backdrop-blur-xl border-r border-white/5 flex flex-col h-full z-10000 relative transition-all duration-250 ease-out`}
     >
       <SidebarContent isCollapsed={!isSidebarOpen} />
     </div>

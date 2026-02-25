@@ -584,7 +584,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
     <div className="flex flex-col h-full bg-transparent relative text-slate-200">
       {isWelcomeState && (
         <div className="absolute inset-0 pointer-events-none z-0">
-          <SplashDanmakuLayer />
+          <SplashDanmakuLayer onSendMessage={onSendMessage}/>
         </div>
       )}
       {/* 1. Header Analysis Progress - Only show if not welcome state */}
