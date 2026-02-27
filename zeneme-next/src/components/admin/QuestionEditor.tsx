@@ -370,7 +370,7 @@ export const QuestionEditor: React.FC = () => {
                   </div>
                   {mediaUrl && mediaType === 'image' && (
                     <div className="w-full h-48 rounded-lg overflow-hidden bg-black/30 border border-white/[0.04] flex items-center justify-center p-2">
-                      <img src={mediaUrl} alt="preview" className="max-w-full max-h-full object-contain" />
+                      <img src={mediaUrl.startsWith('http') ? mediaUrl : `${API_BASE_URL}${mediaUrl}`} alt="preview" className="max-w-full max-h-full object-contain" />
                     </div>
                   )}
                 </div>
@@ -587,9 +587,9 @@ export const QuestionEditor: React.FC = () => {
             {hasStemMedia && mediaUrl && (
               <div className="w-full flex justify-center rounded-lg overflow-hidden mb-3 border border-white/5 bg-black/30 p-1.5">
                 {mediaType === 'video' ? (
-                  <video src={mediaUrl} className="h-auto object-contain" style={{ maxHeight: '64px' }} muted />
+                  <video src={mediaUrl.startsWith('http') ? mediaUrl : `${API_BASE_URL}${mediaUrl}`} className="h-auto object-contain" style={{ maxHeight: '64px' }} muted />
                 ) : (
-                  <img src={mediaUrl} alt="stem" className="h-auto object-contain" style={{ maxHeight: '64px' }} />
+                  <img src={mediaUrl.startsWith('http') ? mediaUrl : `${API_BASE_URL}${mediaUrl}`} alt="stem" className="h-auto object-contain" style={{ maxHeight: '64px' }} />
                 )}
               </div>
             )}
@@ -618,7 +618,7 @@ export const QuestionEditor: React.FC = () => {
                   <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${idx === 0 ? 'border-violet-500/30 bg-violet-500/10' : 'border-white/5 bg-white/[0.03]'}`}>
                     {hasOptionImages && opt.imageUrl && (
                       <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/5">
-                        <img src={opt.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={opt.imageUrl.startsWith('http') ? opt.imageUrl : `${API_BASE_URL}${opt.imageUrl}`} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="w-5 h-5 rounded-full border border-violet-500/30 shrink-0 flex items-center justify-center">
