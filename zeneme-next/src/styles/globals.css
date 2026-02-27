@@ -122,15 +122,26 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* OPPO-specific: Force no text size adjustment on all elements */
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
   }
 
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Prevent WeChat browser from scaling fonts */
+    /* Prevent WeChat browser from scaling fonts (iOS/Android) */
     -webkit-text-size-adjust: 100% !important;
     text-size-adjust: 100% !important;
+    /* OPPO-specific: Force pixel-based sizing */
+    font-size: 16px !important;
+  }
+
+  /* OPPO-specific: Force all text elements to ignore system font scaling */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, label, textarea, select {
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
   }
 }
 
@@ -184,5 +195,6 @@
 }
 
 html {
-  font-size: var(--font-size);
+  /* Force 16px base font size (OPPO-specific fix) */
+  font-size: 16px !important;
 }

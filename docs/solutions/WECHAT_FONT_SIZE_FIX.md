@@ -50,6 +50,46 @@ This script:
 - Sets font size callback to 0 (prevents scaling)
 - Listens for font size menu changes and resets to 0
 
+### ✅ OPPO Fix - IMPLEMENTED (2026-02-27)
+**Location**: `zeneme-next/src/styles/globals.css`
+
+OPPO phones (ColorOS) require additional CSS overrides because they aggressively apply system font scaling:
+
+```css
+@layer base {
+  * {
+    /* OPPO-specific: Force no text size adjustment on all elements */
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
+  }
+
+  body {
+    /* Standard WeChat fix */
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+    /* OPPO-specific: Force pixel-based sizing */
+    font-size: 16px !important;
+  }
+
+  /* OPPO-specific: Force all text elements to ignore system font scaling */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, label, textarea, select {
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
+  }
+}
+
+html {
+  /* Force 16px base font size (OPPO-specific fix) */
+  font-size: 16px !important;
+}
+```
+
+This enhanced fix:
+- Forces `text-size-adjust: none` on ALL elements (not just body)
+- Uses absolute pixel sizing (`16px`) instead of relative units
+- Overrides ColorOS's aggressive WebView font scaling
+- Applies to all text elements (h1-h6, p, span, div, button, input, etc.)
+
 ## Testing Checklist
 
 To verify the fix is working:
@@ -68,7 +108,16 @@ To verify the fix is working:
    - Open the Zeneme app from WeChat
    - Verify fonts display at normal size (not enlarged)
 
-3. **Test Care Mode** (关怀模式):
+3. **Test on OPPO WeChat** (NEW):
+   - Open OPPO phone Settings
+   - Go to Display & Brightness > Font Size > Set to "Large" or "Extra Large"
+   - Go to Display & Brightness > Display Size > Set to "Large"
+   - Open WeChat
+   - Open the Zeneme app from WeChat
+   - Verify fonts display at normal size (not enlarged)
+   - Verify layout doesn't break
+
+4. **Test Care Mode** (关怀模式):
    - Enable WeChat Care Mode (if available)
    - Open the app
    - Verify layout doesn't break (buttons still clickable, text not cut off)
