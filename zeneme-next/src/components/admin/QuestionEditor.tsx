@@ -198,14 +198,18 @@ export const QuestionEditor: React.FC = () => {
   };
 
   const selectMedia = (item: MediaItem) => {
-    // Convert relative URLs to absolute URLs using the backend API base
-    const fullUrl = item.url.startsWith('http') ? item.url : `${API_BASE_URL}${item.url}`;
+    // IMPORTANT: Save relative URLs to database (e.g., /uploads/filename.jpg)
+    // Frontend will construct full URLs when displaying
+    // This ensures URLs work across dev/staging/production environments
+    const relativeUrl = item.url.startsWith('http')
+      ? item.url.replace(/^https?:\/\/[^/]+/, '') // Strip domain if present
+      : item.url; // Already relative
 
     if (mediaPickerTarget === 'stem') {
-      setMediaUrl(fullUrl);
+      setMediaUrl(relativeUrl);
       setMediaType(item.type);
     } else if (mediaPickerTarget && typeof mediaPickerTarget === 'object') {
-      updateOption(mediaPickerTarget.index, 'imageUrl', fullUrl);
+      updateOption(mediaPickerTarget.index, 'imageUrl', relativeUrl);
     }
     setShowMediaPicker(false);
     setMediaPickerTarget(null);
