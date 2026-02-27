@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type AuthStatus = 'idle' | 'guest' | 'authenticated';
 
@@ -25,6 +25,11 @@ interface AuthState {
   resetGuestPrompt: () => void;
 }
 
+// Generate unique guest ID
+function generateGuestId(): string {
+  return `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -35,9 +40,27 @@ export const useAuthStore = create<AuthState>()(
 
       login: (user) => set({ status: 'authenticated', user }),
 
-      logout: () => set({ status: 'idle', user: null }),
+      logout: () => set({
+        status: 'idle',
+        user: null,
+        guestInteractionCount: 0,
+        lastGuestPrompt: null
+      }),
 
-      enterGuestMode: () => set({ status: 'guest' }),
+      enterGuestMode: () => {
+        // Generate unique guest user with session-specific ID
+        const guestUser: User = {
+          id: generateGuestId(),
+          name: 'Guest User'
+        };
+
+        set({
+          status: 'guest',
+          user: guestUser,
+          guestInteractionCount: 0,
+          lastGuestPrompt: null
+        });
+      },
 
       incrementGuestAction: () => {
         const { status, guestInteractionCount, lastGuestPrompt } = get();
@@ -60,6 +83,14 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'zeneme-next-auth-storage',
+      // Use sessionStorage for guest mode, localStorage for authenticated users
+      storage: createJSONStorage(() => {
+        // Check if we're in a browser environment
+        if (typeof window === 'undefined') return localStorage;
+
+        // Use sessionStorage to clear data when browser closes
+        return sessionStorage;
+      }),
       partialize: (state) => ({
         status: state.status,
         user: state.user,

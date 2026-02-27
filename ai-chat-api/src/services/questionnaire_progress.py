@@ -44,12 +44,11 @@ class QuestionnaireProgressService:
         """
         logger.info(f"Starting/resuming questionnaire for user {user_id}, questionnaire {questionnaire_id}")
 
-        # Check for existing in-progress questionnaire
+        # Check for existing progress (in_progress OR completed)
         progress = db.query(UserQuestionnaireProgress).filter(
             UserQuestionnaireProgress.user_id == user_id,
-            UserQuestionnaireProgress.questionnaire_id == questionnaire_id,
-            UserQuestionnaireProgress.status == 'in_progress'
-        ).first()
+            UserQuestionnaireProgress.questionnaire_id == questionnaire_id
+        ).order_by(UserQuestionnaireProgress.last_updated_at.desc()).first()
 
         # Get questions
         questions = db.query(AssessmentQuestion).filter(
@@ -60,9 +59,22 @@ class QuestionnaireProgressService:
         if not questions:
             raise ValueError(f"No published questions found for questionnaire {questionnaire_id}")
 
+        # If progress exists and is valid
         if progress:
-            logger.info(f"Resuming existing progress: {progress.current_question_index}/{progress.total_questions}")
-            return progress, questions
+            # If completed, return it (frontend will show report)
+            if progress.status == 'completed':
+                logger.info(f"Found completed progress with report_id={progress.report_id}")
+                return progress, questions
+
+            # If in_progress, validate it's not stale
+            if progress.status == 'in_progress':
+                if progress.current_question_index >= len(questions):
+                    logger.warning(f"Stale in_progress detected: index={progress.current_question_index}, total={len(questions)}. Creating new.")
+                    # Don't return stale progress, create new below
+                    progress = None
+                else:
+                    logger.info(f"Resuming existing progress: {progress.current_question_index}/{progress.total_questions}")
+                    return progress, questions
 
         # Create new progress record
         try:

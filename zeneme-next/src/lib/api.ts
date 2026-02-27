@@ -77,34 +77,42 @@ export interface AnalyzeImageResponse {
 
 /**
  * Send a chat message to the backend
- * Generates or retrieves a user ID and includes it in the request
+ * Uses guest ID from auth store for guest users, or authenticated user ID
  */
-const USER_ID_STORAGE_KEY = 'zeneme_user_id';
-
-function getOrCreateUserId(): string | undefined {
+function getUserIdFromAuth(): string | undefined {
   if (typeof window === 'undefined') return undefined;
 
-  const existing = window.localStorage.getItem(USER_ID_STORAGE_KEY);
-  if (existing) return existing;
+  try {
+    // Get auth state from sessionStorage (where guest data is stored)
+    const authData = window.sessionStorage.getItem('zeneme-next-auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      const state = parsed.state;
 
-  const newId =
-    window.crypto?.randomUUID?.() ??
-    `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      // If user is logged in (guest or authenticated), use their ID
+      if (state?.user?.id) {
+        return state.user.id;
+      }
+    }
+  } catch (error) {
+    console.error('[API] Error reading auth state:', error);
+  }
 
-  window.localStorage.setItem(USER_ID_STORAGE_KEY, newId);
-  return newId;
+  return undefined;
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
   try {
     console.log('[API] Sending chat message to:', `${API_BASE_URL}/chat/`);
-    const defaultUserId = getOrCreateUserId();
+    const userId = getUserIdFromAuth();
 
-    // 如果页面没传 user_id，就用本地默认虚拟用户
+    // Use user ID from auth store (guest or authenticated)
     const requestWithUserId = {
       ...request,
-      user_id: request.user_id ?? defaultUserId ?? null,
+      user_id: request.user_id ?? userId ?? null,
     };
+
+    console.log('[API] Using user_id:', requestWithUserId.user_id);
 
     const response = await fetch(`${API_BASE_URL}/chat/`, {
       method: 'POST',
@@ -926,13 +934,22 @@ export async function startQuestionnaire(
   request: StartQuestionnaireRequest
 ): Promise<StartQuestionnaireResponse> {
   try {
+    // Use user ID from auth store if not provided
+    const userId = request.user_id || getUserIdFromAuth();
+    const requestWithUserId = {
+      ...request,
+      user_id: userId || request.user_id
+    };
+
+    console.log('[API] Starting questionnaire with user_id:', requestWithUserId.user_id);
+
     const response = await fetch(`${API_BASE_URL}/api/questionnaire/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(request),
+      body: JSON.stringify(requestWithUserId),
     });
 
     if (!response.ok) {

@@ -4,6 +4,7 @@ import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { ClipboardList, Loader2, MessageCircle } from 'lucide-react';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
+import { useAuthStore } from '../../../hooks/useAuthStore';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Brain, Lightbulb, Download } from 'lucide-react';
 import {
@@ -50,23 +51,36 @@ const SafeIcon = ({ icon: Icon, ...props }: { icon?: IconLike } & IconLikeProps)
   return <Icon {...props} />;
 };
 
-// Helper function to get or create user ID
-function getOrCreateUserId(): string {
+// Helper function to get user ID from auth store
+function getUserIdFromAuth(): string {
   if (typeof window === 'undefined') return `guest_${Date.now()}`;
 
-  const USER_ID_KEY = 'zeneme_user_id';
-  const existing = window.localStorage.getItem(USER_ID_KEY);
-  if (existing) return existing;
+  try {
+    // Read from sessionStorage where guest/auth data is stored
+    const authData = window.sessionStorage.getItem('zeneme-next-auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      const userId = parsed.state?.user?.id;
+      if (userId) {
+        console.log('[InnerQuickTest] Using user_id from auth store:', userId);
+        return userId;
+      }
+    }
+  } catch (error) {
+    console.error('[InnerQuickTest] Error reading auth state:', error);
+  }
 
-  const newId = window.crypto?.randomUUID?.() ?? `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  window.localStorage.setItem(USER_ID_KEY, newId);
-  return newId;
+  // Fallback: generate temporary ID
+  const fallbackId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  console.warn('[InnerQuickTest] No user in auth store, using fallback:', fallbackId);
+  return fallbackId;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
+  const { user } = useAuthStore(); // Get user from auth store
   const [view, setView] = useState<'test' | 'result'>('test');
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -286,7 +300,7 @@ export const InnerQuickTest: React.FC = () => {
       // Don't wait for conversation - questionnaire can work independently
       // Just ensure we have a session ID
       const resetProgressOnly = async () => {
-      const userId = getOrCreateUserId();
+      const userId = getUserIdFromAuth();
       await fetch(`${API_BASE_URL}/api/questionnaire/progress/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,7 +327,7 @@ export const InnerQuickTest: React.FC = () => {
 
       setLoading(true);
       try {
-        const userId = getOrCreateUserId();
+        const userId = getUserIdFromAuth();
         const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
         if (!sessionId) {
@@ -347,33 +361,61 @@ export const InnerQuickTest: React.FC = () => {
         const len = result.questions.length;
         const idx = result.progress.current_question_index ?? 0;
 
-        if (len > 0 && idx >= len) {
-        console.warn('[InnerQuickTest] stale progress detected, resetting...', { idx, len });
-
-        toast.warning('检测到问卷版本更新，正在为你重置进度…');
-
-        // 调你已有的 reset 接口，但别 reload（见下一条）
-        await resetProgressOnly(); // 你新写一个不 reload 的 reset
-        return;
-        }
-        
-        // 正常情况
-        setCurrentQIndex(idx);
-
-        setCategoryScores(result.progress.category_scores || {});
-
-        // If already completed, show result
+        // Check if already completed - show report, don't reset
         if (result.progress.status === 'completed' && result.progress.report_id) {
           console.log('[InnerQuickTest] Progress is completed, showing result view');
+          setProgressId(result.progress.id);
+          setQuestions(result.questions);
+          setCurrentQIndex(idx);
+          setCategoryScores(result.progress.category_scores || {});
           setReportId(result.progress.report_id);
           setReportStatus('completed');
           setView('result');
           setSubmissionState('success');
-        } else {
-          console.log('[InnerQuickTest] Progress is in_progress, showing test view');
+          setError(null);
+          setLoading(false);
+          return;
+        }
+
+        // Check for stale in_progress (index beyond questions)
+        if (result.progress.status === 'in_progress' && len > 0 && idx >= len) {
+          console.warn('[InnerQuickTest] stale in_progress detected, resetting...', { idx, len });
+
+          toast.warning('检测到问卷版本更新，正在为你重置进度…');
+
+          // Reset progress and restart
+          await resetProgressOnly();
+
+          // Restart the questionnaire after reset
+          console.log('[InnerQuickTest] Restarting questionnaire after reset');
+          const retryResult = await startQuestionnaire({
+            user_id: userId,
+            session_id: currentSessionId,
+            ...(typeof conversationId === 'number' ? { conversation_id: conversationId } : {}),
+            questionnaire_id: 'admin_created'
+          });
+
+          if (!retryResult.ok || !retryResult.progress || !retryResult.questions) {
+            throw new Error(retryResult.error || '重置后无法加载问卷');
+          }
+
+          // Use the fresh data
+          setProgressId(retryResult.progress.id);
+          setQuestions(retryResult.questions);
+          setCurrentQIndex(0);
+          setCategoryScores({});
           setView('test');
           setSubmissionState('idle');
+          setError(null);
+          setLoading(false);
+          return;
         }
+
+        // Normal in_progress - resume
+        setCurrentQIndex(idx);
+        setCategoryScores(result.progress.category_scores || {});
+        setView('test');
+        setSubmissionState('idle');
 
         setError(null);
       } catch (err) {
@@ -448,7 +490,7 @@ export const InnerQuickTest: React.FC = () => {
   const resetTest = async () => {
     try {
       // Delete progress from database before resetting
-      const userId = getOrCreateUserId();
+      const userId = getUserIdFromAuth();
       console.log('[resetTest] Deleting progress for user:', userId);
 
       const response = await fetch(`${API_BASE_URL}/api/questionnaire/progress/reset`, {
@@ -562,10 +604,10 @@ export const InnerQuickTest: React.FC = () => {
     // If we have report data, show it
     if (reportData && reportData.mind_indices) {
       return (
-        
+
         <div className="h-full overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 custom-scrollbar relative z-10">
           <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-            
+
             {/* 顶部 Header：套用设计师的 Grid 和动画，保留你的文案 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="md:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-violet-900/40 to-[#0E1630]/60 border border-violet-500/20 relative overflow-hidden group">
@@ -582,7 +624,7 @@ export const InnerQuickTest: React.FC = () => {
                   </div>
                 </div>
               </motion.div>
-              
+
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="p-6 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-900/40 border border-white/10">
                 <div className="w-12 h-12 rounded-full bg-violet-500/10 text-violet-400 flex items-center justify-center mb-4 border border-violet-500/20">
                   <Brain size={24} />
@@ -658,13 +700,13 @@ export const InnerQuickTest: React.FC = () => {
                   >
                     {/* 👇 退回设计师原本的 Flex 布局，去除所有多余的 w-full 👇 */}
                     <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start">
-                      
+
                       {/* 左侧：使用设计师的原版 class，保证大屏竖排定宽，小屏横排 */}
                       <div className="flex-shrink-0 flex md:flex-col items-center gap-3 md:gap-1 md:w-32 md:border-r md:border-white/10 md:pr-4">
                         <div className="text-4xl font-bold text-violet-400">{item.score}</div>
                         <div className="text-xs text-slate-400 font-medium text-center">{item.leftLabel}</div>
                       </div>
-                      
+
                       {/* 右侧：纯粹的 flex-1，自动填满剩余空间 */}
                       <div className="flex-1">
                         <div className="text-base font-semibold text-white mb-2 tracking-wide flex items-center gap-2">
@@ -682,10 +724,10 @@ export const InnerQuickTest: React.FC = () => {
 
             {/* 底部按钮区：你的下载逻辑 + 你的返回/重测逻辑，套用设计师的排版 */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="pt-4 pb-12 flex flex-col items-center gap-6">
-              
+
               {/* 主下载按钮 - 你的逻辑 */}
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 onClick={async () => {
                   if (reportId) {
                     try {
@@ -695,7 +737,7 @@ export const InnerQuickTest: React.FC = () => {
                       toast.error('下载失败，请重试');
                     }
                   }
-                }} 
+                }}
                 className="w-full md:w-[60%] h-14 text-base font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transition-all flex items-center justify-center gap-2"
               >
                 <Download size={20} /> 下载完整报告 (DOCX)
@@ -729,7 +771,7 @@ export const InnerQuickTest: React.FC = () => {
         </div>
       );
     }
-  
+
 
       // Show success screen without report data (waiting to fetch)
       return (
@@ -819,19 +861,19 @@ export const InnerQuickTest: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      
+
       {/* 修复点 1: 移除外层滚动容器的 justify-center，避免内容超长时顶部被吞掉无法滚动 */}
       <div className="flex-1 flex flex-col items-center p-4 md:p-8 overflow-y-auto">
-        
+
         {/* 卡片容器：利用 my-auto 替代 justify-center 实现安全居中 */}
         <div className="w-full max-w-3xl space-y-4 md:space-y-6 backdrop-blur-xl px-5 py-6 md:px-10 md:py-8 lg:p-10 rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl my-auto relative">
-          
+
           {/* --- 头部区域：题号、进度条、题目文本 --- */}
           <div className="space-y-4 text-left w-full">
             <div className="text-slate-200 font-medium text-sm tracking-wide">
               Question {currentQIndex + 1}/{totalQuestions}
             </div>
-            
+
             <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-500 ease-out rounded-full"
@@ -842,7 +884,7 @@ export const InnerQuickTest: React.FC = () => {
             <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug pt-2 md:pt-4 drop-shadow-lg">
               {currentQuestion?.text}
             </h3>
-            
+
             {currentQuestion?.subtitle && (
               <p className="text-sm text-slate-300 mt-2">
                 {currentQuestion.subtitle}
@@ -885,8 +927,8 @@ export const InnerQuickTest: React.FC = () => {
                       "w-[56px] h-[56px] md:w-[96px] md:h-[96px]", // [索引0] 大：56px / 96px (原 w-14/w-24)
                       "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引1] 中：48px / 80px (原 w-12/w-20)
                       "w-[40px] h-[40px] md:w-[64px] md:h-[64px]", // [索引2] 小：40px / 64px (原 w-10/w-16)
-                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引3] 中：48px / 80px 
-                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]"  // [索引4] 大：56px / 96px 
+                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引3] 中：48px / 80px
+                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]"  // [索引4] 大：56px / 96px
                     ];
                     const currentSizeClass = sizeClasses[idx];
 
@@ -924,7 +966,7 @@ export const InnerQuickTest: React.FC = () => {
               // F7: Direction Dial 0-360 (Spatial Scene with Compass)
               // 修复 2：使用 grid-cols-2 实现左右分栏布局
               <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center justify-center pt-4 pb-8">
-                
+
                 {/* --- 左侧：场景地图区域 --- */}
                 {(() => {
                   const defaultItems = [
@@ -990,7 +1032,7 @@ export const InnerQuickTest: React.FC = () => {
                       const dx = e.clientX - cx;
                       const cy_diff = e.clientY - cy;
                       let deg = Math.atan2(cy_diff, dx) * (180 / Math.PI);
-                      deg += 90; 
+                      deg += 90;
                       if (deg < 0) deg += 360;
                       setDialAngle(Math.round(deg));
                     }}
@@ -1007,7 +1049,7 @@ export const InnerQuickTest: React.FC = () => {
                         }}
                       />
                     ))}
-                    
+
                     {/* 雷达中间的辅助同心圆 */}
                     <div style={{
                       position: 'absolute', top: '50%', left: '50%',
@@ -1072,7 +1114,7 @@ export const InnerQuickTest: React.FC = () => {
                   </button>
                 </div>
               </div>
-            
+
             ) : currentQuestion?.options && currentQuestion.options.length > 0 ? (
                 currentQuestion.text.includes('排序') || currentQuestion.text.includes('ranking') || currentQuestion.text.includes('依次') ? (
                   // F6: Ranking question
