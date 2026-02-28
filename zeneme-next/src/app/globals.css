@@ -2,10 +2,13 @@
 @import "tailwindcss";
 @font-face {
   font-family: 'Mangsi';
-  src: url('/fonts/mangsi.ttf') format('truetype'); 
+  src: url('/fonts/mangsi.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+}
+@theme {
+  --font-mangsi: "Mangsi", ui-sans-serif, system-ui;
 }
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
