@@ -515,7 +515,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
   };
 
   const messageCount = messages.length;
-  const isReadyForReport = messageCount >= 6;
+
+  // Two paths for report generation:
+  // 1. Simple Report: Conversation has IFS data (category 2.2.1) detected
+  // 2. Advanced Report: Questionnaire (quick_assessment) completed
+
+  const hasIFSData = !!moduleStatus?.['conversation_data']?.has_ifs_data;
+  const isQuestionnaireCompleted = !!moduleStatus?.['quick_assessment']?.completed_at;
+
+  // Show report button if either condition is met
+  const isReadyForReport = hasIFSData || isQuestionnaireCompleted;
+
+  // Determine report type for UI messaging
+  const reportType = isQuestionnaireCompleted ? 'advanced' : 'simple';
+
   const [reportContent, setReportContent] = useState<string | null>(null);
 
   const handleGenerateReport = async () => {
@@ -524,6 +537,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
       return;
     }
 
+    // If questionnaire is completed (advanced report), navigate to test view
+    // This shows the same report as 内视快测 (Inner Quick Test)
+    if (isQuestionnaireCompleted) {
+      console.log('[Generate Report] Questionnaire completed, navigating to test view');
+      setCurrentView('test' as unknown as Parameters<typeof setCurrentView>[0]);
+      return;
+    }
+
+    // Otherwise, generate simple report from conversation data
     setIsGeneratingReport(true);
 
     try {
@@ -591,13 +613,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
       {!isWelcomeState && (
         <div className="w-full bg-slate-900/40 border-b border-white/5 p-4 sticky top-0 z-20 flex items-center gap-4 backdrop-blur-xl">
           {!isReadyForReport ? (
-            <AnalysisProgress
-              label={t.chat.dataCollection}
-              detail={`${Math.min(messageCount, 6)}/6 ${t.chat.messagesCount}`}
-              totalSteps={6}
-              currentStep={messageCount}
-              className="w-48 md:w-64 ml-auto"
-            />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">
+                {language === 'zh'
+                  ? '继续对话或完成内视快测以生成报告'
+                  : 'Continue conversation or complete Quick Test to generate report'}
+              </span>
+            </div>
           ) : (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -605,7 +627,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
               className="flex items-center gap-2 ml-auto"
             >
               <span className="text-xs font-medium text-violet-300 bg-violet-500/20 px-2 py-1 rounded-full border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                {t.chat.dataReady}
+                {reportType === 'advanced'
+                  ? (language === 'zh' ? '深度报告就绪' : 'Advanced Report Ready')
+                  : (language === 'zh' ? '基础报告就绪' : 'Basic Report Ready')}
               </span>
               <Button
                 size="sm"

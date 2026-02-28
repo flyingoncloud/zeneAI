@@ -593,6 +593,23 @@ def get_ai_response(
         qa_status = module_status.get("quick_assessment", {})
         logger.info(f"DEBUG - quick_assessment status: completed_at={qa_status.get('completed_at')}, full_status={qa_status}")
 
+        # Check if conversation has IFS data (category 2.2.1) for simple report generation
+        # This is separate from questionnaire completion
+        has_ifs_data = False
+        if progress and progress.category_scores:
+            # Check if any category starting with 2.2.1 has data
+            ifs_categories = {k: v for k, v in progress.category_scores.items() if k.startswith('2.2.1')}
+            if ifs_categories:
+                has_ifs_data = True
+                logger.info(f"✓ IFS data detected in conversation: {ifs_categories}")
+            else:
+                logger.info("✗ No IFS (2.2.1) data in conversation")
+
+        # Store IFS data detection in module_status for frontend
+        if "conversation_data" not in module_status:
+            module_status["conversation_data"] = {}
+        module_status["conversation_data"]["has_ifs_data"] = has_ifs_data
+
         # Log module completion summary
         completed_count = sum(1 for status in module_status.values() if status.get("completed_at"))
         recommended_count = sum(1 for status in module_status.values() if status.get("recommended_at") and not status.get("completed_at"))
