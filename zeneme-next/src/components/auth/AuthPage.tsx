@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import {
   sendPhoneVerificationCode,
   loginWithPhone,
+  registerWithPhone,
+  loginWithPhonePassword,
   registerWithEmail,
   sendEmailVerificationCode,
   loginWithEmail,
@@ -96,27 +98,51 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
       if (method === 'phone') {
         // Phone login/register
-        if (!phone || !code) {
-          toast.error('请输入手机号和验证码');
+        if (!phone) {
+          toast.error('请输入手机号');
           return;
         }
 
-        // For registration (view === 'register'), require username
-        if (view === 'register' && !username) {
-          toast.error('请输入用户名');
-          return;
-        }
+        if (view === 'register') {
+          // Phone Registration: requires code, password, and optional username
+          if (!code) {
+            toast.error('请输入验证码');
+            return;
+          }
+          if (!password || password.length < 6) {
+            toast.error('密码至少需要6位');
+            return;
+          }
 
-        const result = await loginWithPhone({
-          phone,
-          country_code: '+61',
-          code,
-          username: view === 'register' ? username : undefined
-        });
+          const result = await registerWithPhone({
+            phone,
+            country_code: '+61',
+            code,
+            password,
+            username: username || undefined
+          });
 
-        if (result.success && result.user) {
-          login(result.user);
-          toast.success(view === 'register' ? '注册成功！' : '登录成功！');
+          if (result.success && result.user) {
+            login(result.user);
+            toast.success('注册成功！');
+          }
+        } else {
+          // Phone Login: use password (no code needed)
+          if (!password) {
+            toast.error('请输入密码');
+            return;
+          }
+
+          const result = await loginWithPhonePassword({
+            phone,
+            country_code: '+61',
+            password
+          });
+
+          if (result.success && result.user) {
+            login(result.user);
+            toast.success('登录成功！');
+          }
         }
       } else {
         // Email login/register
@@ -272,37 +298,83 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                 </div>
 
                 {view === 'register' && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/80 pl-1">用户名</label>
-                    <input
-                      type="text"
-                      className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
-                      placeholder="请输入用户名"
-                      value={username}
-                      onChange={e => setUsername(e.target.value)}
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/80 pl-1">用户名</label>
+                      <input
+                        type="text"
+                        className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                        placeholder="请输入用户名"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/80 pl-1">验证码</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                          placeholder="6位数字"
+                          value={code}
+                          onChange={e => setCode(e.target.value)}
+                        />
+                        <Button
+                          onClick={handleSendCode}
+                          disabled={countdown > 0}
+                          className="w-28 h-11 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xs"
+                        >
+                          {countdown > 0 ? `${countdown}s` : (codeSent ? '重新发送' : '获取验证码')}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/80 pl-1">设置密码</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 pr-12 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                          placeholder="请设置登录密码（至少6位）"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
 
-                <div className="space-y-1.5">
-                  <label className="text-xs text-white/80 pl-1">验证码</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
-                      placeholder="6位数字"
-                      value={code}
-                      onChange={e => setCode(e.target.value)}
-                    />
-                    <Button
-                      onClick={handleSendCode}
-                      disabled={countdown > 0}
-                      className="w-28 h-11 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white text-xs"
-                    >
-                      {countdown > 0 ? `${countdown}s` : (codeSent ? '重新发送' : '获取验证码')}
-                    </Button>
+                {view === 'login' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-white/80 pl-1">密码</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        className="w-full h-11 rounded-xl bg-purple-900/30 border border-white/20 px-4 pr-12 text-white text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all placeholder:text-white/40"
+                        placeholder="请输入密码"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             ) : (
               <>

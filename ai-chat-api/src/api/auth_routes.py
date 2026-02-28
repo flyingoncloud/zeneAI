@@ -68,6 +68,40 @@ class PhoneLoginRequest(BaseModel):
         return v
 
 
+class PhoneRegisterRequest(BaseModel):
+    """Phone registration with verification code and password"""
+    phone: str
+    country_code: str = "+61"
+    code: str
+    password: str
+    username: Optional[str] = None
+
+    @validator('code')
+    def validate_code(cls, v):
+        if not re.match(r'^\d{6}$', v):
+            raise ValueError('Verification code must be 6 digits')
+        return v
+
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        return v
+
+
+class PhonePasswordLoginRequest(BaseModel):
+    """Phone login with password (no verification code)"""
+    phone: str
+    country_code: str = "+61"
+    password: str
+
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        return v
+
+
 class EmailVerificationRequest(BaseModel):
     email: EmailStr
 
@@ -167,9 +201,21 @@ async def send_phone_verification_code(
     request: PhoneVerificationRequest,
     db: Session = Depends(get_db)
 ):
-    """Send verification code to phone number"""
+    """Send verification code to phone number for registration"""
     try:
         phone_key = f"{request.country_code}{request.phone}"
+
+        # Check if phone number already registered
+        user_id = f"phone_{hashlib.md5(phone_key.encode()).hexdigest()}"
+        existing_user = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already registered. Please login instead."
+            )
 
         # Generate code
         code = generate_verification_code()
@@ -198,8 +244,177 @@ async def send_phone_verification_code(
             expires_in=60
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[Auth] Error sending verification code: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post("/phone/register", response_model=AuthResponse)
+async def phone_register(
+    request: PhoneRegisterRequest,
+    db: Session = Depends(get_db)
+):
+    """Register with phone number, verification code, and password"""
+    try:
+        phone_key = f"{request.country_code}{request.phone}"
+
+        # Verify code first
+        if phone_key not in verification_codes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No verification code found. Please request a new code."
+            )
+
+        code_data = verification_codes[phone_key]
+
+        # Check expiration
+        if datetime.utcnow() > code_data['expires_at']:
+            del verification_codes[phone_key]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code expired. Please request a new code."
+            )
+
+        # Check attempts
+        if code_data['attempts'] >= 3:
+            del verification_codes[phone_key]
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed attempts. Please request a new code."
+            )
+
+        # Verify code
+        if request.code != code_data['code']:
+            code_data['attempts'] += 1
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid verification code. {3 - code_data['attempts']} attempts remaining."
+            )
+
+        # Code verified, remove from storage
+        del verification_codes[phone_key]
+
+        # Check if phone already registered
+        user_id = f"phone_{hashlib.md5(phone_key.encode()).hexdigest()}"
+        existing_user = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already registered. Please login instead."
+            )
+
+        # Create new user with password
+        username = request.username or f"User {request.phone[-4:]}"
+
+        # Check username uniqueness
+        existing_username = db.query(UserProfile).filter(
+            UserProfile.username == username
+        ).first()
+
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken. Please choose a different username."
+            )
+
+        user_data = {
+            'user_id': user_id,
+            'username': username,
+            'phone_number': request.phone,
+            'phone_country_code': request.country_code,
+            'password_hash': hash_password(request.password),
+            'auth_provider': 'phone',
+            'provider_id': phone_key,
+        }
+
+        user = create_or_update_user(db, user_data)
+
+        # Generate token
+        token = generate_token()
+
+        logger.info(f"[Auth] Phone registration successful for {phone_key}")
+
+        return AuthResponse(
+            success=True,
+            message="Registration successful",
+            user={
+                'id': user.user_id,
+                'name': user.username,
+                'phone': phone_key,
+            },
+            token=token
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Auth] Error in phone registration: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post("/phone/login-password", response_model=AuthResponse)
+async def phone_login_password(
+    request: PhonePasswordLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """Login with phone number and password (no verification code needed)"""
+    try:
+        phone_key = f"{request.country_code}{request.phone}"
+
+        # Find user by phone
+        user_id = f"phone_{hashlib.md5(phone_key.encode()).hexdigest()}"
+        user = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id
+        ).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid phone number or password"
+            )
+
+        # Verify password
+        if not user.password_hash or not verify_password(request.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid phone number or password"
+            )
+
+        # Update last login
+        user.last_login_at = datetime.utcnow()
+        db.commit()
+
+        # Generate token
+        token = generate_token()
+
+        logger.info(f"[Auth] Phone password login successful for {phone_key}")
+
+        return AuthResponse(
+            success=True,
+            message="Login successful",
+            user={
+                'id': user.user_id,
+                'name': user.username,
+                'phone': phone_key,
+            },
+            token=token
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Auth] Error in phone password login: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -211,7 +426,7 @@ async def phone_login(
     request: PhoneLoginRequest,
     db: Session = Depends(get_db)
 ):
-    """Login or register with phone number and verification code"""
+    """Login or register with phone number and verification code (for password reset or legacy)"""
     try:
         phone_key = f"{request.country_code}{request.phone}"
 

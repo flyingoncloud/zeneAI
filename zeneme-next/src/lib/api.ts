@@ -1062,6 +1062,20 @@ export interface PhoneLoginRequest {
   username?: string;  // Optional - only needed for first-time registration
 }
 
+export interface PhoneRegisterRequest {
+  phone: string;
+  country_code?: string;
+  code: string;
+  password: string;
+  username?: string;
+}
+
+export interface PhonePasswordLoginRequest {
+  phone: string;
+  country_code?: string;
+  password: string;
+}
+
 export interface EmailRegisterRequest {
   email: string;
   password: string;
@@ -1150,7 +1164,65 @@ export async function sendEmailVerificationCode(request: { email: string }): Pro
 }
 
 /**
- * Login with phone number and verification code
+ * Register with phone number, verification code, and password
+ */
+export async function registerWithPhone(
+  request: PhoneRegisterRequest
+): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/phone/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error registering with phone:', error);
+    throw error;
+  }
+}
+
+/**
+ * Login with phone number and password (no verification code needed)
+ */
+export async function loginWithPhonePassword(
+  request: PhonePasswordLoginRequest
+): Promise<AuthResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/phone/login-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error logging in with phone password:', error);
+    throw error;
+  }
+}
+
+/**
+ * Login with phone number and verification code (for password reset or legacy)
  */
 export async function loginWithPhone(request: PhoneLoginRequest): Promise<AuthResponse> {
   try {
