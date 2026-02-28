@@ -411,6 +411,13 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         });
 
         console.log('[Store] Loaded sessions:', loadedSessions.length);
+        console.log('[Store] Loaded session details:', loadedSessions.map(s => ({
+          id: s.id,
+          title: s.title,
+          isDraft: s.isDraft,
+          messageCount: s.messages.length
+        })));
+
         // Set loaded sessions in sidebar, but DON'T make them active
         // User should see a fresh empty conversation on login
         if (loadedSessions.length > 0) {
