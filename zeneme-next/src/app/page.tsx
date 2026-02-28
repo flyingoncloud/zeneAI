@@ -44,6 +44,7 @@ function HomeContent() {
     setModuleStatus,
     pendingModuleCompletion,
     userId,
+    setUserId,
     setPendingModuleCompletion,
     loadUserConversations
   } = useZenemeStore();
@@ -98,6 +99,11 @@ function HomeContent() {
   React.useEffect(() => {
     if (status === 'authenticated' && user?.id) {
       console.log('[Page] User authenticated, loading conversations for:', user.id);
+
+      // Update ZenemeStore userId to match authenticated user
+      setUserId(user.id);
+      console.log('[Page] Updated ZenemeStore userId to:', user.id);
+
       loadUserConversations(user.id).catch(err => {
         console.error('[Page] Failed to load conversations:', err);
       });
