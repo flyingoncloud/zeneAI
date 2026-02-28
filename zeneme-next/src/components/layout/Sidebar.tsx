@@ -144,9 +144,11 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
 
   // Filter and sort sessions for Recent Chats
   const recentSessions = useMemo(() => {
-    return sessions
-      .filter(s => !s.isDraft)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    console.log('[Sidebar] Computing recentSessions from sessions:', sessions.length);
+    console.log('[Sidebar] Sessions details:', sessions.map(s => ({ id: s.id, title: s.title, isDraft: s.isDraft, messageCount: s.messages.length })));
+    const filtered = sessions.filter(s => !s.isDraft);
+    console.log('[Sidebar] After filtering isDraft, count:', filtered.length);
+    return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [sessions]);
 
   const displayedSessions = recentSessions;
@@ -543,10 +545,10 @@ export const Sidebar: React.FC = () => {
         <SheetTitle className="sr-only">Menu</SheetTitle>
         <SheetDescription className="sr-only">Navigation menu</SheetDescription>
         {/* 3. 在这里把 onClose 方法传进去，你的点击判断就会生效了！ */}
-          <SidebarContent 
-            isCollapsed={false} 
-            isMobile 
-            onClose={() => setIsMobileSheetOpen(false)} 
+          <SidebarContent
+            isCollapsed={false}
+            isMobile
+            onClose={() => setIsMobileSheetOpen(false)}
           />
       </SheetContent>
     </Sheet>
