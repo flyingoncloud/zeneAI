@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/hooks/useAuthStore';
+import { useZenemeStore } from '@/hooks/useZenemeStore';
 import { motion } from 'motion/react';
 import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ interface AuthPageProps {
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   const { login } = useAuthStore();
+  const { setSessionId } = useZenemeStore();
 
   const [view, setView] = useState<'login' | 'register'>('login');
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
@@ -124,6 +126,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
           if (result.success && result.user) {
             login(result.user);
+            // Create a global session_id for this user's entire journey
+            const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            setSessionId(globalSessionId);
+            console.log('[AuthPage] Created global session_id for user:', globalSessionId);
             toast.success('注册成功！');
           }
         } else {
@@ -141,6 +147,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
           if (result.success && result.user) {
             login(result.user);
+            // Create a global session_id for this user's entire journey
+            const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            setSessionId(globalSessionId);
+            console.log('[AuthPage] Created global session_id for user:', globalSessionId);
             toast.success('登录成功！');
           }
         }
@@ -166,6 +176,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
           if (result.success && result.user) {
             login(result.user);
+            // Create a global session_id for this user's entire journey
+            const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            setSessionId(globalSessionId);
+            console.log('[AuthPage] Created global session_id for user:', globalSessionId);
             toast.success('注册成功！');
           }
         } else {
@@ -174,6 +188,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
           if (result.success && result.user) {
             login(result.user);
+            // Create a global session_id for this user's entire journey
+            const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+            setSessionId(globalSessionId);
+            console.log('[AuthPage] Created global session_id for user:', globalSessionId);
             toast.success('登录成功！');
           }
         }

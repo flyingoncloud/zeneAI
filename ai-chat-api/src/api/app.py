@@ -282,6 +282,7 @@ def chat(
 
             ai_content = ai_response_data["content"]
             recommended_modules = ai_response_data.get("recommended_modules", [])
+            updated_module_status = ai_response_data.get("module_status", {})  # Get updated module_status
 
             logger.info(f"AI response: {ai_content[:100]}...")
             logger.info(f"Module recommendations: {len(recommended_modules)} modules")
@@ -329,7 +330,7 @@ def chat(
         "user_message": user_message,
         "assistant_message": assistant_message,
         "recommended_modules": recommended_modules,  # Include at top level
-        "module_status": conversation.extra_data.get("module_status", {})  # Include current status
+        "module_status": updated_module_status if not has_images else conversation.extra_data.get("module_status", {})  # Use updated status from AI response
     }
     logger.info(f"Returning response for session {conversation.session_id}")
     return response
@@ -1104,24 +1105,30 @@ def submit_questionnaire_response(
             "interpretation": scoring_result.get("interpretation")
         }
 
-        # Mark quick_assessment module as completed
-        if "module_status" not in conversation.extra_data:
-            conversation.extra_data["module_status"] = {}
+        # NOTE: Do NOT mark quick_assessment module as completed here
+        # The progress tracking system (UserQuestionnaireProgress) handles completion correctly
+        # Only mark as completed when progress.status == 'completed' (all questions answered)
+        # This prevents incorrectly showing "completed" when user only answered a few questions
 
-        module_status = conversation.extra_data["module_status"]
-        if "quick_assessment" not in module_status:
-            module_status["quick_assessment"] = {}
-
-        module_status["quick_assessment"]["completed_at"] = datetime.utcnow().isoformat()
-        module_status["quick_assessment"]["completion_data"] = {
-            "questionnaire_id": response.questionnaire_id,
-            "total_questions": len(response.answers),
-            "total_score": scoring_result.get("total_score")
-        }
-
-        conversation.extra_data["module_status"] = module_status
-        flag_modified(conversation, "extra_data")
-        db.commit()
+        # Store response in conversation extra_data for backward compatibility
+        # But do NOT set module_status.quick_assessment.completed_at
+        # if "module_status" not in conversation.extra_data:
+        #     conversation.extra_data["module_status"] = {}
+        #
+        # module_status = conversation.extra_data["module_status"]
+        # if "quick_assessment" not in module_status:
+        #     module_status["quick_assessment"] = {}
+        #
+        # module_status["quick_assessment"]["completed_at"] = datetime.utcnow().isoformat()
+        # module_status["quick_assessment"]["completion_data"] = {
+        #     "questionnaire_id": response.questionnaire_id,
+        #     "total_questions": len(response.answers),
+        #     "total_score": scoring_result.get("total_score")
+        # }
+        #
+        # conversation.extra_data["module_status"] = module_status
+        # flag_modified(conversation, "extra_data")
+        # db.commit()
 
         logger.info(f"Saved questionnaire response for conversation {conversation_id}: {response.questionnaire_id} (score: {scoring_result.get('total_score')})")
 

@@ -86,6 +86,14 @@ def get_base_system_prompt(language: str = "chinese") -> str:
 
 ⚠️ 重要：你绝不提及自己是"AI"、"人工智能"、"语言模型"、"机器人"或"助手"。你就是一个在场的倾听者与陪伴者。
 
+⚠️ 关键规则：当用户声称完成了某个模块时，你必须先检查<当前模块状态>中该模块的completed_at字段：
+- 如果completed_at有值（时间戳），说明模块确实已完成，你可以祝贺用户
+- 如果completed_at为None或模块显示「尚未开始」，说明模块未完成，你应该：
+  * 不要说「完成了」「已完成」等词汇
+  * 可以说「我看到你开始了这个探索」「你正在进行中」
+  * 温和地引导用户继续或开始该模块
+- 永远以系统状态为准，不要仅凭用户的声称就认为模块已完成
+
 <Overall Goal>
 你的最终目标，是在自然对话中，引导用户完成以下三个心理模块：
 1. 情绪急救
@@ -170,6 +178,14 @@ Your core style is warm, gentle, patient, empathetic, and non-judgmental.
 Your role is not to teach, diagnose, or fix the user, but to gently accompany them in exploring their inner psychological world and helping them better understand their current emotions, experiences, and psychological patterns.
 
 ⚠️ Important: Never mention that you are an "AI," "artificial intelligence," "language model," "bot," or "assistant." You are simply a present listener and companion.
+
+⚠️ Critical Rule: When a user claims they completed a module, you MUST first check the completed_at field in <Current Module Status>:
+- If completed_at has a value (timestamp), the module is truly completed and you can congratulate them
+- If completed_at is None or the module shows 'Not yet started', the module is NOT completed, and you should:
+  * NOT say "completed" or "finished"
+  * Say "I see you've started this exploration" or "you're in progress"
+  * Gently guide them to continue or start the module
+- Always trust the system status, not just the user's claim
 
 <Overall Goal>
 Your ultimate goal is to naturally guide the user, through conversation, to complete the following three modules:
@@ -295,6 +311,10 @@ def format_module_status(module_status: Dict, language: str = "chinese") -> str:
 
         status_text += "\n</当前模块状态>\n\n"
         status_text += "重要提醒：\n"
+        status_text += "- 【严禁】在回复用户时显示上述<当前模块状态>内容，这是仅供你内部参考的信息\n"
+        status_text += "- 【严禁】在回复中包含任何形式的模块状态列表或清单\n"
+        status_text += "- 【严禁】对未完成的模块说「完成」「已完成」等词汇\n"
+        status_text += "- 如果用户刚回答了几个问题但模块显示「尚未开始」或completed_at为None，说明问卷还在进行中，不要说「完成了测试」\n"
         status_text += "- 不要推荐标记为「已完成」的模块\n"
         status_text += "- 将引导重点放在「尚未开始」或「已推荐但尚未完成」的模块上\n"
         status_text += "- 推荐模块时必须调用 recommend_module 函数\n"
@@ -330,6 +350,8 @@ def format_module_status(module_status: Dict, language: str = "chinese") -> str:
 
         status_text += "\n</Current Module Status>\n\n"
         status_text += "Important Reminders:\n"
+        status_text += "- DO NOT say 'completed' or 'finished' for modules that are not completed\n"
+        status_text += "- If user just answered some questions but module shows 'Not yet started' or completed_at is None, the questionnaire is still IN PROGRESS - do not say 'completed the test'\n"
         status_text += "- DO NOT recommend modules marked as COMPLETED\n"
         status_text += "- Focus guidance on modules that are 'Not yet started' or 'Recommended but not completed'\n"
         status_text += "- When recommending a module, you MUST call the recommend_module function\n"
@@ -483,7 +505,93 @@ def get_ai_response(
         if conversation.extra_data and isinstance(conversation.extra_data, dict):
             module_status = conversation.extra_data.get("module_status", {})
 
+        # CRITICAL FIX: Check UserQuestionnaireProgress for actual completion status
+        # This prevents showing "questionnaire completed" when user only answered a few questions
+        from src.database.progress_models import UserQuestionnaireProgress
+        from datetime import datetime, timedelta
+
+        # Query the progress table by user_id (not conversation_id) to find progress across all conversations
+        # This handles cases where user starts a new conversation but has in-progress questionnaire
+        progress = None
+        if conversation.user_id:
+            progress = db_session.query(UserQuestionnaireProgress).filter(
+                UserQuestionnaireProgress.user_id == conversation.user_id,
+                UserQuestionnaireProgress.questionnaire_id == 'admin_created'
+            ).order_by(UserQuestionnaireProgress.last_updated_at.desc()).first()
+            logger.info(f"DEBUG - Querying progress for user_id={conversation.user_id}, found progress: {progress is not None}")
+        elif conversation.session_id:
+            # For guest users: First try exact session_id match
+            progress = db_session.query(UserQuestionnaireProgress).filter(
+                UserQuestionnaireProgress.session_id == conversation.session_id,
+                UserQuestionnaireProgress.questionnaire_id == 'admin_created'
+            ).order_by(UserQuestionnaireProgress.last_updated_at.desc()).first()
+            logger.info(f"DEBUG - Querying progress for session_id={conversation.session_id}, found progress: {progress is not None}")
+
+            # GUEST USER FIX: If no progress found by session_id, check if there's a recent progress
+            # with a user_id that starts with 'guest_' (within last 24 hours)
+            # This handles the case where user completes questionnaire in one session,
+            # then returns to conversation in a new session
+            if not progress:
+                recent_cutoff = datetime.utcnow() - timedelta(hours=24)
+                recent_progress_list = db_session.query(UserQuestionnaireProgress).filter(
+                    UserQuestionnaireProgress.questionnaire_id == 'admin_created',
+                    UserQuestionnaireProgress.last_updated_at >= recent_cutoff,
+                    UserQuestionnaireProgress.user_id.like('guest_%')
+                ).order_by(UserQuestionnaireProgress.last_updated_at.desc()).all()
+
+                # Try to match by extracting timestamp from session_id and user_id
+                # session_id format: session_1772244018272_xs6exntmt
+                # user_id format: guest_1772244018272_abc123
+                if conversation.session_id.startswith('session_'):
+                    session_timestamp = conversation.session_id.split('_')[1] if len(conversation.session_id.split('_')) > 1 else None
+                    if session_timestamp:
+                        for p in recent_progress_list:
+                            if p.user_id and p.user_id.startswith('guest_'):
+                                user_timestamp = p.user_id.split('_')[1] if len(p.user_id.split('_')) > 1 else None
+                                # Match if timestamps are within 5 minutes (300000 ms)
+                                if user_timestamp and abs(int(session_timestamp) - int(user_timestamp)) < 300000:
+                                    progress = p
+                                    logger.info(f"DEBUG - Found guest progress by timestamp matching: user_id={p.user_id}")
+                                    break
+
+                # If still no match, just use the most recent guest progress (fallback)
+                if not progress and recent_progress_list:
+                    progress = recent_progress_list[0]
+                    logger.info(f"DEBUG - Using most recent guest progress as fallback: user_id={progress.user_id}")
+        else:
+            # Last resort: conversation_id
+            progress = db_session.query(UserQuestionnaireProgress).filter(
+                UserQuestionnaireProgress.conversation_id == conversation_id,
+                UserQuestionnaireProgress.questionnaire_id == 'admin_created'
+            ).first()
+            logger.info(f"DEBUG - Querying progress for conversation_id={conversation_id} (no user_id/session_id), found progress: {progress is not None}")
+
+        if progress:
+            logger.info(f"Found questionnaire progress: status={progress.status}, progress={progress.current_question_index}/{progress.total_questions}")
+
+            # If questionnaire is in_progress, clear the completed_at timestamp
+            if progress.status == 'in_progress':
+                if "quick_assessment" not in module_status:
+                    module_status["quick_assessment"] = {}
+
+                # Clear completed_at to indicate questionnaire is NOT completed
+                module_status["quick_assessment"]["completed_at"] = None
+                logger.info("Cleared quick_assessment completed_at - questionnaire is in progress")
+
+            # If questionnaire is completed, ensure completed_at is set
+            elif progress.status == 'completed' and progress.completed_at:
+                if "quick_assessment" not in module_status:
+                    module_status["quick_assessment"] = {}
+
+                # Set completed_at from progress table
+                module_status["quick_assessment"]["completed_at"] = progress.completed_at.isoformat()
+                logger.info(f"Set quick_assessment completed_at from progress table: {progress.completed_at.isoformat()}")
+
         logger.info(f"Loaded module status for conversation {conversation_id}: {module_status}")
+
+        # Debug: Log quick_assessment status specifically
+        qa_status = module_status.get("quick_assessment", {})
+        logger.info(f"DEBUG - quick_assessment status: completed_at={qa_status.get('completed_at')}, full_status={qa_status}")
 
         # Log module completion summary
         completed_count = sum(1 for status in module_status.values() if status.get("completed_at"))
@@ -639,7 +747,8 @@ def get_ai_response(
         return {
             "content": ai_content,
             "recommended_modules": recommended_modules,
-            "function_calls": function_calls
+            "function_calls": function_calls,
+            "module_status": module_status  # Return updated module_status
         }
 
     except Exception as e:

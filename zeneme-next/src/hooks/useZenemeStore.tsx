@@ -100,10 +100,10 @@ interface ZenemeContextType {
   conversationId: number | undefined;
   setSessionId: (id: string | undefined) => void;
   setConversationId: (id: number | undefined) => void;
-  
+
   // Danmaku Interaction
   danmakuPreviewText: string | null;
-  
+
   setDanmakuPreviewText: (text: string | null) => void;
   messages: Message[]; // Derived from current session
   addMessage: (
@@ -185,7 +185,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Danmaku State
   const [danmakuPreviewText, setDanmakuPreviewText] = useState<string | null>(null);
-  
+
   // Exit Action Management for TopBar
   const [exitMessage, setExitMessage] = useState<string | null>(null);
   const [exitModuleToComplete, setExitModuleToComplete] = useState<string | null>(null);

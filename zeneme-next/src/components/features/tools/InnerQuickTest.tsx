@@ -80,6 +80,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
+
+  // Reusable function to handle returning to conversation after completion
+  const handleReturnToConversation = () => {
+    console.log('[InnerQuickTest] Return to conversation - questionnaire completed');
+    console.log('[InnerQuickTest] Setting pendingModuleCompletion to quick_assessment');
+    // Send completion message to trigger AI response
+    setPendingModuleCompletion('quick_assessment');
+    setCurrentView('chat');
+  };
   const { user } = useAuthStore(); // Get user from auth store
   const [view, setView] = useState<'test' | 'result'>('test');
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -319,10 +328,21 @@ export const InnerQuickTest: React.FC = () => {
 };
 
       if (!sessionId) {
-        const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-        setSessionId(newSessionId);
-        console.log('[InnerQuickTest] Created session ID for questionnaire:', newSessionId);
-        return; // Wait for next render with sessionId
+        // If user is authenticated but doesn't have a session_id, create one
+        const userId = getUserIdFromAuth();
+        if (userId && !userId.startsWith('guest_')) {
+          // Authenticated user - create session_id
+          const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+          setSessionId(newSessionId);
+          console.log('[InnerQuickTest] Created session_id for authenticated user:', newSessionId);
+          return; // Wait for next render with sessionId
+        } else {
+          // Guest user or no auth - require login
+          console.error('[InnerQuickTest] No session_id available - user should login first');
+          setError('请先登录以使用此功能');
+          setLoading(false);
+          return;
+        }
       }
 
       setLoading(true);
@@ -754,11 +774,7 @@ export const InnerQuickTest: React.FC = () => {
                   重新测试
                 </Button>
                 <Button
-                  onClick={() => {
-                    addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
-                    setPendingModuleCompletion('quick_assessment');
-                    setCurrentView('chat');
-                  }}
+                  onClick={handleReturnToConversation}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
@@ -826,6 +842,8 @@ export const InnerQuickTest: React.FC = () => {
               </Button>
               <Button
                 onClick={() => {
+                  console.log('[InnerQuickTest] Return to conversation clicked - questionnaire completed');
+                  console.log('[InnerQuickTest] Setting pendingModuleCompletion to quick_assessment');
                   // Questionnaires were already submitted in handleAnswer, just navigate back
                   addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
                   setPendingModuleCompletion('quick_assessment');

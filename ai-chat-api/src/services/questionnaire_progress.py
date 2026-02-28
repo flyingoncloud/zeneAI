@@ -73,6 +73,13 @@ class QuestionnaireProgressService:
                     # Don't return stale progress, create new below
                     progress = None
                 else:
+                    # Update session_id if it changed (user logged in with new session)
+                    if progress.session_id != session_id:
+                        logger.info(f"Updating progress session_id from {progress.session_id} to {session_id}")
+                        progress.session_id = session_id
+                        db.commit()
+                        db.refresh(progress)
+
                     logger.info(f"Resuming existing progress: {progress.current_question_index}/{progress.total_questions}")
                     return progress, questions
 
