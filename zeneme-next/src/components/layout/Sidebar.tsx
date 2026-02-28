@@ -345,13 +345,13 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
                     <div className="flex justify-between items-center mb-0.5">
                       <span
                         className={`font-medium truncate text-sm ${
-                          isActive ? 'text-violet-200 group-hover:text-violet-100' : 'text-slate-300 group-hover:text-white'
+                          isActive ? 'text-violet-200 group-hover:text-violet-100' : 'text-slate-100 group-hover:text-white'
                         }`}
                       >
                         {session.title || t.menu.chat}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 truncate opacity-70 group-hover:text-slate-400 transition-colors">
+                    <div className="text-xs text-slate-300 truncate opacity-80 group-hover:text-slate-200 transition-colors">
                       {lastMessage || t.common.empty}
                     </div>
                   </div>

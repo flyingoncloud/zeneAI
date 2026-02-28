@@ -421,7 +421,18 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         // Set loaded sessions in sidebar, but DON'T make them active
         // User should see a fresh empty conversation on login
         if (loadedSessions.length > 0) {
-          setSessions(loadedSessions);
+          setSessions(prev => {
+            // If there's a current active session, preserve it
+            const currentSession = prev.find(s => s.id === currentSessionId);
+            if (currentSession) {
+              // Merge: keep current session + add loaded sessions (avoiding duplicates)
+              const loadedIds = new Set(loadedSessions.map(s => s.id));
+              const filtered = prev.filter(s => s.id === currentSessionId || !loadedIds.has(s.id));
+              return [...filtered, ...loadedSessions];
+            }
+            // No current session, just use loaded sessions
+            return loadedSessions;
+          });
           // Don't set currentSessionId - let user start fresh or click a conversation
           console.log('[Store] Loaded conversations into sidebar, keeping current empty session');
         } else {
@@ -437,7 +448,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       console.error('[Store] Error loading user conversations:', error);
       setConversationsLoaded(true); // Mark as loaded even on error to prevent retry loops
     }
-  }, []);
+  }, [currentSessionId]);
 
 
   return (

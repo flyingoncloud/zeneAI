@@ -251,7 +251,7 @@ const AIMessageBubble = ({
           </motion.div>
         )}
 
-        <div className="text-slate-300 text-[15px] leading-[1.7] whitespace-pre-wrap font-light tracking-wide break-words">
+        <div className="text-white text-[15px] leading-[1.7] whitespace-pre-wrap font-light tracking-wide break-words">
           {displayedContent}
           {isTyping && (
             <span className="animate-pulse inline-block w-1.5 h-4 ml-1 bg-violet-400 align-middle rounded-full align-text-bottom"></span>
@@ -440,31 +440,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
   // We use a ref to track if we've already triggered a response for the latest user message
   const lastProcessedMessageIdRef = useRef<string | null>(null);
 
-  // Track if messages were just loaded (to prevent animation of historical messages)
-  const previousMessageCountRef = useRef(messages.length);
-  const [shouldAnimateLastMessage, setShouldAnimateLastMessage] = useState(false);
-
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t, setCurrentView, addMessage, conversationId, language, moduleStatus } = useZenemeStore();
 
   const lastMessage = messages[messages.length - 1];
-
-  // Detect if messages were bulk-loaded (conversation switch) vs incrementally added (new message)
-  useEffect(() => {
-    const previousCount = previousMessageCountRef.current;
-    const currentCount = messages.length;
-
-    // If messages increased by exactly 1, it's a new message - animate it
-    // If messages changed by more than 1 or decreased, it's a conversation load - don't animate
-    if (currentCount === previousCount + 1) {
-      setShouldAnimateLastMessage(true);
-    } else if (currentCount !== previousCount) {
-      setShouldAnimateLastMessage(false);
-    }
-
-    previousMessageCountRef.current = currentCount;
-  }, [messages.length]);
 
   /**
    * ✅ FIX: make Stop work for BOTH phases:
@@ -736,7 +716,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                     ) : (
                       <AIMessageBubble
                         content={message.content}
-                        shouldAnimate={index === messages.length - 1 && shouldAnimateLastMessage} // Only animate if it's the latest message AND it's a new message (not loaded)
+                        shouldAnimate={index === messages.length - 1} // Only animate if it's the latest message
                         // Only attach completion handler to the very last message if it's AI
                         onComplete={index === messages.length - 1 ? handleAiReplyComplete : undefined}
                         isStopped={index === messages.length - 1 ? isAiResponseStopped : false}
