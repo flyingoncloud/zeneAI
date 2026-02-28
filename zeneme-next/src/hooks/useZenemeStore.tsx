@@ -28,6 +28,7 @@ export type ModuleStatus = {
     recommended_at?: string;
     completed_at?: string;
     completion_data?: any;
+    has_ifs_data?: boolean; // For conversation_data module
   };
 };
 
