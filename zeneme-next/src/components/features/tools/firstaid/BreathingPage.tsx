@@ -122,7 +122,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-transparent">
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-slate-900 z-0">
       {/* Wave animations */}
       {/* ✅ key 让背景在 inhale 时“重置对齐”到 16s 周期起点 */}
       <div

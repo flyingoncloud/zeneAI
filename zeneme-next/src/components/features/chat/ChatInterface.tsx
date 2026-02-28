@@ -596,13 +596,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
               detail={`${Math.min(messageCount, 6)}/6 ${t.chat.messagesCount}`}
               totalSteps={6}
               currentStep={messageCount}
-              className="w-48 md:w-64"
+              className="w-48 md:w-64 ml-auto"
             />
           ) : (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 ml-auto"
             >
               <span className="text-xs font-medium text-violet-300 bg-violet-500/20 px-2 py-1 rounded-full border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
                 {t.chat.dataReady}

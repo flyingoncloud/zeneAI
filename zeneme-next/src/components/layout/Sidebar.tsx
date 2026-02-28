@@ -512,10 +512,11 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
 export const Sidebar: React.FC = () => {
   const { isSidebarOpen, toggleSidebar, currentView } = useZenemeStore();
   const isMobile = useIsMobile();
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   // Mobile Implementation (Drawer)
   if (isMobile) {
   return (
-    <Sheet>
+    <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
       {!['test', 'report-detail'].includes(currentView) && (
         <SheetTrigger asChild>
           <Button
@@ -541,8 +542,12 @@ export const Sidebar: React.FC = () => {
       >
         <SheetTitle className="sr-only">Menu</SheetTitle>
         <SheetDescription className="sr-only">Navigation menu</SheetDescription>
-
-        <SidebarContent isCollapsed={false} isMobile />
+        {/* 3. 在这里把 onClose 方法传进去，你的点击判断就会生效了！ */}
+          <SidebarContent 
+            isCollapsed={false} 
+            isMobile 
+            onClose={() => setIsMobileSheetOpen(false)} 
+          />
       </SheetContent>
     </Sheet>
   );

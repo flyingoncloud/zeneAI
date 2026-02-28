@@ -11,7 +11,7 @@ const SafeIcon = ({ icon: Icon, ...props }: any) => {
 export const TopBar: React.FC = () => {
   const { currentView, setCurrentView, t, addMessage, setPendingModuleCompletion, exitMessage, exitModuleToComplete, clearExitAction } = useZenemeStore();
 
-  if (currentView === 'chat') return null;
+  if (currentView === 'chat' || currentView ==='breathing' || currentView === 'naming' || currentView ==='mood' || currentView ==='history') return null;
 
   const handleBackToChat = () => {
     if (exitMessage && exitModuleToComplete) {

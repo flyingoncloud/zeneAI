@@ -260,8 +260,11 @@ React.useEffect(() => {
   const renderContent = () => {
     switch (currentView) {
       case 'first-aid':
-        return <BreathingWelcome onStart={() => setCurrentView("breathing")}/>;
-      case 'breathing':  // These are sub-views of EmotionalFirstAid
+      case 'breathing':  // These are sub-views of EmotionalFirstA
+         //return <EmotionalFirstAid />;
+       return <BreathingWelcome onStart={() => setCurrentView("breathingtraining")}/>;
+      case 'breathingtraining':  // These are sub-views of EmotionalFirstAid
+        return <BreathingPage onComplete={() => setCurrentView("breathing")} />;
       case 'naming':     // These are sub-views of EmotionalFirstAid
         return <EmotionalFirstAid />;
       case "sketch":

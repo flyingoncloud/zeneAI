@@ -4,7 +4,8 @@ import { useAuthStore } from '@/hooks/useAuthStore';
 import { motion } from 'motion/react';
 import { User } from 'lucide-react';
 import { WelcomeDanmaku } from './WelcomeDanmaku';
-
+import Logo from '../../imports/Logo';
+import Image from "next/image"; 
 interface WelcomePageProps {
   onNavigateAuth: () => void;
 }
@@ -25,20 +26,24 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigateAuth }) => {
         className="flex flex-col items-center max-w-md w-full relative z-30"
       >
         {/* Logo Area */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            {/* Flower logo with 4 petals */}
-            <div className="relative w-12 h-12">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-purple-300"></div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-purple-300"></div>
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-yellow-200"></div>
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-purple-300"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white"></div>
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2">ZeneWe</h1>
-          <p className="text-white/90 text-sm">遇见更好的自己</p>
-        </div>
+      <div className="w-48 mb-8 mt-16 relative">
+           <div className="w-16 h-16 relative mb-0">
+             <Logo />
+           </div>
+
+        {/* 2. 引用 slogan 2.png 图片 */}
+      <div className="relative">
+        <Image
+          // 关键点：文件名中的空格在 URL 中需要写成 %20
+          src="/slogan%202.png" 
+          alt="遇见更好的自己"
+          width={150} // 根据实际图片宽度调整
+          height={40}  // 根据实际图片高度调整
+          className="h-8 w-auto mb-12 opacity-90 drop-shadow-lg"
+          priority // 登录页首屏图片建议加上这个属性
+        />
+      </div>
+    </div>
 
         {/* Main Card */}
         <div className="w-full bg-purple-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col gap-5">
@@ -70,7 +75,7 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigateAuth }) => {
         </div>
 
         <p className="mt-8 text-xs text-white/70 max-w-xs leading-relaxed">
-          游客模式下可浏览◆◆◆大部分功能。
+          游客模式下可浏览大部分功能。
         </p>
       </motion.div>
     </div>

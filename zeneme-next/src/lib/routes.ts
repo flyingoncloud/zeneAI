@@ -12,6 +12,7 @@ export function isRoutableView(v: string | null): v is RoutableView {
   switch (v) {
     case "chat":
     case "sketch":
+    case "breathingtraining":
     case "test":
     case "mood":
     case "first-aid":
