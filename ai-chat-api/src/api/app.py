@@ -153,7 +153,6 @@ def get_user_conversations(user_id: str, db: Session = Depends(get_db)):
 @app.post("/chat/", response_model=api_models.ChatResponse)
 def chat(
     chat_request: api_models.ChatRequest,
-    user_id: str = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -165,6 +164,10 @@ def chat(
     Supports image analysis when images are included in the request.
     """
     logger.info(f"Received chat request: {chat_request.message[:100]}...")
+
+    # Extract user_id from request
+    user_id = chat_request.user_id
+    logger.info(f"Chat request user_id: {user_id}")
 
     # Get or create conversation
     if chat_request.session_id:
@@ -181,7 +184,13 @@ def chat(
             db.add(conversation)
             db.commit()
             db.refresh(conversation)
-            logger.info(f"Created new conversation with session_id: {chat_request.session_id}")
+            logger.info(f"Created new conversation with session_id: {chat_request.session_id}, user_id: {user_id}")
+        else:
+            # Update user_id if conversation exists but doesn't have one
+            if not conversation.user_id and user_id:
+                conversation.user_id = user_id
+                db.commit()
+                logger.info(f"Updated conversation {conversation.id} with user_id: {user_id}")
     else:
         # Create new conversation with generated session_id
         session_id = str(uuid.uuid4())
@@ -193,6 +202,7 @@ def chat(
         db.add(conversation)
         db.commit()
         db.refresh(conversation)
+        logger.info(f"Created new conversation with generated session_id: {session_id}, user_id: {user_id}")
 
     # Ensure module_status exists in metadata
     if not conversation.extra_data:

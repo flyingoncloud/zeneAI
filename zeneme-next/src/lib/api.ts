@@ -1392,3 +1392,56 @@ export async function handleWeChatCallback(code: string, state: string): Promise
     throw error;
   }
 }
+
+/**
+ * Get user conversations (recent chats)
+ */
+export async function getUserConversations(userId: string): Promise<{
+  ok: boolean;
+  conversations?: Array<{
+    id: number;
+    session_id: string;
+    user_id: string | null;
+    created_at: string;
+    updated_at: string;
+    extra_data: any;
+  }>;
+  error?: string;
+}> {
+  try {
+    console.log('[API] getUserConversations called for userId:', userId);
+    const url = `${API_BASE_URL}/conversations/user/${userId}`;
+    console.log('[API] Fetching from:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('[API] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[API] Error response:', errorData);
+      return {
+        ok: false,
+        error: errorData.detail || `Failed to fetch conversations: ${response.statusText}`,
+      };
+    }
+
+    const conversations = await response.json();
+    console.log('[API] Received conversations:', conversations.length, 'items');
+    return {
+      ok: true,
+      conversations,
+    };
+  } catch (error) {
+    console.error('[API] Error fetching user conversations:', error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}

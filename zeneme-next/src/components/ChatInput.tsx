@@ -93,6 +93,8 @@ useEffect(() => {
   // Voice States
   const [isListening, setIsListening] = useState(false);
   const [voiceText, setVoiceText] = useState('');
+  const recognitionRef = useRef<any>(null);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(true);
 
   // Permission States
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -104,62 +106,128 @@ useEffect(() => {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' | 'info' });
 
   const [plusOpen, setPlusOpen] = useState(false);
-  // Simulation Refs
-  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup timers
+  // Initialize Web Speech API
   useEffect(() => {
+    console.log('[Voice] useEffect running, window:', typeof window);
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      console.log('[Voice] SpeechRecognition available:', !!SpeechRecognition);
+
+      if (SpeechRecognition) {
+        console.log('[Voice] Initializing Web Speech API');
+        setIsSpeechSupported(true);
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'zh-CN'; // Default to Chinese, can be changed based on user preference
+
+        recognition.onstart = () => {
+          console.log('[Voice] Recognition started');
+        };
+
+        recognition.onresult = (event: any) => {
+          console.log('[Voice] Got result');
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          console.log('[Voice] Interim:', interimTranscript, 'Final:', finalTranscript);
+
+          // Update input with interim results
+          if (interimTranscript) {
+            setInput(interimTranscript);
+          }
+
+          // When we get final results, append to existing text
+          if (finalTranscript) {
+            setInput(prev => prev + finalTranscript);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('[Voice] Speech recognition error:', event.error);
+
+          if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+            setHasPermission(false);
+            setShowPermissionDeniedToast(true);
+            setTimeout(() => setShowPermissionDeniedToast(false), 3000);
+          } else if (event.error === 'no-speech') {
+            // User didn't speak, just stop listening
+            console.log('[Voice] No speech detected');
+            setIsListening(false);
+          } else {
+            setToast({ visible: true, message: '语音识别出错，请重试', type: 'error' });
+            setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 3000);
+          }
+
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          console.log('[Voice] Recognition ended');
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        console.log('[Voice] Web Speech API initialized successfully, ref:', !!recognitionRef.current);
+      } else {
+        console.warn('[Voice] Web Speech API not supported in this browser');
+        setIsSpeechSupported(false);
+      }
+    }
+
     return () => {
-      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      console.log('[Voice] Cleanup running');
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
   }, []);
 
-  const startListeningSimulation = () => {
-    setIsListening(true);
-    setVoiceText('');
-    setInput('');
+  const startListening = async () => {
+    console.log('[Voice] startListening called');
+    if (!recognitionRef.current) {
+      console.log('[Voice] No recognition object available');
+      setShowNoMicToast(true);
+      setTimeout(() => setShowNoMicToast(false), 3000);
+      return;
+    }
 
-    // Simulate voice recognition
-    const phrases = ["我最近有点...", "我最近有点焦虑，睡不好", "我最近有点焦虑，睡不好，脑子停不下来"];
-
-    let step = 0;
-    const typeNext = () => {
-      if (step < phrases.length) {
-        setInput(phrases[step]);
-        step++;
-        typingTimerRef.current = setTimeout(typeNext, 600);
-      } else {
-        // Finished "speaking", start silence timer
-        silenceTimerRef.current = setTimeout(() => {
-          handleAutoSend();
-        }, 2500);
-      }
-    };
-
-    // Start typing simulation after a short delay
-    typingTimerRef.current = setTimeout(typeNext, 600);
-  };
-
-  const handleAutoSend = () => {
-    setIsListening(false);
-    onSendMessage("我最近有点焦虑，睡不好，脑子停不下来");
-    setInput('');
-    setToast({ visible: true, message: '已发送', type: 'success' });
+    try {
+      console.log('[Voice] Starting recognition...');
+      setIsListening(true);
+      setInput(''); // Clear input when starting
+      recognitionRef.current.start();
+    } catch (error) {
+      console.error('[Voice] Error starting recognition:', error);
+      setIsListening(false);
+    }
   };
 
   const stopListening = () => {
+    console.log('[Voice] stopListening called');
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
     setIsListening(false);
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
   };
 
   const handleMicClick = () => {
+    console.log('[Voice] Mic clicked, isGenerating:', isGenerating, 'isListening:', isListening, 'hasPermission:', hasPermission);
+
     if (isGenerating) {
-        // Pause logic handled by main button when generating
-        onStopGenerating?.();
-        return;
+      // Pause logic handled by main button when generating
+      onStopGenerating?.();
+      return;
     }
 
     if (isListening) {
@@ -167,20 +235,30 @@ useEffect(() => {
       return;
     }
 
-    if (hasPermission === true) {
-      startListeningSimulation();
+    // Check if Web Speech API is available
+    if (!isSpeechSupported) {
+      console.log('[Voice] Speech not supported in this browser');
+      return; // Tooltip will show on hover
+    }
+
+    // For first time, show permission dialog
+    if (hasPermission === null) {
+      console.log('[Voice] Showing permission dialog');
+      setShowPermissionDialog(true);
     } else if (hasPermission === false) {
+      console.log('[Voice] Permission denied');
       setShowPermissionDeniedToast(true);
       setTimeout(() => setShowPermissionDeniedToast(false), 3000);
     } else {
-      setShowPermissionDialog(true);
+      console.log('[Voice] Permission granted, starting listening');
+      startListening();
     }
   };
 
   const handlePermissionGrant = () => {
     setHasPermission(true);
     setShowPermissionDialog(false);
-    startListeningSimulation();
+    startListening();
   };
 
   const handlePermissionDeny = () => {
@@ -429,59 +507,75 @@ useEffect(() => {
         </div>
 
         {/* Right Main Button (Mic vs Send vs Pause) */}
-        <Button
-          type={hasText || isGenerating ? "submit" : "button"}
-          size="icon"
-          onClick={(hasText || isGenerating) ? undefined : handleMicClick}
-          className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 z-20 flex items-center justify-center relative
-            ${isGenerating
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'
-                : hasText
-                    ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'}`}
-        >
-          <AnimatePresence mode="wait">
-            {isGenerating ? (
-                <motion.div
-                    key="pause"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    className="flex flex-col items-center justify-center"
-                >
-                    <Pause size={20} className="fill-current" />
-                </motion.div>
-            ) : hasText ? (
-                <motion.div
-                    key="send"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                >
-                    <SafeIcon icon={Icons.Send} size={20} className="ml-0.5" />
-                </motion.div>
-            ) : (
-                <motion.div
-                    key="mic"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    className="relative"
-                >
-                    {isListening && (
-                        <>
-                         <motion.div
-                            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                            className="absolute inset-0 -m-2 bg-violet-500 rounded-full blur-md opacity-50"
-                         />
-                        </>
-                    )}
-                    <SafeIcon icon={Icons.Mic} size={isListening ? 22 : 20} className={isListening ? "text-violet-300 relative z-10" : ""} />
-                </motion.div>
-            )}
-          </AnimatePresence>
-        </Button>
+        <TooltipProvider>
+          <Tooltip open={!isSpeechSupported && !hasText && !isGenerating ? undefined : false}>
+            <TooltipTrigger asChild>
+              <Button
+                type={hasText || isGenerating ? "submit" : "button"}
+                size="icon"
+                onClick={(hasText || isGenerating) ? undefined : handleMicClick}
+                disabled={!isSpeechSupported && !hasText && !isGenerating}
+                className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 z-20 flex items-center justify-center relative
+                  ${isGenerating
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'
+                      : hasText
+                          ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20'
+                          : !isSpeechSupported
+                              ? 'bg-slate-800/50 text-slate-500 border border-white/5 cursor-not-allowed'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'}`}
+              >
+                <AnimatePresence mode="wait">
+                  {isGenerating ? (
+                      <motion.div
+                          key="pause"
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.5, opacity: 0 }}
+                          className="flex flex-col items-center justify-center"
+                      >
+                          <Pause size={20} className="fill-current" />
+                      </motion.div>
+                  ) : hasText ? (
+                      <motion.div
+                          key="send"
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.5, opacity: 0 }}
+                      >
+                          <SafeIcon icon={Icons.Send} size={20} className="ml-0.5" />
+                      </motion.div>
+                  ) : (
+                      <motion.div
+                          key="mic"
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.5, opacity: 0 }}
+                          className="relative"
+                      >
+                          {isListening && (
+                              <>
+                               <motion.div
+                                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                                  className="absolute inset-0 -m-2 bg-violet-500 rounded-full blur-md opacity-50"
+                               />
+                              </>
+                          )}
+                          <SafeIcon icon={Icons.Mic} size={isListening ? 22 : 20} className={isListening ? "text-violet-300 relative z-10" : ""} />
+                      </motion.div>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="bg-slate-900/95 border-white/10 text-slate-200 text-xs max-w-[200px] text-center"
+            >
+              <p>语音输入在当前浏览器不可用</p>
+              <p className="text-slate-400 mt-1">请使用 Chrome 或 Safari</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </form>
     </>
   );

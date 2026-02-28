@@ -44,10 +44,11 @@ function HomeContent() {
     setModuleStatus,
     pendingModuleCompletion,
     userId,
-    setPendingModuleCompletion
+    setPendingModuleCompletion,
+    loadUserConversations
   } = useZenemeStore();
 
-  const { status } = useAuthStore();
+  const { status, user } = useAuthStore();
 
   const [isAuthPageOpen, setIsAuthPageOpen] = React.useState(false);
   const [isLoginRequiredOpen, setIsLoginRequiredOpen] = React.useState(false);
@@ -92,6 +93,16 @@ function HomeContent() {
       }
     }
   }, [status, postLoginTarget, setCurrentView]);
+
+  // Load user conversations when authenticated
+  React.useEffect(() => {
+    if (status === 'authenticated' && user?.id) {
+      console.log('[Page] User authenticated, loading conversations for:', user.id);
+      loadUserConversations(user.id).catch(err => {
+        console.error('[Page] Failed to load conversations:', err);
+      });
+    }
+  }, [status, user?.id, loadUserConversations]);
 
 // 用 ref 读取最新 currentView，避免把 currentView 放进 URL->Store 的依赖里
 const currentViewRef = React.useRef<View>(currentView);

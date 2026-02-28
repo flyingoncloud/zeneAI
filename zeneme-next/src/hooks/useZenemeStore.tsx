@@ -81,6 +81,7 @@ interface ZenemeContextType {
   currentSessionId: string | null;
   createNewSession: () => void;
   selectSession: (id: string) => void;
+  loadUserConversations: (userId: string) => Promise<void>;
 
   // Module Status
   moduleStatus?: ModuleStatus;
@@ -177,6 +178,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [conversationsLoaded, setConversationsLoaded] = useState(false);
 
   // Module Status
   const [moduleStatus, setModuleStatus] = useState<ModuleStatus | undefined>(undefined);
@@ -366,6 +368,70 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setExitModuleToComplete(null);
   }, []);
 
+  // Load user conversations from backend
+  const loadUserConversations = useCallback(async (userId: string) => {
+    console.log('[Store] loadUserConversations called with userId:', userId);
+    try {
+      const { getUserConversations } = await import('../lib/api');
+      console.log('[Store] Calling getUserConversations API...');
+      const result = await getUserConversations(userId);
+      console.log('[Store] getUserConversations result:', result);
+
+      if (result.ok && result.conversations) {
+        console.log('[Store] Found conversations:', result.conversations.length);
+        // Sort by updated_at descending and take top 5
+        const recentConversations = result.conversations
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .slice(0, 5);
+
+        // Convert backend conversations to ChatSession format
+        const loadedSessions: ChatSession[] = recentConversations.map(conv => {
+          // Get first user message as title, or use default
+          // Messages are at top level, not in extra_data
+          const backendMessages = (conv as any).messages || [];
+          const firstUserMsg = backendMessages.find((m: any) => m.role === 'user');
+          const title = firstUserMsg?.content?.substring(0, 30) || 'Chat';
+
+          // Convert backend messages to frontend Message format
+          const messages: Message[] = backendMessages.map((msg: any) => ({
+            id: String(msg.id),
+            role: msg.role === 'assistant' ? 'ai' : msg.role, // Map 'assistant' to 'ai'
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+            recommended_modules: msg.extra_data?.recommended_modules || [],
+          }));
+
+          return {
+            id: conv.session_id,
+            title: title,
+            messages: messages,
+            updatedAt: new Date(conv.updated_at),
+            isDraft: false,
+          };
+        });
+
+        console.log('[Store] Loaded sessions:', loadedSessions.length);
+        // Set loaded sessions in sidebar, but DON'T make them active
+        // User should see a fresh empty conversation on login
+        if (loadedSessions.length > 0) {
+          setSessions(loadedSessions);
+          // Don't set currentSessionId - let user start fresh or click a conversation
+          console.log('[Store] Loaded conversations into sidebar, keeping current empty session');
+        } else {
+          console.log('[Store] No conversations to load');
+        }
+
+        setConversationsLoaded(true);
+      } else {
+        console.log('[Store] No conversations found or API error:', result.error);
+        setConversationsLoaded(true);
+      }
+    } catch (error) {
+      console.error('[Store] Error loading user conversations:', error);
+      setConversationsLoaded(true); // Mark as loaded even on error to prevent retry loops
+    }
+  }, []);
+
 
   return (
     <ZenemeContext.Provider
@@ -380,6 +446,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currentSessionId,
         createNewSession,
         selectSession,
+        loadUserConversations,
         moduleStatus,
         setModuleStatus,
         pendingModuleCompletion,

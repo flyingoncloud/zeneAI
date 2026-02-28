@@ -130,6 +130,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
             setSessionId(globalSessionId);
             console.log('[AuthPage] Created global session_id for user:', globalSessionId);
+
+
             toast.success('注册成功！');
           }
         } else {
@@ -151,6 +153,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
             setSessionId(globalSessionId);
             console.log('[AuthPage] Created global session_id for user:', globalSessionId);
+
+
             toast.success('登录成功！');
           }
         }
@@ -180,6 +184,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
             setSessionId(globalSessionId);
             console.log('[AuthPage] Created global session_id for user:', globalSessionId);
+
+
             toast.success('注册成功！');
           }
         } else {
@@ -192,6 +198,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             const globalSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
             setSessionId(globalSessionId);
             console.log('[AuthPage] Created global session_id for user:', globalSessionId);
+
+
             toast.success('登录成功！');
           }
         }
