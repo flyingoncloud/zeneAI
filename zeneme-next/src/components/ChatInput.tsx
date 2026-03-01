@@ -282,23 +282,34 @@ useEffect(() => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setToast({ visible: true, message: 'DEBUG: 没有选择文件', type: 'error' });
+      return;
+    }
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       console.log('File selected:', file.name);
+      console.log('API URL:', apiUrl);
 
-      // Show uploading toast
-      setToast({ visible: true, message: '正在上传图片...', type: 'info' });
+      // Show uploading toast with debug info
+      setToast({
+        visible: true,
+        message: `正在上传... API: ${apiUrl}`,
+        type: 'info'
+      });
 
       // Upload file to backend
       const { uploadFile } = await import('../lib/api');
       const result = await uploadFile(file);
 
+      console.log('Upload result:', result);
+
       if (result.ok && result.url) {
         // Convert relative URL to full URL for display
         const fullImageUrl = result.url.startsWith('http')
           ? result.url
-          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${result.url}`;
+          : `${apiUrl}${result.url}`;
 
         console.log('Image uploaded successfully:', fullImageUrl);
 
@@ -317,14 +328,28 @@ useEffect(() => {
         });
         window.dispatchEvent(messageEvent);
 
-        setToast({ visible: true, message: '图片上传成功！', type: 'success' });
+        setToast({
+          visible: true,
+          message: `✅ 上传成功! URL: ${result.url}`,
+          type: 'success'
+        });
       } else {
+        const errorMsg = result.error || 'Unknown error';
         console.error('File upload failed:', result);
-        setToast({ visible: true, message: '图片上传失败，请重试', type: 'error' });
+        setToast({
+          visible: true,
+          message: `❌ 上传失败: ${errorMsg}`,
+          type: 'error'
+        });
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
       console.error('File upload error:', error);
-      setToast({ visible: true, message: '图片上传失败，请重试', type: 'error' });
+      setToast({
+        visible: true,
+        message: `❌ 错误: ${errorMsg}`,
+        type: 'error'
+      });
     } finally {
       // Clear the file input
       if (fileInputRef.current) fileInputRef.current.value = '';
