@@ -90,7 +90,7 @@ export const AdminLayout: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-[rgba(109,40,217,0.08)] border border-[#E6EAF2] flex items-center justify-center text-xs text-[#6D28D9] shrink-0">A</div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-[#111827] truncate">Admin</p>
-              <p className="text-[10px] text-[#9CA3AF] truncate">admin@zeneme.com</p>
+              <p className="text-[10px] text-[#9CA3AF] truncate">admin@zenewe.ai</p>
             </div>
           </div>
           <button

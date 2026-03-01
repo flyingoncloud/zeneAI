@@ -4,7 +4,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const { login } = useAdminStore();
-  const [email, setEmail] = useState('admin@zeneme.com');
+  const [email, setEmail] = useState('admin@zenewe.ai');
   const [password, setPassword] = useState('admin123');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -51,7 +51,7 @@ export const AdminLogin: React.FC = () => {
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)}
                   className="w-full h-11 pl-10 pr-4 bg-[#F3F5FA] border border-[#E6EAF2] rounded-xl text-[#111827] text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all"
-                  placeholder="admin@zeneme.com"
+                  placeholder="admin@zenewe.ai"
                 />
               </div>
             </div>

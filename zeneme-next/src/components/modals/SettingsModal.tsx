@@ -39,7 +39,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   open,
   onOpenChange,
-  initialUser = { name: 'Zenewe User', email: 'user@zeneme.app', isPro: false }
+  initialUser = { name: 'ZeneWe User', email: 'user@zenewe.ai', isPro: false }
 }) => {
   const {
     t,

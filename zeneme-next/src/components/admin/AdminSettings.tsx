@@ -3,9 +3,9 @@ import { useAdminStore } from '@/hooks/useAdminStore';
 import { Users, Shield, Clock, Mail, Edit3, Trash2 } from 'lucide-react';
 
 const MOCK_USERS = [
-  { id: '1', name: 'Admin', email: 'admin@zeneme.com', role: 'Super Admin', avatar: 'A', lastActive: '2026-02-06 09:30' },
-  { id: '2', name: 'Editor', email: 'editor@zeneme.com', role: 'Editor', avatar: 'E', lastActive: '2026-02-05 16:00' },
-  { id: '3', name: 'Viewer', email: 'viewer@zeneme.com', role: 'Viewer', avatar: 'V', lastActive: '2026-02-04 11:20' },
+  { id: '1', name: 'Admin', email: 'admin@zenewe.ai', role: 'Super Admin', avatar: 'A', lastActive: '2026-02-06 09:30' },
+  { id: '2', name: 'Editor', email: 'editor@zenewe.ai', role: 'Editor', avatar: 'E', lastActive: '2026-02-05 16:00' },
+  { id: '3', name: 'Viewer', email: 'viewer@zenewe.ai', role: 'Viewer', avatar: 'V', lastActive: '2026-02-04 11:20' },
 ];
 
 const ROLES = [
@@ -40,8 +40,8 @@ export const AdminSettings: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`h-8 px-4 rounded-lg text-xs font-medium flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === tab.id 
-                ? 'bg-violet-600 text-white shadow-md shadow-violet-200' 
+                activeTab === tab.id
+                ? 'bg-violet-600 text-white shadow-md shadow-violet-200'
                 : 'text-[#64748B] hover:text-[#111827] hover:bg-gray-50'
               }`}
             >
@@ -71,8 +71,8 @@ export const AdminSettings: React.FC = () => {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-sm font-bold text-[#111827]">{user.name}</span>
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                      user.role === 'Super Admin' ? 'text-violet-700 bg-violet-50 border-violet-200' 
-                      : user.role === 'Editor' ? 'text-blue-700 bg-blue-50 border-blue-200' 
+                      user.role === 'Super Admin' ? 'text-violet-700 bg-violet-50 border-violet-200'
+                      : user.role === 'Editor' ? 'text-blue-700 bg-blue-50 border-blue-200'
                       : 'text-gray-600 bg-gray-50 border-gray-200'
                     }`}>
                       {user.role}

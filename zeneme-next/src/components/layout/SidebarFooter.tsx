@@ -35,12 +35,12 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) =
   // Use actual user data from auth store, with fallback for display
   const user = authUser ? {
     name: authUser.name || 'User',
-    email: authUser.email || authUser.phone || 'user@zeneme.app',
+    email: authUser.email || authUser.phone || 'user@zenewe.ai',
     avatar: 'https://github.com/shadcn.png',
     isPro: false // TODO: Add subscription status to user profile
   } : {
     name: 'Guest',
-    email: 'guest@zeneme.app',
+    email: 'guest@zenewe.ai',
     avatar: 'https://github.com/shadcn.png',
     isPro: false
   };

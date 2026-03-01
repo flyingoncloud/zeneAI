@@ -24,6 +24,70 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [showNudge, setShowNudge] = useState(false);
   const autoNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Audio context for breathing sounds
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentOscillatorRef = useRef<OscillatorNode | null>(null);
+  const currentGainRef = useRef<GainNode | null>(null);
+
+  // Initialize audio context
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Play breathing sound based on phase
+  const playBreathingSound = (phase: 'inhale' | 'hold' | 'exhale') => {
+    if (!soundOn || !audioContextRef.current) return;
+
+    // Stop any currently playing sound
+    if (currentOscillatorRef.current) {
+      try {
+        currentOscillatorRef.current.stop();
+      } catch (e) {
+        // Ignore if already stopped
+      }
+    }
+
+    const audioContext = audioContextRef.current;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Different frequencies and patterns for each phase
+    if (phase === 'inhale') {
+      // Rising tone for inhale
+      oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 4);
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.15, audioContext.currentTime + 4);
+    } else if (phase === 'exhale') {
+      // Falling tone for exhale
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 4);
+      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 4);
+    } else {
+      // Steady low tone for hold
+      oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+    }
+
+    oscillator.type = 'sine';
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 4);
+
+    currentOscillatorRef.current = oscillator;
+    currentGainRef.current = gainNode;
+  };
+
   // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -233,8 +297,8 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
               </div>
               <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
                 {/* 👇 进度条宽度直接由 remainingSeconds 计算，从 0% 涨到 100% */}
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full" 
+                <motion.div
+                  className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full"
                   animate={{ width: `${((60 - remainingSeconds) / 60) * 100}%` }}
                   transition={{ duration: 1, ease: "linear" }} // 使用 linear 让每秒的过渡像水流一样平滑
                 />
@@ -253,7 +317,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 isPlaying={isTimerRunning}
                 onPhaseChange={(p) => {
                   setBreathPhase(p);
-                  
+
                   // 👇 移除了进度条状态逻辑，只保留动画重置逻辑
                   if (p === 'inhale') {
                     setCompletedCycle(true);

@@ -79,7 +79,7 @@ export const translations = {
     },
     chat: {
       placeholder: 'Type your message...',
-      initialMessage: "Hello. I'm Zenewe, your emotional companion. How are you feeling right now?",
+      initialMessage: "Hello. I'm ZeneWe, your emotional companion. How are you feeling right now?",
       aiResponse: "I hear you. It sounds like you're carrying a lot right now. Could you tell me more about what triggered these feelings?",
       dataCollection: 'Data Collection',
       messagesCount: 'Messages',
@@ -160,7 +160,7 @@ export const translations = {
         interpreting: 'Interpreting patterns...',
         generating: 'Generating insights...'
       },
-      resultTitle: 'Zenewe Analysis',
+      resultTitle: 'ZeneWe Analysis',
       mockResult: "Your drawing shows a balance of energetic lines and open spaces. The circular motions in the upper left suggest a desire for connection, while the structured lines below indicate you're building a stable foundation for your thoughts. You might be feeling a mix of creative excitement and a need for order."
     },
     test: {
@@ -236,11 +236,11 @@ export const translations = {
     },
     help: {
       title: 'Help & Support',
-      subtitle: 'ZENEWE Guide',
+      subtitle: 'ZeneWe Guide',
       items: [
         {
           trigger: 'How to use Inner Sketch',
-          content: 'Inner Sketch is a way to help you see your emotions in ZENEWE. You can be aware of your current feelings through simple drawing and prompts. There is no right or wrong here, and you don\'t need to draw well. Just expressing truthfully is enough.'
+          content: 'Inner Sketch is a way to help you see your emotions in ZeneWe. You can be aware of your current feelings through simple drawing and prompts. There is no right or wrong here, and you don\'t need to draw well. Just expressing truthfully is enough.'
         },
         {
           trigger: 'Can I use it if I can\'t draw?',
@@ -256,7 +256,7 @@ export const translations = {
         },
         {
           trigger: 'Will my content be saved?',
-          content: 'ZENEWE protects your privacy. Your content is only used for your personal experience and will not be made public.'
+          content: 'ZeneWe protects your privacy. Your content is only used for your personal experience and will not be made public.'
         },
         {
           trigger: 'What if I encounter problems?',
@@ -266,11 +266,11 @@ export const translations = {
     },
     userGuide: {
       title: 'User Guide',
-      subtitle: 'ZENEWE Basics',
+      subtitle: 'ZeneWe Basics',
       sections: [
         {
-          title: 'What is ZENEWE',
-          content: 'ZENEWE is a space to help you perceive emotions and organize inner experiences. You can understand your current state more gently through dialogue, drawing, and recording.'
+          title: 'What is ZeneWe',
+          content: 'ZeneWe is a space to help you perceive emotions and organize inner experiences. You can understand your current state more gently through dialogue, drawing, and recording.'
         },
         {
           title: 'How to start a chat',
@@ -282,7 +282,7 @@ export const translations = {
         },
         {
           title: 'About Records & Reports',
-          content: 'During use, ZENEWE will help you organize your expressions and generate personal records for you to better understand yourself.'
+          content: 'During use, ZeneWe will help you organize your expressions and generate personal records for you to better understand yourself.'
         },
         {
           title: 'Tips',
@@ -300,11 +300,11 @@ export const translations = {
       sections: [
         {
           title: 'We value your privacy',
-          content: 'ZENEWE values your privacy and data security. Your trust is crucial to us.'
+          content: 'ZeneWe values your privacy and data security. Your trust is crucial to us.'
         },
         {
           title: 'Information Usage',
-          content: 'The content you generate in ZENEWE is only used to provide you with functional experiences.'
+          content: 'The content you generate in ZeneWe is only used to provide you with functional experiences.'
         }
       ]
     },
@@ -449,7 +449,7 @@ export const translations = {
     },
     chat: {
       placeholder: '输入您的消息...',
-      initialMessage: "你好。我是 zenewe,你的情感伴侣。你现在感觉如何?",
+      initialMessage: "你好。我是 ZeneWe,你的情感伴侣。你现在感觉如何?",
       aiResponse: "我听到了。听起来你现在背负着很多。能多告诉我一点是什么触发了这些情绪吗?",
       dataCollection: '数据收集',
       messagesCount: '条对话',
@@ -523,14 +523,14 @@ export const translations = {
       analyzing: '正在分析你的涂鸦...',
       clear: '清空画布',
       save: '保存到本次记录',
-      share: '发送给 zenewe',
+      share: '发送给 ZeneWe',
       returnToChat: '返回对话',
       steps: {
         scanning: '正在扫描线条...',
         interpreting: '正在解读模式...',
         generating: '正在生成洞察...'
       },
-      resultTitle: 'zenewe 分析',
+      resultTitle: 'ZeneWe 分析',
       mockResult: "你的画作显示出能量线条与开放空间的平衡。左上角的圆周运动暗示着对连接的渴望,而下方的结构化线条表明你正在为思绪建立稳定的基础。你可能正感受到创造性的兴奋与对秩序需求的混合。"
     },
     test: {
@@ -606,11 +606,11 @@ export const translations = {
     },
     help: {
       title: '帮助与支持',
-      subtitle: 'zenewe 使用说明',
+      subtitle: 'ZeneWe 使用说明',
       items: [
         {
           trigger: '如何使用内视涂鸦',
-          content: '内视涂鸦是 zenewe 中用来帮助你看见情绪的一种方式。你可以通过简单的绘画和提示,觉察当下的感受。这里没有对错,也不需要画得好看。只要如实表达,就已经足够。'
+          content: '内视涂鸦是 ZeneWe 中用来帮助你看见情绪的一种方式。你可以通过简单的绘画和提示,觉察当下的感受。这里没有对错,也不需要画得好看。只要如实表达,就已经足够。'
         },
         {
           trigger: '我不会画画,可以使用吗?',
@@ -626,7 +626,7 @@ export const translations = {
         },
         {
           trigger: '我的内容会被保存吗?',
-          content: 'zenewe 会保护你的隐私。你的内容仅用于你的个人体验,不会被公开。'
+          content: 'ZeneWe 会保护你的隐私。你的内容仅用于你的个人体验,不会被公开。'
         },
         {
           trigger: '遇到问题怎么办?',
