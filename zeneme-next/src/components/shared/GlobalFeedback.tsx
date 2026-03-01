@@ -10,7 +10,8 @@ import { useZenemeStore } from '../../hooks/useZenemeStore';
 export const Toast = ({ message, type = 'success', visible, onClose }: { message: string, type?: 'success' | 'error' | 'info', visible: boolean, onClose: () => void }) => {
   React.useEffect(() => {
     if (visible) {
-      const timer = setTimeout(onClose, 3000);
+      // Longer timeout for debugging - 10 seconds
+      const timer = setTimeout(onClose, 10000);
       return () => clearTimeout(timer);
     }
   }, [visible, onClose]);
@@ -23,16 +24,16 @@ export const Toast = ({ message, type = 'success', visible, onClose }: { message
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           className={cn(
-            "fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border flex items-center gap-3",
-            type === 'success' && "bg-emerald-900/80 border-emerald-500/30 text-emerald-200",
-            type === 'error' && "bg-red-900/80 border-red-500/30 text-red-200",
-            type === 'info' && "bg-slate-900/80 border-slate-500/30 text-slate-200"
+            "fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border flex items-center gap-3 max-w-[90vw]",
+            type === 'success' && "bg-emerald-900/90 border-emerald-500/50 text-emerald-100",
+            type === 'error' && "bg-red-900/90 border-red-500/50 text-red-100",
+            type === 'info' && "bg-slate-900/90 border-slate-500/50 text-slate-100"
           )}
         >
-          {type === 'success' && <Check size={18} />}
-          {type === 'error' && <AlertCircle size={18} />}
-          {type === 'info' && <Loader2 size={18} className="animate-spin" />}
-          <span className="text-sm font-medium">{message}</span>
+          {type === 'success' && <Check size={20} />}
+          {type === 'error' && <AlertCircle size={20} />}
+          {type === 'info' && <Loader2 size={20} className="animate-spin" />}
+          <span className="text-sm font-medium break-words">{message}</span>
         </motion.div>
       )}
     </AnimatePresence>
@@ -50,8 +51,8 @@ export const ConfirmDialog = ({ open, title, desc, cancelText, confirmText, onCa
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="ghost" onClick={onCancel} className="text-slate-400 hover:text-white hover:bg-white/5">{cancelText}</Button>
-          <Button 
-            onClick={onConfirm} 
+          <Button
+            onClick={onConfirm}
             className={cn(
               isDestructive ? "bg-red-600 hover:bg-red-500" : "bg-violet-600 hover:bg-violet-500",
               "text-white"
@@ -89,14 +90,14 @@ export const LoadingOverlay = ({ visible, text }: { visible: boolean, text: stri
                  <motion.div
                    key={i}
                    className="absolute w-2 h-2 bg-white rounded-full opacity-50"
-                   animate={{ 
-                     y: [-20, -40], 
-                     x: Math.sin(i) * 20, 
-                     opacity: [0, 1, 0] 
+                   animate={{
+                     y: [-20, -40],
+                     x: Math.sin(i) * 20,
+                     opacity: [0, 1, 0]
                    }}
-                   transition={{ 
-                     repeat: Infinity, 
-                     duration: 2, 
+                   transition={{
+                     repeat: Infinity,
+                     duration: 2,
                      delay: i * 0.5,
                      ease: "easeOut"
                    }}
@@ -108,7 +109,7 @@ export const LoadingOverlay = ({ visible, text }: { visible: boolean, text: stri
               <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
             </div>
           </div>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-6 text-slate-200 font-medium tracking-widest text-sm uppercase"
@@ -122,15 +123,15 @@ export const LoadingOverlay = ({ visible, text }: { visible: boolean, text: stri
 };
 
 // --- 4 & 5. Success/Fail Result Overlay ---
-export const ResultOverlay = ({ 
-  visible, 
-  type, 
-  title, 
-  onPrimary, 
-  primaryText, 
-  onSecondary, 
-  secondaryText 
-}: { 
+export const ResultOverlay = ({
+  visible,
+  type,
+  title,
+  onPrimary,
+  primaryText,
+  onSecondary,
+  secondaryText
+}: {
   visible: boolean;
   type: 'success' | 'error';
   title: string;
@@ -165,7 +166,7 @@ export const ResultOverlay = ({
                 </svg>
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 animate={{ x: [-5, 5, -5, 5, 0] }}
                 transition={{ duration: 0.4 }}
                 className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30"
