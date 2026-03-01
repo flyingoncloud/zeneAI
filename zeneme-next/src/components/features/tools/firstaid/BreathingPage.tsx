@@ -4,7 +4,7 @@ import { Volume2, VolumeX, RefreshCw, ArrowRight } from 'lucide-react';
 import { useZenemeStore } from '../../../../hooks/useZenemeStore';
 import { Button } from '../../../ui/button';
 import { BreathingArcTimer } from './BreathingArcTimer';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface BreathingPageProps {
   onComplete: () => void;
 }
@@ -17,6 +17,8 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [progressPercent, setProgressPercent] = useState(25);
   // ✅ 用 BreathingArcTimer 的 inhale 作为每个 16s 周期起点，强制背景“重置对齐”
   const [waveCycleKey, setWaveCycleKey] = useState(0);
+  // ✅ BGM audio
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
 
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(60);
@@ -40,7 +42,21 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
       }
     };
   }, []);
+  // ✅ Init BGM (mp4 audio track)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
+    const audio = new Audio('/audio/bgm.mp4');
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = 0.35; // 你可以调小一点
+    bgmRef.current = audio;
+
+    return () => {
+      audio.pause();
+      bgmRef.current = null;
+    };
+  }, []);
   // Play breathing sound based on phase
   const playBreathingSound = (phase: 'inhale' | 'hold' | 'exhale') => {
     if (!soundOn || !audioContextRef.current) return;
@@ -127,8 +143,14 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
     setIsTimerRunning(true);
     setShowNudge(false);
   };
-
+  const stopBgm = () => {
+    const bgm = bgmRef.current;
+    if (!bgm) return;
+    bgm.pause();
+    bgm.currentTime = 0;
+  };
   const handleNextStep = () => {
+    stopBgm();
     if (autoNavTimeoutRef.current) {
       clearTimeout(autoNavTimeoutRef.current);
     }
@@ -337,7 +359,26 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
         <div className="absolute bottom-12 left-0 right-0 z-10 px-12">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
             <button
-              onClick={() => setSoundOn(!soundOn)}
+              onClick={async () => {
+              const next = !soundOn;
+              setSoundOn(next);
+              // 先确保 audioContext 也能被用户点击唤醒（否则 oscillator 也可能没声音）
+              if (audioContextRef.current?.state === 'suspended') {
+                try { await audioContextRef.current.resume(); } catch {}
+              }
+              const bgm = bgmRef.current;
+              if (!bgm) return;
+              if (next) {
+                try {
+                  await bgm.play(); // ✅ 关键：必须由点击触发，才能通过浏览器限制
+              } catch (e) {
+                console.error('[BGM] play failed:', e);
+                setSoundOn(false);
+                }
+                } else {
+                  bgm.pause();
+                      }
+                  }}
               className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white transition-colors backdrop-blur-md bg-white/10 rounded-full border border-white/5"
             >
               {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
@@ -345,7 +386,10 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
             </button>
 
             <button
-              onClick={onComplete}
+              onClick={() => {
+                stopBgm();
+                onComplete();
+              }}
               className="px-8 py-3 rounded-full backdrop-blur-xl bg-gradient-to-r from-[#8B5CF6] to-violet-700 text-white hover:from-violet-600 hover:to-violet-800 transition-all shadow-lg"
             >
               {t.breathing.skipButton}
