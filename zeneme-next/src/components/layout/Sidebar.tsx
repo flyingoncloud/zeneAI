@@ -337,21 +337,21 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
                   }}
                   className={`w-full justify-start text-left h-auto py-3 px-4 mb-1 border transition-all rounded-xl group ${
                     isActive
-                      ? 'bg-violet-500/10 text-white border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.1)] hover:bg-violet-500/15 hover:shadow-[0_0_12px_rgba(139,92,246,0.08)]'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border-transparent'
+                      ? 'bg-violet-500/10 border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.1)] hover:bg-violet-500/15 hover:shadow-[0_0_12px_rgba(139,92,246,0.08)]'
+                      : 'hover:bg-white/5 border-transparent'
                   }`}
                 >
                   <div className="w-full overflow-hidden">
                     <div className="flex justify-between items-center mb-0.5">
                       <span
                         className={`font-medium truncate text-sm ${
-                          isActive ? 'text-violet-200 group-hover:text-violet-100' : 'text-slate-100 group-hover:text-white'
+                          isActive ? 'text-violet-200 group-hover:text-violet-100' : 'text-white group-hover:text-white'
                         }`}
                       >
                         {session.title || t.menu.chat}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-300 truncate opacity-80 group-hover:text-slate-200 transition-colors">
+                    <div className="text-xs text-white truncate group-hover:text-white transition-colors">
                       {lastMessage || t.common.empty}
                     </div>
                   </div>
