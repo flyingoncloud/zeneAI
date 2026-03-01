@@ -9,9 +9,10 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useZenemeStore } from '../hooks/useZenemeStore';
 import { AnimatePresence, motion } from 'motion/react';
-import { Mic, Lock, Pause, Plus, Image as ImageIcon, PenTool } from 'lucide-react';
+import { Mic, Lock, Pause, Plus, Image as ImageIcon, PenTool, X } from 'lucide-react';
 import { Toast } from './shared/GlobalFeedback';
 import { cn } from './ui/utils';
+import { uploadFile } from '../lib/api';
 
 // Helper to safely render icons if they are undefined (environment issue)
 const SafeIcon = ({ icon: Icon, ...props }: any) => {
@@ -28,8 +29,8 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ 
-  onSendMessage, 
+export const ChatInput: React.FC<ChatInputProps> = ({
+  onSendMessage,
   onOpenDrawing,
   onStopGenerating,
   isGenerating = false,
@@ -41,9 +42,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const textInputRef = useRef<HTMLInputElement>(null);
   const { t, danmakuPreviewText } = useZenemeStore();
 
+  // Upload states
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Typewriter Effect for Danmaku Preview
   const [typedPlaceholder, setTypedPlaceholder] = useState('');
-  
+
   useEffect(() => {
     if (!danmakuPreviewText) {
       setTypedPlaceholder('');
@@ -53,7 +58,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     let currentIndex = 0;
     const text = danmakuPreviewText;
     setTypedPlaceholder(''); // Reset start
-    
+
     const intervalId = setInterval(() => {
       if (currentIndex < text.length) {
         setTypedPlaceholder(prev => text.slice(0, currentIndex + 1));
@@ -68,7 +73,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Voice States
   const [isListening, setIsListening] = useState(false);
-  
+
   // Permission States
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
@@ -173,34 +178,96 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         setTimeout(() => setIsStopping(false), 300);
         return;
     }
-    if (!input.trim()) return;
-    onSendMessage(input);
+
+    // Allow sending if there's text OR an uploaded image
+    if (!input.trim() && !uploadedImageUrl) return;
+
+    // TODO: Pass uploadedImageUrl to onSendMessage when image support is added
+    // For now, just send the text
+    onSendMessage(input || '看看这张图片');
+
     setInput('');
+    setUploadedImageUrl(null);
     stopListening();
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      console.log('File selected:', file.name);
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setToast({
+        visible: true,
+        message: '仅支持 PNG、JPEG、WebP 和 GIF 图片格式',
+        type: 'error'
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setToast({
+        visible: true,
+        message: '图片大小不能超过 5MB',
+        type: 'error'
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      console.log('[ChatInput] Uploading file:', file.name, file.type, file.size);
+      const result = await uploadFile(file);
+
+      if (result.ok && result.url) {
+        setUploadedImageUrl(result.url);
+        setToast({
+          visible: true,
+          message: result.duplicate ? '图片已存在' : '图片上传成功',
+          type: 'success'
+        });
+        console.log('[ChatInput] Upload successful:', result.url);
+      } else {
+        throw new Error(result.error || '上传失败');
+      }
+    } catch (error) {
+      console.error('[ChatInput] Upload error:', error);
+      setToast({
+        visible: true,
+        message: '图片上传失败，请重试',
+        type: 'error'
+      });
+      setUploadedImageUrl(null);
+    } finally {
+      setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+  const handleRemoveImage = () => {
+    setUploadedImageUrl(null);
+  };
+
   const hasText = input.trim().length > 0;
+  const hasContent = hasText || uploadedImageUrl;
 
   return (
     <>
-      <Toast 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
-        onClose={() => setToast({ ...toast, visible: false })} 
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, visible: false })}
       />
 
       <AnimatePresence>
         {showPermissionDeniedToast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -229,15 +296,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               为了进行语音输入，ZeneWe 需要使用你的麦克风。
             </p>
             <div className="flex gap-2 pt-2">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className="flex-1 text-slate-400 hover:text-white hover:bg-white/5 h-8 text-xs"
                 onClick={handlePermissionDeny}
               >
                 暂不允许
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 className="flex-1 bg-violet-600 hover:bg-violet-500 text-white h-8 text-xs"
                 onClick={handlePermissionGrant}
@@ -250,20 +317,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       </Dialog>
 
       {/* Main Input Container - The "Big Box" */}
-      <form 
-        onSubmit={handleSubmit} 
+      <form
+        onSubmit={handleSubmit}
         className={cn(
           "relative flex items-center gap-3 p-2 pl-3 rounded-[32px] bg-slate-900/60 border border-white/10 shadow-lg backdrop-blur-xl transition-all duration-300 hover:border-white/20 hover:shadow-violet-900/10",
           className
         )}
       >
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
           accept="image/*"
+          capture="environment"
           onChange={handleFileUpload}
-          disabled={isGenerating}
+          disabled={isGenerating || isUploading}
         />
 
         {/* Left: Plus Button with Popover */}
@@ -284,9 +352,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <Plus size={22} strokeWidth={2} />
               </Button>
             </PopoverTrigger>
-            <PopoverContent 
-              side="top" 
-              align="start" 
+            <PopoverContent
+              side="top"
+              align="start"
               className="w-40 p-1.5 bg-slate-900/95 backdrop-blur-xl border-white/10 shadow-2xl rounded-xl"
             >
               <div className="flex flex-col gap-0.5">
@@ -311,68 +379,100 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </Popover>
         </div>
 
-        {/* Middle: Input Field */}
-        <div className="flex-1 relative h-full flex items-center">
+        {/* Middle: Input Field with Image Preview */}
+        <div className="flex-1 relative h-full flex flex-col">
+            {/* Image Preview */}
+            {uploadedImageUrl && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="mb-2 relative inline-block"
+              >
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-white/20 bg-slate-800">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${uploadedImageUrl}`}
+                    alt="Uploaded"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <X size={12} className="text-white" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Input Field */}
+            <div className="flex items-center">
             <input
               ref={textInputRef}
               type="text"
               value={input}
-              disabled={isGenerating}
+              disabled={isGenerating || isUploading}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                isGenerating 
-                  ? "ZeneWe 正在回复…" 
-                  : isListening 
-                    ? "正在聆听..." 
+                isUploading
+                  ? "正在上传图片..."
+                  : isGenerating
+                  ? "ZeneWe 正在回复…"
+                  : isListening
+                    ? "正在聆听..."
                     : (danmakuPreviewText ? typedPlaceholder : (placeholder || "聊聊你的心情吧"))
               }
               className={cn(
                 "w-full bg-transparent border-0 outline-none shadow-none focus:ring-0 px-2 py-3 text-[16px] placeholder:text-slate-500/80 text-slate-200",
                 isGenerating && "placeholder:text-slate-600 cursor-not-allowed",
+                isUploading && "placeholder:text-violet-400/70 cursor-wait",
                 isListening && "placeholder:text-violet-400/70 text-violet-200",
                 danmakuPreviewText && "placeholder:text-slate-400"
               )}
             />
-            
+
             {/* Listening Visualizer inside input area */}
             {isListening && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 pointer-events-none">
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 12, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0 }}
                        className="w-1 bg-violet-500 rounded-full"
                      />
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 16, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }}
                        className="w-1 bg-violet-400 rounded-full"
                      />
-                     <motion.div 
+                     <motion.div
                        animate={{ height: [4, 10, 4] }}
                        transition={{ repeat: Infinity, duration: 0.8, delay: 0.4 }}
                        className="w-1 bg-violet-500 rounded-full"
                      />
                 </div>
             )}
+            </div>
         </div>
 
         {/* Right: Action Button (Mic/Send/Pause) */}
         <div className="flex-shrink-0 pr-1">
           <Button
-            type={hasText || isGenerating ? "submit" : "button"}
+            type={hasContent || isGenerating ? "submit" : "button"}
             size="icon"
-            onClick={(hasText || isGenerating) ? undefined : handleMicClick}
-            disabled={isStopping}
-            title={isGenerating ? "停止生成" : (hasText ? "发送消息" : "语音输入")}
-            aria-label={isGenerating ? "停止生成" : (hasText ? "发送消息" : "语音输入")}
+            onClick={(hasContent || isGenerating) ? undefined : handleMicClick}
+            disabled={isStopping || isUploading}
+            title={isGenerating ? "停止生成" : (hasContent ? "发送消息" : "语音输入")}
+            aria-label={isGenerating ? "停止生成" : (hasContent ? "发送消息" : "语音输入")}
             className={cn(
               "w-11 h-11 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center relative",
               isGenerating
                   ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10'
-                  : hasText 
-                      ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20' 
+                  : hasContent
+                      ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] border border-violet-400/20'
                       : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-white/10',
-               isStopping && "opacity-50 cursor-not-allowed"
+               (isStopping || isUploading) && "opacity-50 cursor-not-allowed"
             )}
           >
             <AnimatePresence mode="wait">
@@ -386,7 +486,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   >
                       <Pause size={18} className="fill-current" />
                   </motion.div>
-              ) : hasText ? (
+              ) : hasContent ? (
                   <motion.div
                       key="send"
                       initial={{ scale: 0.5, opacity: 0 }}
@@ -404,7 +504,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       className="relative"
                   >
                       {isListening && (
-                          <motion.div 
+                          <motion.div
                              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
                              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                              className="absolute inset-0 -m-2 bg-violet-500 rounded-full blur-md opacity-50"
