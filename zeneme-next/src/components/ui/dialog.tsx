@@ -98,7 +98,7 @@ const DialogPortal = ({ children }: DialogPortalProps) => {
 
 const DialogOverlay = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-in fade-in-0", className)}
+    className={cn("fixed inset-0 z-20000 bg-black/70 backdrop-blur-sm animate-in fade-in-0", className)}
     {...props}
   />
 );
@@ -112,7 +112,7 @@ const DialogContent = ({ children, className, ...props }: DialogContentProps) =>
   return (
     <DialogPortal>
       <DialogOverlay onClick={() => setOpen(false)} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4">
+      <div className="fixed inset-0 z-20001 flex items-center justify-center pointer-events-none p-4">
         <div
           className={cn(
             "pointer-events-auto bg-background relative flex w-full max-w-lg flex-col gap-4 rounded-lg border p-6 shadow-2xl duration-200 animate-in zoom-in-95 fade-in-0",

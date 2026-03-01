@@ -26,9 +26,14 @@ import { PrivacyModal } from '../modals/PrivacyModal';
 
 interface SidebarFooterProps {
   isSidebarOpen: boolean;
+  onOpenSettings?: () => void;
+  onOpenHelp?: () => void;
+  onOpenUserGuide?: () => void;
+  onOpenPrivacy?: () => void;
+  onRequestCloseMenu?: () => void; 
 }
 
-export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen }) => {
+export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen, onRequestCloseMenu, onOpenPrivacy, onOpenUserGuide, onOpenSettings }) => {
   const { t, openUpgradeModal } = useZenemeStore();
   const { user: authUser, logout } = useAuthStore();
 
