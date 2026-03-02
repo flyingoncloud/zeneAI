@@ -42,8 +42,8 @@ const PHASE_DURATION = 4000;
 
 export function BreathingArcTimer({
   isPlaying = true,
-  size = 480,
-  strokeWidth = 22,
+  size = 400,
+  strokeWidth = 20,
   onPhaseChange,
   className,
 }: BreathingArcTimerProps) {
@@ -192,11 +192,11 @@ export function BreathingArcTimer({
   const content = (
     <div
       className={cn(
-            "fixed left-1/2 top-1/2 z-10 -translate-x-1/2 translate-y-[120px] md:translate-y-[40px] pointer-events-none",
+            "fixed left-1/2 top-1/2 z-10 -translate-x-1/2 translate-y-[50px] md:translate-y-[40px] pointer-events-none",
             className
             )}
 
-      style={{ width: size, height: size / 2 + 40, zIndex: 10 }}
+      style={{ width: size, height: size / 2 + 30, zIndex: 10 }}
     >
     {/* 2. 插入原生 CSS：这是最稳的办法，不依赖 Tailwind */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -211,7 +211,7 @@ export function BreathingArcTimer({
           }
         }
       `}} />
-      <div className="relative mobile-scale-fix" style={{ width: size, height: size / 2 }}>
+      <div className="relative mobile-scale-fix" style={{ width: size + 20, height: size / 2 -20 }}>
         <svg
           width={size}
           height={size / 2 + strokeWidth}

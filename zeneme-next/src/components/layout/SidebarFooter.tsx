@@ -116,7 +116,7 @@ export const SidebarFooter: React.FC<SidebarFooterProps> = ({ isSidebarOpen, onR
         <PopoverContent
           side="top"
           align={isSidebarOpen ? "start" : "center"}
-          className="z-10002 w-72 p-0 bg-slatgie-900/95 backdrop-blur-xl border-white/10 text-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
+          className="z-10002 w-72 p-0 bg-slate-900 backdrop-blur-xl border-white/10 text-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
           sideOffset={16}
         >
           {/* Section 1: Subscription */}

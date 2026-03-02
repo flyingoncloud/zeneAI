@@ -616,7 +616,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-400">
                 {language === 'zh'
-                  ? '继续对话或完成内视快测以生成报告'
+                  ? '持续对话或完成内视快测，可形成你专属的内视觉察报告'
                   : 'Continue conversation or complete Quick Test to generate report'}
               </span>
             </div>

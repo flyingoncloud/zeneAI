@@ -360,12 +360,12 @@ const undo = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent p-4 md:p-6 overflow-hidden">
-      <div className="w-full h-full flex flex-col gap-6">
-        <div className="flex flex-col gap-4 px-2">
+    <div className="flex flex-col h-full bg-transparent px-4 pb-4 pt-18 md:px-6 md:pb-6 md:pt-6 overflow-y-auto overscroll-y-contain">
+      <div className="w-full min-h-full flex flex-col gap-6">
+        <div className="flex flex-col gap-4 px-4">
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-wide">{t.sketch.title}</h2>
-            <p className="text-gray-400 text-sm">{t.sketch.subtitle}</p>
+            <h2 className="text-3xl font-bold text-white tracking-wide mb-2">{t.sketch.title}</h2>
+            <p className="text-gray-400 text-base">{t.sketch.subtitle}</p>
           </div>
           <div className="w-full flex">
             <div className="flex items-center gap-2 w-fit bg-slate-900/60 border border-white/10 p-2 rounded-full backdrop-blur-md ml-auto">
@@ -453,7 +453,7 @@ const undo = () => {
             Added z-0 to clarify stacking, although it is default.
             This ensures the "Canvas BG" is opaque and blocks the app background.
         */}
-        <div className="flex-1 relative bg-slate-900 rounded-3xl shadow-lg border border-white/10 overflow-hidden">
+        <div className="flex-1 min-h-[50vh] shrink-0 relative bg-slate-900 rounded-3xl shadow-lg border border-white/10 overflow-hidden">
           <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}

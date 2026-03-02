@@ -310,91 +310,94 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
         </motion.div>
       </div>
 
-      <div className="w-full h-full relative flex flex-col items-center justify-center z-10">
-        <div className="absolute top-12 left-0 right-0 z-10 px-12">
-          <div className="max-w-4xl mx-auto mt-[30px]">
-            <div className="mb-4">
-              <div className="inline-block px-4 py-2 rounded-full bg-[#121212]/80 backdrop-blur-md text-gray-300 text-sm mb-4 border border-white/5">
-                {t.breathing.stepLabel}
+      <div className="w-full h-full relative z-10 overflow-y-auto">
+        {/* ✅ 新增：用 flex 布局和最小高度 (min-h-[700px]) 来撑开页面 */}
+        <div className="flex flex-col justify-between min-h-[700px] h-full">
+          
+          {/* ✅ 顶部和主体内容区域 */}
+          <div className="w-full px-6 md:px-12 pt-12 pb-8 flex-1 z-10">
+            <div className="max-w-4xl mx-auto mt-[30px]">
+              <div className="mb-4">
+                <div className="block w-fit mx-auto px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md text-slate-300 text-sm mb-4 border border-white/10">
+                  {t.breathing.stepLabel}
+                </div>
+                <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full"
+                    animate={{ width: `${((60 - remainingSeconds) / 60) * 100}%` }}
+                    transition={{ duration: 1, ease: "linear" }}
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
-                {/* 👇 进度条宽度直接由 remainingSeconds 计算，从 0% 涨到 100% */}
-                <motion.div
-                  className="h-full bg-gradient-to-r from-[#8B5CF6] to-violet-600 rounded-full"
-                  animate={{ width: `${((60 - remainingSeconds) / 60) * 100}%` }}
-                  transition={{ duration: 1, ease: "linear" }} // 使用 linear 让每秒的过渡像水流一样平滑
+
+              {/* Countdown Timer */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-white/40 text-sm font-medium tracking-widest tabular-nums">
+                  {formatTime(remainingSeconds)}
+                </span>
+              </div>
+
+              <div className="mb-8">
+                <BreathingArcTimer
+                  isPlaying={isTimerRunning}
+                  onPhaseChange={(p) => {
+                    setBreathPhase(p);
+                    if (p === 'inhale') {
+                      setCompletedCycle(true);
+                      setWaveCycleKey((k) => k + 1);
+                    }
+                  }}
                 />
               </div>
+
+              <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
+              <p className="text-gray-400 text-lg max-w-3xl">
+                四步呼吸法（箱式呼吸）：吸气 4 秒 → 停 4 秒 → 呼气 4 秒 → 停 4 秒。用稳定节奏激活副交感神经，让你更快恢复平静与掌控感。
+              </p>
             </div>
+          </div>
 
-            {/* Countdown Timer */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-white/40 text-sm font-medium tracking-widest tabular-nums">
-                {formatTime(remainingSeconds)}
-              </span>
-            </div>
-
-           <div className="mb-8">
-              <BreathingArcTimer
-                isPlaying={isTimerRunning}
-                onPhaseChange={(p) => {
-                  setBreathPhase(p);
-
-                  // 👇 移除了进度条状态逻辑，只保留动画重置逻辑
-                  if (p === 'inhale') {
-                    setCompletedCycle(true);
-                    setWaveCycleKey((k) => k + 1);
+          {/* ✅ 底部控制按钮区域 (去掉 absolute，加上 shrink-0 防止被压缩) */}
+          <div className="w-full px-6 md:px-12 pb-12 shrink-0 z-10">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+              <button
+                onClick={async () => {
+                  const next = !soundOn;
+                  setSoundOn(next);
+                  if (audioContextRef.current?.state === 'suspended') {
+                    try { await audioContextRef.current.resume(); } catch {}
+                  }
+                  const bgm = bgmRef.current;
+                  if (!bgm) return;
+                  if (next) {
+                    try {
+                      await bgm.play();
+                    } catch (e) {
+                      console.error('[BGM] play failed:', e);
+                      setSoundOn(false);
+                    }
+                  } else {
+                    bgm.pause();
                   }
                 }}
-              />
+                className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white transition-colors backdrop-blur-md bg-white/10 rounded-full border border-white/5"
+              >
+                {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                <span>{soundOn ? t.breathing.mute : t.breathing.soundOn}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  stopBgm();
+                  onComplete();
+                }}
+                className="px-8 py-3 rounded-full backdrop-blur-xl bg-gradient-to-r from-[#8B5CF6] to-violet-700 text-white hover:from-violet-600 hover:to-violet-800 transition-all shadow-lg"
+              >
+                {t.breathing.skipButton}
+              </button>
             </div>
-
-            <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
-            <p className="text-gray-400 text-lg max-w-3xl">
-              四步呼吸法（箱式呼吸）：吸气 4 秒 → 停 4 秒 → 呼气 4 秒 → 停 4 秒。用稳定节奏激活副交感神经，让你更快恢复平静与掌控感。
-            </p>
           </div>
-        </div>
-
-        <div className="absolute bottom-12 left-0 right-0 z-10 px-12">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            <button
-              onClick={async () => {
-              const next = !soundOn;
-              setSoundOn(next);
-              // 先确保 audioContext 也能被用户点击唤醒（否则 oscillator 也可能没声音）
-              if (audioContextRef.current?.state === 'suspended') {
-                try { await audioContextRef.current.resume(); } catch {}
-              }
-              const bgm = bgmRef.current;
-              if (!bgm) return;
-              if (next) {
-                try {
-                  await bgm.play(); // ✅ 关键：必须由点击触发，才能通过浏览器限制
-              } catch (e) {
-                console.error('[BGM] play failed:', e);
-                setSoundOn(false);
-                }
-                } else {
-                  bgm.pause();
-                      }
-                  }}
-              className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white transition-colors backdrop-blur-md bg-white/10 rounded-full border border-white/5"
-            >
-              {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-              <span>{soundOn ? t.breathing.mute : t.breathing.soundOn}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                stopBgm();
-                onComplete();
-              }}
-              className="px-8 py-3 rounded-full backdrop-blur-xl bg-gradient-to-r from-[#8B5CF6] to-violet-700 text-white hover:from-violet-600 hover:to-violet-800 transition-all shadow-lg"
-            >
-              {t.breathing.skipButton}
-            </button>
-          </div>
+          
         </div>
       </div>
 

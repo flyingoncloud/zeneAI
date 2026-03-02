@@ -92,10 +92,10 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
       <div className="w-full h-full relative flex flex-col items-center justify-center z-10">
 
         {/* Top Content (Title etc.) */}
-        <div className="absolute top-12 left-0 right-0 z-10 px-6 md:px-12">
+        <div className="absolute top-0 left-0 right-0 z-10 px-6 md:px-12">
           <div className="max-w-4xl mx-auto mt-[30px]">
             <div className="mb-8">
-              <div className="inline-block px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md text-slate-300 text-sm mb-4 border border-white/10">
+              <div className="block w-fit mx-auto px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md text-slate-300 text-sm mb-4 border border-white/10">
                 {t.emotion.stepLabel}
               </div>
               <div className="h-2 bg-white/10 backdrop-blur-md rounded-full overflow-hidden">
@@ -103,7 +103,7 @@ export function EmotionPage({ onComplete, onBack }: EmotionPageProps) {
               </div>
             </div>
 
-            <h1 className="text-4xl text-white mb-4 tracking-wide text-shadow-md">
+            <h1 className="text-3xl text-white mb-4 tracking-wide text-shadow-md">
               {t.emotion.title}
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl">

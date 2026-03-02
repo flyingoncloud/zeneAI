@@ -48,7 +48,7 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigateAuth }) => {
         {/* Main Card */}
         <div className="w-full bg-purple-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col gap-5">
           <h2 className="text-2xl font-bold text-white tracking-wide mb-2">
-            开启你的情绪自愈之旅
+            开启自我觉察之旅
           </h2>
 
           <Button
