@@ -328,21 +328,12 @@ export const InnerQuickTest: React.FC = () => {
 };
 
       if (!sessionId) {
-        // If user is authenticated but doesn't have a session_id, create one
+        // Create session_id for both authenticated and guest users
         const userId = getUserIdFromAuth();
-        if (userId && !userId.startsWith('guest_')) {
-          // Authenticated user - create session_id
-          const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-          setSessionId(newSessionId);
-          console.log('[InnerQuickTest] Created session_id for authenticated user:', newSessionId);
-          return; // Wait for next render with sessionId
-        } else {
-          // Guest user or no auth - require login
-          console.error('[InnerQuickTest] No session_id available - user should login first');
-          setError('请先登录以使用此功能');
-          setLoading(false);
-          return;
-        }
+        const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        setSessionId(newSessionId);
+        console.log('[InnerQuickTest] Created session_id for user:', userId, 'session:', newSessionId);
+        return; // Wait for next render with sessionId
       }
 
       setLoading(true);
