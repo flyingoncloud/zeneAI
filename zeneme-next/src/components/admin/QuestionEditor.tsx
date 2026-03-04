@@ -265,8 +265,8 @@ export const QuestionEditor: React.FC = () => {
             <ArrowLeft size={18} />
           </button>
           <div className="flex items-center gap-3">
-            <span className="text-lg text-white">Q{question.id}</span>
-            <span className="text-xs text-slate-500 bg-white/5 border border-white/[0.06] px-2 py-0.5 rounded-md">{question.template} — {templateInfo.name}</span>
+            <span className="text-lg text-[#111827]">Q{question.id}</span>
+            <span className="text-xs text-[#6B7280] bg-[#F3F5FA] border border-[#E6EAF2] px-2 py-0.5 rounded-md">{question.template} — {templateInfo.name}</span>
             {question.status === 'published' ? (
               <span className="px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Published</span>
             ) : (
@@ -293,7 +293,7 @@ export const QuestionEditor: React.FC = () => {
             <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <div className="w-1 h-3.5 bg-violet-500 rounded-full" /> Basic Info
             </h3>
-            <div className="space-y-4 bg-[#13141A] border border-white/[0.06] rounded-xl p-5">
+            <div className="space-y-4 bg-white border border-[#E6EAF2] rounded-xl p-5 shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1.5">Question ID</label>
@@ -305,12 +305,12 @@ export const QuestionEditor: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-slate-500 mb-1.5">Internal Title</label>
-                <input value={internalTitle} onChange={e => setInternalTitle(e.target.value)} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                <label className="block text-xs text-[#6B7280] mb-1.5">Internal Title</label>
+                <input value={internalTitle} onChange={e => setInternalTitle(e.target.value)} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
               </div>
               <div>
-                <label className="block text-xs text-slate-500 mb-1.5">Tags（逗号分隔）</label>
-                <input value={tags} onChange={e => setTags(e.target.value)} placeholder="情绪, 认知, 觉察" className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600" />
+                <label className="block text-xs text-[#6B7280] mb-1.5">Tags（逗号分隔）</label>
+                <input value={tags} onChange={e => setTags(e.target.value)} placeholder="情绪, 认知, 觉察" className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
               </div>
             </div>
           </section>
@@ -320,23 +320,23 @@ export const QuestionEditor: React.FC = () => {
             <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <div className="w-1 h-3.5 bg-blue-500 rounded-full" /> Stem Content
             </h3>
-            <div className="space-y-4 bg-[#13141A] border border-white/[0.06] rounded-xl p-5">
+            <div className="space-y-4 bg-white border border-[#E6EAF2] rounded-xl p-5 shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
               <div>
-                <label className="block text-xs text-slate-500 mb-1.5">题干文字</label>
-                <textarea value={stem} onChange={e => setStem(e.target.value)} rows={3} className="w-full px-3 py-2.5 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white resize-none focus:outline-none focus:border-violet-500/40 transition-colors" />
+                <label className="block text-xs text-[#6B7280] mb-1.5">题干文字</label>
+                <textarea value={stem} onChange={e => setStem(e.target.value)} rows={3} className="w-full px-3 py-2.5 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] resize-none focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all" />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 mb-1.5">副标题 / 说明（可选）</label>
-                <input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600" placeholder="例：请以直觉作答" />
+                <input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" placeholder="例：请以直觉作答" />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 mb-1.5">评分类别（用于报告计分）</label>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openCategoryPicker('question')}
-                    className="flex-1 h-auto min-h-[36px] px-3 py-2 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white hover:border-violet-500/40 transition-colors text-left flex items-center justify-between gap-2"
+                    className="flex-1 h-auto min-h-[36px] px-3 py-2 bg-white border border-[#E6EAF2] rounded-lg text-sm text-white hover:border-violet-500/40 transition-colors text-left flex items-center justify-between gap-2"
                   >
-                    <span className={`flex-1 ${category ? 'text-white' : 'text-slate-600'}`}>
+                    <span className={`flex-1 ${category ? 'text-black' : 'text-slate-600'}`}>
                       {category ? getCategoryLabel(category) : '-- 选择类别 --'}
                     </span>
                     <FolderOpen size={14} className="text-slate-500 shrink-0" />
@@ -355,12 +355,12 @@ export const QuestionEditor: React.FC = () => {
               {hasStemMedia && (
                 <div className="space-y-3">
                   <label className="block text-xs text-slate-500 mb-1.5">媒体 ({question.template === 'F8' ? '视频' : '图片'})</label>
-                  <div className="flex items-center gap-2">
-                    <select value={mediaType} onChange={e => setMediaType(e.target.value as 'image' | 'video')} className="h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={mediaType} onChange={e => setMediaType(e.target.value as 'image' | 'video')} className="h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9]">
                       <option value="image">图片</option>
                       <option value="video">视频</option>
                     </select>
-                    <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="输入 URL 或从媒体库选择" className="flex-1 h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 placeholder:text-slate-600 transition-colors" />
+                    <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="输入 URL 或从媒体库选择" className="flex-1 h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                     <button
                       onClick={() => openMediaPicker('stem')}
                       className="h-9 px-3 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-400 text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
@@ -383,23 +383,23 @@ export const QuestionEditor: React.FC = () => {
             <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Template Settings
             </h3>
-            <div className="space-y-4 bg-[#13141A] border border-white/[0.06] rounded-xl p-5">
+            <div className="space-y-4 bg-white border border-[#E6EAF2] rounded-xl p-5 shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
               {isLikert && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-500 mb-1.5">左端点文案</label>
-                    <input value={templateSettings.leftLabel || ''} onChange={e => setTemplateSettings({ ...templateSettings, leftLabel: e.target.value })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                    <input value={templateSettings.leftLabel || ''} onChange={e => setTemplateSettings({ ...templateSettings, leftLabel: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 mb-1.5">右端点文案</label>
-                    <input value={templateSettings.rightLabel || ''} onChange={e => setTemplateSettings({ ...templateSettings, rightLabel: e.target.value })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                    <input value={templateSettings.rightLabel || ''} onChange={e => setTemplateSettings({ ...templateSettings, rightLabel: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                   </div>
                 </div>
               )}
               {isRanking && (
                 <div>
                   <label className="block text-xs text-slate-500 mb-1.5">Top N（需选择的数量）</label>
-                  <input type="number" min={1} max={10} value={templateSettings.topN || 3} onChange={e => setTemplateSettings({ ...templateSettings, topN: Number(e.target.value) })} className="w-24 h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                  <input type="number" min={1} max={10} value={templateSettings.topN || 3} onChange={e => setTemplateSettings({ ...templateSettings, topN: Number(e.target.value) })} className="w-24 h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                 </div>
               )}
               {isSpatial && (
@@ -407,21 +407,21 @@ export const QuestionEditor: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs text-slate-500 mb-1.5">中心物体</label>
-                      <input value={templateSettings.centerObject || ''} onChange={e => setTemplateSettings({ ...templateSettings, centerObject: e.target.value })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                      <input value={templateSettings.centerObject || ''} onChange={e => setTemplateSettings({ ...templateSettings, centerObject: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 mb-1.5">目标物体</label>
-                      <input value={templateSettings.targetObject || ''} onChange={e => setTemplateSettings({ ...templateSettings, targetObject: e.target.value })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                      <input value={templateSettings.targetObject || ''} onChange={e => setTemplateSettings({ ...templateSettings, targetObject: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs text-slate-500 mb-1.5">默认角度 (0–360)</label>
-                      <input type="number" min={0} max={360} value={templateSettings.defaultAngle || 0} onChange={e => setTemplateSettings({ ...templateSettings, defaultAngle: Number(e.target.value) })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                      <input type="number" min={0} max={360} value={templateSettings.defaultAngle || 0} onChange={e => setTemplateSettings({ ...templateSettings, defaultAngle: Number(e.target.value) })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 mb-1.5">Reset 按钮文案</label>
-                      <input value={templateSettings.resetLabel || '重置'} onChange={e => setTemplateSettings({ ...templateSettings, resetLabel: e.target.value })} className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors" />
+                      <input value={templateSettings.resetLabel || '重置'} onChange={e => setTemplateSettings({ ...templateSettings, resetLabel: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                     </div>
                   </div>
                 </div>
@@ -457,7 +457,7 @@ export const QuestionEditor: React.FC = () => {
               </h3>
               <div className="space-y-2">
                 {options.map((opt, idx) => (
-                  <div key={idx} className="flex items-start gap-2 bg-[#13141A] border border-white/[0.06] rounded-xl p-3.5 group">
+                  <div key={idx} className="flex items-start gap-2 bg-white border border-[#E6EAF2] rounded-xl p-3.5 group shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
                     <div className="w-6 h-6 rounded-md bg-white/5 border border-white/[0.06] flex items-center justify-center text-[11px] text-slate-400 shrink-0 mt-0.5">
                       {opt.label}
                     </div>
@@ -465,14 +465,14 @@ export const QuestionEditor: React.FC = () => {
                       <input
                         value={opt.text} onChange={e => updateOption(idx, 'text', e.target.value)}
                         placeholder="选项文本"
-                        className="w-full h-8 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600"
+                        className="w-full h-8 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]"
                       />
                       {hasOptionImages && (
                         <div className="flex items-center gap-2">
                           <input
                             value={opt.imageUrl || ''} onChange={e => updateOption(idx, 'imageUrl', e.target.value)}
                             placeholder="图片 URL（可选）"
-                            className="flex-1 h-8 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-xs text-slate-400 focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600"
+                            className="w-full h-8 px-3 bg-white border border-[#E6EAF2] rounded-lg text-xs text-[#4B5563] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]"
                           />
                           <button
                             onClick={() => openMediaPicker({ type: 'option', index: idx })}
@@ -487,7 +487,7 @@ export const QuestionEditor: React.FC = () => {
                         <input
                           type="number" min={0} max={10}
                           value={opt.value} onChange={e => updateOption(idx, 'value', Number(e.target.value))}
-                          className="w-16 h-7 px-2 bg-[#0F1115] border border-white/[0.06] rounded-md text-xs text-white focus:outline-none focus:border-violet-500/40 transition-colors"
+                          className="w-16 h-7 px-2 bg-white border border-[#E6EAF2] rounded-md text-xs text-[#111827] focus:outline-none focus:border-[#6D28D9] transition-all"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -495,7 +495,7 @@ export const QuestionEditor: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openCategoryPicker({ type: 'option', index: idx })}
-                            className="flex-1 h-7 px-2 bg-[#0F1115] border border-white/[0.06] rounded-md text-xs hover:border-violet-500/40 transition-colors text-left flex items-center justify-between"
+                            className="flex-1 h-7 px-2 bg-white border border-[#E6EAF2] rounded-md text-xs hover:border-violet-500/40 transition-colors text-left flex items-center justify-between"
                           >
                             <span className={opt.sub_category ? 'text-white' : 'text-slate-600'}>
                               {opt.sub_category ? getCategoryLabel(opt.sub_category) : '-- 使用题目类别 --'}
@@ -535,9 +535,9 @@ export const QuestionEditor: React.FC = () => {
             <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <div className="w-1 h-3.5 bg-emerald-500 rounded-full" /> Validation
             </h3>
-            <div className="space-y-4 bg-[#13141A] border border-white/[0.06] rounded-xl p-5">
+            <div className="space-y-4 bg-white border border-[#E6EAF2] rounded-xl p-5 shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-300">必填</label>
+                <label className="text-sm text-[#374151]">必填</label>
                 <button
                   onClick={() => setValidationRequired(!validationRequired)}
                   className={`w-10 h-[22px] rounded-full transition-all cursor-pointer relative ${validationRequired ? 'bg-violet-500' : 'bg-slate-700'}`}
@@ -549,11 +549,11 @@ export const QuestionEditor: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-500 mb-1.5">最少选择</label>
-                    <input type="number" value={validationMin} onChange={e => setValidationMin(e.target.value)} placeholder="—" className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600" />
+                    <input type="number" value={validationMin} onChange={e => setValidationMin(e.target.value)} placeholder="—" className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 mb-1.5">最多选择</label>
-                    <input type="number" value={validationMax} onChange={e => setValidationMax(e.target.value)} placeholder="—" className="w-full h-9 px-3 bg-[#0F1115] border border-white/[0.06] rounded-lg text-sm text-white focus:outline-none focus:border-violet-500/40 transition-colors placeholder:text-slate-600" />
+                    <input type="number" value={validationMax} onChange={e => setValidationMax(e.target.value)} placeholder="—" className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
                   </div>
                 </div>
               )}
@@ -562,14 +562,14 @@ export const QuestionEditor: React.FC = () => {
         </div>
 
         {/* Right: Preview */}
-        <div className="w-[420px] shrink-0 overflow-y-auto bg-[#0A0B10] p-6">
+        <div className="w-[420px] shrink-0 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="flex items-center gap-2 mb-4">
             <Eye size={14} className="text-slate-500" />
             <span className="text-xs text-slate-500 uppercase tracking-wider">Preview</span>
           </div>
 
           {/* Preview Card */}
-          <div className="bg-gradient-to-br from-[#2D1B69]/80 to-[#1B1145]/80 border border-violet-500/20 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+          <div className="bg-gradient-to-br from-[#2D1B69] to-[#1B1145] border border-violet-500/20 rounded-2xl p-6 shadow-[0_8px_24px_rgba(17,24,39,0.12)] relative overflow-hidden">
             {/* Ambient */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-[60px] pointer-events-none" />
 
