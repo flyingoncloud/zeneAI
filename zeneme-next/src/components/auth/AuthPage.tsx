@@ -240,8 +240,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full relative z-20 px-6 bg-gradient-to-b from-purple-700 via-purple-600 to-pink-500">
+    <div className="flex flex-col items-center justify-start min-h-screen w-full relative z-20 px-6 py-8 overflow-y-auto bg-gradient-to-b from-purple-700 via-purple-600 to-pink-500">
 
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -499,6 +500,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
         </div>
 
       </motion.div>
+      </div>
     </div>
   );
 };
