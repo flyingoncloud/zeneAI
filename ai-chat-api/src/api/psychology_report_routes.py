@@ -238,6 +238,25 @@ def generate_report_background(
 
         logger.info(f"DOCX report generated: {docx_path}")
 
+        # Step 6b: Save report_data as JSON
+        logger.info("Step 6b: Saving report data as JSON")
+        import json
+        json_path = reports_dir / f"psychology_report_{report_id}.json"
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, ensure_ascii=False, indent=2, default=str)
+        logger.info(f"JSON report saved: {json_path}")
+
+        # Step 6c: Generate Markdown report
+        logger.info("Step 6c: Generating Markdown report")
+        from src.services.psychology.markdown_generator import generate_psychology_report_markdown
+        md_path = generate_psychology_report_markdown(
+            report_data=report_data,
+            output_dir=str(reports_dir),
+            report_id=report_id,
+            charts_dir=str(charts_dir)
+        )
+        logger.info(f"Markdown report saved: {md_path}")
+
         # Step 7: Update report status to completed
         logger.info("Step 7: Updating report status to completed")
         report = db_session.query(PsychologyReport).filter(
