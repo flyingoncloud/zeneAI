@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { CATEGORY_HIERARCHY, getCategoryNode, type CategoryNode } from '@/data/categoryHierarchy';
+import { CATEGORY_HIERARCHY, type CategoryNode } from '@/data/categoryHierarchy';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 
 interface CategoryPickerProps {
@@ -113,9 +113,9 @@ export function CategoryPicker({
           onClick={() => {
             if (hasChildren) {
               toggleNode(node.code);
-            }
-            onSelect(node.code);
-            if (!hasChildren) {
+            } else {
+              // Only leaf nodes can be selected
+              onSelect(node.code);
               onClose();
             }
           }}
