@@ -10,6 +10,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+} from '../../ui/dialog';
 import { Check, Loader2, MessageCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadSketch } from '../../../lib/api';
@@ -59,6 +63,7 @@ export const InnerSketch: React.FC = () => {
   // Button States
   const [isSaved, setIsSaved] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showResultDialog, setShowResultDialog] = useState(false);
 
   const COLORS = [
     '#e2e8f0', // Slate
@@ -133,7 +138,7 @@ const undo = () => {
     setHasDrawn(false);
   }
 };
-  
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -220,14 +225,13 @@ const undo = () => {
 
     setAnalyzing(true);
     setAnalysisStep(1);
+    setShowResultDialog(true); // Show loading popup
 
     try {
-      // Convert canvas to base64 data URL
       const dataUrl = canvas.toDataURL('image/png');
 
       setAnalysisStep(2);
 
-      // Call the analyze API (without saving to database)
       const { analyzeSketch } = await import('../../../lib/api');
       const response = await analyzeSketch(dataUrl);
 
@@ -237,15 +241,16 @@ const undo = () => {
         setResult(response.analysis);
       } else {
         toast.error('分析失败，请重试');
-        setResult(t.sketch.mockResult); // Fallback to mock result
+        setResult(t.sketch.mockResult);
       }
     } catch (error) {
       console.error('Error analyzing sketch:', error);
       toast.error('分析失败: ' + (error instanceof Error ? error.message : '未知错误'));
-      setResult(t.sketch.mockResult); // Fallback to mock result
+      setResult(t.sketch.mockResult);
     } finally {
       setAnalyzing(false);
       setAnalysisStep(0);
+      setShowResultDialog(false); // Close popup, result shows inline
     }
   };
 
@@ -443,7 +448,7 @@ const undo = () => {
               </TooltipProvider>
           </div>
         </div>
-      </div> 
+      </div>
 
         {/*
             Container with SOLID BG color to visually act as the "Paper".
@@ -467,28 +472,37 @@ const undo = () => {
           />
 
           <div className="absolute bottom-6 right-6 z-10">
-            {analyzing ? (
-              <Card className="p-3 bg-slate-900/80 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                <AnalysisProgress
-                  label={t.sketch.analyzing}
-                  detail={getAnalysisDetail(analysisStep)}
-                  totalSteps={3}
-                  currentStep={analysisStep}
-                  className="w-64"
-                />
-              </Card>
-            ) : (
-              <Button
-                onClick={analyzeDrawing}
-                disabled={!!result}
-                className="h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-full px-6 shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all border border-white/10 font-medium"
-              >
-                <SafeIcon icon={Icons.Sparkles} className="mr-2 h-4 w-4" /> {t.sketch.analyze}
-              </Button>
-            )}
+            <Button
+              onClick={analyzeDrawing}
+              disabled={analyzing || !hasDrawn}
+              className="h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-full px-6 shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all border border-white/10 font-medium"
+            >
+              {analyzing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <SafeIcon icon={Icons.Sparkles} className="mr-2 h-4 w-4" />
+              )}
+              {analyzing ? '分析中...' : t.sketch.analyze}
+            </Button>
           </div>
         </div>
 
+        {/* Loading Dialog - only shown while API is working */}
+        <Dialog open={showResultDialog} onOpenChange={(open) => { if (!analyzing) setShowResultDialog(open); }}>
+          <DialogContent className="bg-slate-900/95 backdrop-blur-xl border-white/10 text-white max-w-sm">
+            <div className="py-8 flex flex-col items-center gap-4">
+              <AnalysisProgress
+                label={t.sketch.analyzing}
+                detail={getAnalysisDetail(analysisStep)}
+                totalSteps={3}
+                currentStep={analysisStep}
+                className="w-64"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Inline result below canvas */}
         {result && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 z-10">
             <Card className="p-6 bg-slate-900/60 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-md">
@@ -500,47 +514,24 @@ const undo = () => {
                   <h3 className="font-semibold text-white tracking-wide">{t.sketch.resultTitle}</h3>
                   <p className="text-slate-300 leading-relaxed text-sm md:text-base">{result}</p>
 
-                  {/* Action Buttons Row */}
                   <div className="pt-2 flex gap-4 items-center">
-                     {/* Save Button */}
-                     <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleSave}
-                        className={`
-                            pl-0 transition-all duration-200 h-10 px-4 rounded-lg
-                            ${isSaved ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-violet-300 hover:bg-violet-500/10'}
-                        `}
-                     >
-                       {isSaved ? (
-                           <>
-                             <Check className="w-4 h-4 mr-2" />
-                             已保存
-                           </>
-                       ) : (
-                           t.sketch.save
-                       )}
-                     </Button>
-
-                     {/* Share/Send Button */}
-                     <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleShare}
-                        disabled={isSending}
-                        className="text-slate-400 hover:text-white hover:bg-violet-600/20 h-10 px-4 rounded-lg transition-all duration-200"
-                     >
-                       {isSending ? (
-                           <>
-                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                             发送中...
-                           </>
-                       ) : (
-                           <>
-                             <MessageCircle className="w-4 h-4 mr-2" /> {t.sketch.returnToChat}
-                           </>
-                       )}
-                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSave}
+                      className={`pl-0 transition-all duration-200 h-10 px-4 rounded-lg ${isSaved ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10' : 'text-slate-400 hover:text-violet-300 hover:bg-violet-500/10'}`}
+                    >
+                      {isSaved ? <><Check className="w-4 h-4 mr-2" />已保存</> : t.sketch.save}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShare}
+                      disabled={isSending}
+                      className="text-slate-400 hover:text-white hover:bg-violet-600/20 h-10 px-4 rounded-lg transition-all duration-200"
+                    >
+                      {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />发送中...</> : <><MessageCircle className="w-4 h-4 mr-2" />{t.sketch.returnToChat}</>}
+                    </Button>
                   </div>
                 </div>
               </div>
