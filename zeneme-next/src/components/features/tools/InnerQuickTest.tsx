@@ -79,7 +79,7 @@ function getUserIdFromAuth(): string {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 
 export const InnerQuickTest: React.FC = () => {
-  const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction } = useZenemeStore();
+  const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction, viewingReportId, setViewingReportId } = useZenemeStore();
 
   // Reusable function to handle returning to conversation after completion
   const handleReturnToConversation = () => {
@@ -216,6 +216,35 @@ export const InnerQuickTest: React.FC = () => {
       setSubmissionState('success');
     }
   }, [reportStatus, submissionState]);
+
+  // History navigation: if viewingReportId is set, skip questionnaire and show that report
+  useEffect(() => {
+    if (viewingReportId == null) return;
+    console.log('[InnerQuickTest] viewingReportId detected:', viewingReportId);
+    const id = viewingReportId;
+    setViewingReportId(null); // consume it so it doesn't re-trigger
+
+    // Show loading state while we fetch the report
+    setReportId(id);
+    setReportStatus('pending');
+    setSubmissionState('submitting');
+    setView('result');
+
+    (async () => {
+      try {
+        const status = await getPsychologyReportStatus(id);
+        setReportStatus(status.status);
+        setReportProgress(status.progress || 0);
+        if (status.status === 'completed' && status.report_data) {
+          setReportData(status.report_data);
+          setSubmissionState('success');
+        }
+      } catch (err) {
+        console.error('[InnerQuickTest] Error fetching viewed report:', err);
+        setReportStatus('failed');
+      }
+    })();
+  }, [viewingReportId, setViewingReportId]);
 
   // F7 Direction Dial: Handle window-level pointer events for dragging
   useEffect(() => {

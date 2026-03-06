@@ -24,7 +24,7 @@ interface ReportItem {
 }
 
 export const HistoryReports: React.FC = () => {
-  const { setCurrentView } = useZenemeStore();
+  const { setCurrentView, setViewingReportId } = useZenemeStore();
   const { status, user } = useAuthStore();
 
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -78,21 +78,9 @@ export const HistoryReports: React.FC = () => {
   };
 
   const handleReportClick = (report: ReportItem) => {
-    // Navigate to the InnerQuickTest result view by storing report info
-    // For now, show a toast with scores
-    const indices = report.mind_indices;
-    if (indices) {
-      const dims = [
-        ['情绪调节', indices.emotional_regulation],
-        ['认知灵活', indices.cognitive_flexibility],
-        ['关系敏感', indices.relational_sensitivity],
-        ['内在冲突', indices.inner_conflict],
-        ['成长潜能', indices.growth_potential],
-      ];
-      const summary = dims.map(([k, v]) => `${k}: ${v ?? '-'}`).join(' | ');
-      setToastMsg(summary);
-      setShowToast(true);
-    }
+    // Navigate to InnerQuickTest result view for this report
+    setViewingReportId(report.id);
+    setCurrentView('test');
   };
 
   const handleLogin = () => {

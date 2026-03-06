@@ -141,6 +141,10 @@ interface ZenemeContextType {
 
   inputDraft: string;
   setInputDraft: (draft: string) => void;
+
+  // History: viewing a specific report from history
+  viewingReportId: number | null;
+  setViewingReportId: (id: number | null) => void;
 }
 
 const ZenemeContext = createContext<ZenemeContextType | undefined>(undefined);
@@ -151,6 +155,8 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [language, setLanguage] = useState<Language>('zh'); // Default to Chinese
   const [inputDraft, setInputDraft] = useState<string>('');
+  // History: viewing a specific report
+  const [viewingReportId, setViewingReportId] = useState<number | null>(null);
   // Subscription State
   const [isPro, setIsPro] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -500,7 +506,9 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setDanmakuPreviewText,
         closeUpgradeModal,
         freeSessionsLeft,
-        decrementFreeSessions
+        decrementFreeSessions,
+        viewingReportId,
+        setViewingReportId
       }}
     >
       {children}
