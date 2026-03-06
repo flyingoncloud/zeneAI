@@ -365,6 +365,7 @@ export const InnerQuickTest: React.FC = () => {
         console.log('[InnerQuickTest] Progress report_id:', result.progress.report_id);
         console.log('[InnerQuickTest] Questions loaded:', result.questions.length);
         console.log('[InnerQuickTest] First question:', result.questions[0]);
+        console.log('[InnerQuickTest] Last question:', result.questions[result.questions.length - 1]);
 
         setProgressId(result.progress.id);
         setQuestions(result.questions);
@@ -924,20 +925,73 @@ export const InnerQuickTest: React.FC = () => {
 
           {/* --- 选项区域 --- */}
           <div className="max-w-2xl mx-auto w-full pt-4">
-            {currentQuestion.template === 'F1' ? (
+            {(currentQuestion.template === 'F9' || currentQuestion.templateSettings?.leftTrait) ? (
+              // F9: MBTI Spectrum — left trait vs right trait, 5-point scale
+              <div className="space-y-4 md:space-y-6 w-full">
+                {/* Left trait — vs — Right trait */}
+                <div className="flex items-center justify-between w-full px-1">
+                  <span className="text-blue-400 font-medium text-sm md:text-base">{currentQuestion.templateSettings?.leftTrait || 'Left'}</span>
+                  <span className="text-slate-500 text-xs">—— vs ——</span>
+                  <span className="text-purple-400 font-medium text-sm md:text-base">{currentQuestion.templateSettings?.rightTrait || 'Right'}</span>
+                </div>
+
+                {/* 5 numbered boxes — V-shape: Bigger, Big, Normal, Big, Bigger */}
+                <div className="flex justify-center items-end gap-2 md:gap-4 w-full">
+                  {[1, 2, 3, 4, 5].map((value, idx) => {
+                    const isSelected = currentAnswer === value;
+                    const isLeft = value < 3;
+                    const isRight = value > 3;
+                    const borderColor = isSelected
+                      ? (isLeft ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : isRight ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'border-slate-400 shadow-[0_0_20px_rgba(148,163,184,0.3)]')
+                      : (isLeft ? 'border-blue-500/30 hover:border-blue-400' : isRight ? 'border-purple-500/30 hover:border-purple-400' : 'border-white/20 hover:border-slate-400');
+                    const bgColor = isSelected
+                      ? (isLeft ? 'bg-blue-500/20' : isRight ? 'bg-purple-500/20' : 'bg-white/10')
+                      : 'bg-transparent hover:bg-white/5';
+                    const textColor = isLeft ? 'text-blue-400' : isRight ? 'text-purple-400' : 'text-slate-400';
+
+                    // V-shape sizes: Bigger(1), Big(2), Normal(3), Big(4), Bigger(5)
+                    const sizeClasses = [
+                      "w-[64px] h-[64px] md:w-[96px] md:h-[96px]",
+                      "w-[52px] h-[52px] md:w-[80px] md:h-[80px]",
+                      "w-[44px] h-[44px] md:w-[64px] md:h-[64px]",
+                      "w-[52px] h-[52px] md:w-[80px] md:h-[80px]",
+                      "w-[64px] h-[64px] md:w-[96px] md:h-[96px]"
+                    ];
+
+                    return (
+                      <div key={value} className="flex flex-col items-center gap-2">
+                        <button
+                          onClick={() => handleAnswer(value)}
+                          disabled={loading}
+                          className={`
+                            ${sizeClasses[idx]}
+                            rounded-lg border-2 flex-shrink-0 flex items-center justify-center transition-all
+                            text-lg md:text-xl font-bold
+                            ${borderColor} ${bgColor} ${textColor}
+                            ${loading ? 'opacity-50 cursor-not-allowed' : ''}
+                          `}
+                        >
+                          {value}
+                        </button>
+                        <span className="text-slate-400 font-medium text-[10px] md:text-xs text-center whitespace-nowrap">
+                          {['总是如此', '经常如此', '视情况而定', '经常如此', '总是如此'][idx]}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : currentQuestion.template === 'F1' ? (
               <div className="space-y-4 md:space-y-6 w-full">
                 {/* 修复点 2: 修正了 items-center 的拼写错误 */}
                 <div className="flex justify-center items-center gap-2 md:gap-4 w-full">
                   {[1, 2, 3, 4, 5].map((value, idx) => {
-                    // 🚨 这里的数组严格控制着大小：
-                    // w-14 (手机端大号) / md:w-24 (PC端大号)
-                    // w-10 (手机端小号) / md:w-16 (PC端小号)
                     const sizeClasses = [
-                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]", // [索引0] 大：56px / 96px (原 w-14/w-24)
-                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引1] 中：48px / 80px (原 w-12/w-20)
-                      "w-[40px] h-[40px] md:w-[64px] md:h-[64px]", // [索引2] 小：40px / 64px (原 w-10/w-16)
-                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]", // [索引3] 中：48px / 80px
-                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]"  // [索引4] 大：56px / 96px
+                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]",
+                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]",
+                      "w-[40px] h-[40px] md:w-[64px] md:h-[64px]",
+                      "w-[48px] h-[48px] md:w-[80px] md:h-[80px]",
+                      "w-[56px] h-[56px] md:w-[96px] md:h-[96px]"
                     ];
                     const currentSizeClass = sizeClasses[idx];
 

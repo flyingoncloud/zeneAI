@@ -25,6 +25,7 @@ class TemplateType(enum.Enum):
     F6 = "F6"  # Ranking Top N
     F7 = "F7"  # Direction Dial 0-360
     F8 = "F8"  # Video + Single Choice
+    F9 = "F9"  # MBTI Spectrum
 
 
 class AdminQuestionnaire(Base):
@@ -212,4 +213,14 @@ F8 (Video + Single Choice):
   options: [{"id": "A", "text": "选项A", "value": 1, "label": "A"}, ...]
   template_settings: {}
   answer_value: "A"
+
+F9 (MBTI Spectrum):
+  options: []
+  template_settings: {
+    "leftTrait": "Makes lists",
+    "rightTrait": "Relies on memory",
+    "dimension": "JP",
+    "labels": ["Always like this", "Often like this", "Depends on situation", "Often like this", "Always like this"]
+  }
+  answer_value: 3  # 1-5 scale
 """

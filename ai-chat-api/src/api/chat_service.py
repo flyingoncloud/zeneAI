@@ -20,6 +20,49 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 logger = logging.getLogger(__name__)
 
 
+def filter_function_call_text(content: str) -> str:
+    """
+    Filter out leaked function call text from AI responses.
+
+    OpenAI sometimes includes function call metadata in the text content,
+    especially in Chinese: "函数调用", "[调用函数：...]", etc.
+    This must be stripped before returning to the user.
+    """
+    if not content:
+        return content
+
+    filtered = content
+
+    # Remove [调用函数：...] patterns (various formats)
+    filtered = re.sub(r'\[调用函数[：:][^\]]*\]\s*', '', filtered)
+    filtered = re.sub(r'\[调用函数\s+[\'"][^\]]*\]\s*', '', filtered)
+    filtered = re.sub(r'\[调用函数[^\]]*\]\s*', '', filtered)
+
+    # Remove standalone "函数调用" with surrounding punctuation/whitespace
+    filtered = re.sub(r'函数调用[：:，,。.\s]*', '', filtered)
+
+    # Remove "calling function" / "function call" in English
+    filtered = re.sub(r'\b(?:calling function|function call)[:\s]*', '', filtered, flags=re.IGNORECASE)
+
+    # Remove JSON objects containing "module_id" (leaked function call arguments)
+    filtered = re.sub(r'\{\s*"module_id"[\s\S]*?\}', '', filtered)
+
+    # Remove recommend_module function references
+    filtered = re.sub(r'recommend_module\s*\([^)]*\)\s*', '', filtered)
+    filtered = re.sub(r'functions\.recommend_module\s*', '', filtered)
+
+    # Remove any remaining JSON-like structures with quotes
+    filtered = re.sub(r'\{\s*["\'][^}]*["\']\s*:\s*["\'][^}]*["\']\s*[,}]', '', filtered)
+
+    # Clean up extra whitespace and newlines
+    filtered = re.sub(r'\n{3,}', '\n\n', filtered).strip()
+
+    if filtered != content:
+        logger.info(f"Filtered function call text from AI response (removed {len(content) - len(filtered)} chars)")
+
+    return filtered
+
+
 def detect_language(text: str) -> str:
     """
     Detect the language of user input text
@@ -647,7 +690,10 @@ def get_ai_response(
 
         # Debug: Log raw content for troubleshooting
         logger.info(f"Raw message.content: {repr(message.content)}")
-        logger.info(f"Stripped ai_content: {repr(ai_content)}")
+
+        # Filter out any leaked function call text (e.g., "函数调用", "[调用函数：...]")
+        ai_content = filter_function_call_text(ai_content)
+        logger.info(f"Filtered ai_content: {repr(ai_content)}")
 
         # Step 4: Extract function calls (module recommendations)
         recommended_modules = []

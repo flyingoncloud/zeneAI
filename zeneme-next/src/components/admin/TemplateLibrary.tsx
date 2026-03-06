@@ -33,6 +33,7 @@ export const TemplateLibrary: React.FC = () => {
     F6: { bg: 'bg-[#D97706]', text: 'text-[#D97706]', border: 'border-amber-100', lightBg: 'bg-amber-50' },
     F7: { bg: 'bg-[#0891B2]', text: 'text-[#0891B2]', border: 'border-cyan-100', lightBg: 'bg-cyan-50' },
     F8: { bg: 'bg-[#E11D48]', text: 'text-[#E11D48]', border: 'border-rose-100', lightBg: 'bg-rose-50' },
+    F9: { bg: 'bg-[#8B5CF6]', text: 'text-[#8B5CF6]', border: 'border-purple-100', lightBg: 'bg-purple-50' },
   };
 
   const previewBgs: Record<TemplateType, React.ReactNode> = {
@@ -92,6 +93,20 @@ export const TemplateLibrary: React.FC = () => {
       <div className="space-y-2 px-2">
         <div className="h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-[10px] text-rose-400 font-bold">▶ Video Player</div>
         <div className="h-4 w-3/4 rounded-full bg-gray-50 border border-gray-100" />
+      </div>
+    ),
+    F9: (
+      <div className="px-2">
+        <div className="flex items-center justify-between gap-1 mb-1">
+          <span className="text-[8px] text-purple-600 font-bold">Left</span>
+          <span className="text-[8px] text-gray-400">vs</span>
+          <span className="text-[8px] text-purple-600 font-bold">Right</span>
+        </div>
+        <div className="flex items-center justify-between gap-1">
+          {[1, 2, 3, 4, 5].map(n => (
+            <div key={n} className={`flex-1 h-7 rounded-lg border flex items-center justify-center text-[10px] font-bold ${n === 3 ? 'bg-gray-100 border-gray-200 text-gray-400' : n < 3 ? 'bg-blue-50 border-blue-200 text-blue-400' : 'bg-purple-50 border-purple-200 text-purple-400'}`}>{n}</div>
+          ))}
+        </div>
       </div>
     ),
   };

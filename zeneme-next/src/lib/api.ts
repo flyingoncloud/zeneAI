@@ -578,6 +578,7 @@ export interface QuestionnaireDetail extends Questionnaire {
     options?: QuestionOption[];
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
+    templateSettings?: Record<string, any> | null;
   }>;
 }
 

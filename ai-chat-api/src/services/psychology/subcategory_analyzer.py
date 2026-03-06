@@ -200,6 +200,36 @@ SUBCATEGORY_METADATA = {
         'low_activity': '混乱型依恋较弱，你在关系中的行为较为一致和可预测。这有助于建立稳定的关系。'
     },
 
+    # 2.4 - MBTI Personality Type (MBTI性格类型测试)
+    '2.4.1': {
+        'name': '判断-感知 (J-P)',
+        'name_en': 'Judging vs Perceiving (J-P)',
+        'description': 'MBTI J-P维度：计划性与灵活性',
+        'high_activity': '你倾向于判断型(J)，喜欢有计划、有组织的生活方式，做事有条理，喜欢提前安排。',
+        'low_activity': '你倾向于感知型(P)，喜欢灵活、随性的生活方式，善于适应变化，享受即兴发挥。'
+    },
+    '2.4.2': {
+        'name': '思考-情感 (T-F)',
+        'name_en': 'Thinking vs Feeling (T-F)',
+        'description': 'MBTI T-F维度：逻辑决策与情感决策',
+        'high_activity': '你倾向于思考型(T)，做决定时更依赖逻辑分析和客观标准，注重公平和一致性。',
+        'low_activity': '你倾向于情感型(F)，做决定时更考虑他人感受和价值观，注重和谐与同理心。'
+    },
+    '2.4.3': {
+        'name': '外向-内向 (E-I)',
+        'name_en': 'Extraversion vs Introversion (E-I)',
+        'description': 'MBTI E-I维度：能量来源方向',
+        'high_activity': '你倾向于外向型(E)，从社交互动中获取能量，喜欢与人交流，善于表达。',
+        'low_activity': '你倾向于内向型(I)，从独处和内省中获取能量，喜欢深度思考，享受安静的环境。'
+    },
+    '2.4.4': {
+        'name': '感觉-直觉 (S-N)',
+        'name_en': 'Sensing vs Intuition (S-N)',
+        'description': 'MBTI S-N维度：信息获取方式',
+        'high_activity': '你倾向于感觉型(S)，关注具体事实和细节，注重实际经验，脚踏实地。',
+        'low_activity': '你倾向于直觉型(N)，关注可能性和大局，善于发现模式和联系，富有想象力。'
+    },
+
     # 2.5 - Growth Potential
     '2.5.1': {
         'name': '洞察深度',
@@ -233,7 +263,7 @@ def analyze_subcategory_pattern(
     Analyze sub-category pattern within a major category.
 
     Args:
-        category_code: Major category code (e.g., '2.2.1', '2.2.2', '2.3.1', '2.5')
+        category_code: Major category code (e.g., '2.2.1', '2.2.2', '2.3.1', '2.4', '2.5')
         category_scores: All category scores from questionnaire_progress
 
     Returns:
@@ -341,7 +371,8 @@ def analyze_all_subcategories(
             '2.2.3': {...},
             '2.2.4': {...},
             '2.3.1': {...},
-            '2.5': {...}  # Includes 2.5.1, 2.5.2, 2.5.3
+            '2.4': {...},   # MBTI: Includes 2.4.1, 2.4.2, 2.4.3, 2.4.4
+            '2.5': {...}    # Includes 2.5.1, 2.5.2, 2.5.3
         }
     """
     logger.info("Analyzing all sub-category patterns")
@@ -354,6 +385,7 @@ def analyze_all_subcategories(
         '2.2.3',  # Perspective Shifting
         '2.2.4',  # Narrative Structure
         '2.3.1',  # Attachment Structure
+        '2.4',    # MBTI Personality Type (includes 2.4.1, 2.4.2, 2.4.3, 2.4.4)
         '2.5',    # Growth Potential (includes 2.5.1, 2.5.2, 2.5.3)
     ]
 

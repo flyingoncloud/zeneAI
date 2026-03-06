@@ -72,6 +72,7 @@ export const QuestionsList: React.FC = () => {
     F6: 'text-amber-700 bg-amber-50 border-amber-200',
     F7: 'text-cyan-700 bg-cyan-50 border-cyan-200',
     F8: 'text-rose-700 bg-rose-50 border-rose-200',
+    F9: 'text-purple-700 bg-purple-50 border-purple-200',
   };
 
   return (

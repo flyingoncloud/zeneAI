@@ -250,6 +250,7 @@ export const QuestionEditor: React.FC = () => {
 
   const templateInfo = TEMPLATE_INFO[question.template];
   const isLikert = question.template === 'F1';
+  const isMBTI = question.template === 'F9';
   const hasOptions = ['F2', 'F3', 'F4', 'F5', 'F6', 'F8'].includes(question.template);
   const hasStemMedia = ['F3', 'F7', 'F8'].includes(question.template);  // F7 needs image for spatial scenario
   const hasOptionImages = ['F4', 'F5'].includes(question.template);
@@ -393,6 +394,30 @@ export const QuestionEditor: React.FC = () => {
                   <div>
                     <label className="block text-xs text-slate-500 mb-1.5">右端点文案</label>
                     <input value={templateSettings.rightLabel || ''} onChange={e => setTemplateSettings({ ...templateSettings, rightLabel: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
+                  </div>
+                </div>
+              )}
+              {isMBTI && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5">左特质 (Left Trait)</label>
+                      <input value={templateSettings.leftTrait || ''} onChange={e => setTemplateSettings({ ...templateSettings, leftTrait: e.target.value })} placeholder="e.g. Makes lists" className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5">右特质 (Right Trait)</label>
+                      <input value={templateSettings.rightTrait || ''} onChange={e => setTemplateSettings({ ...templateSettings, rightTrait: e.target.value })} placeholder="e.g. Relies on memory" className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all placeholder:text-[#9CA3AF]" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1.5">MBTI 维度 (Dimension)</label>
+                    <select value={templateSettings.dimension || ''} onChange={e => setTemplateSettings({ ...templateSettings, dimension: e.target.value })} className="w-full h-9 px-3 bg-white border border-[#E6EAF2] rounded-lg text-sm text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all">
+                      <option value="">选择维度</option>
+                      <option value="EI">EI — 外向 / 内向</option>
+                      <option value="SN">SN — 感觉 / 直觉</option>
+                      <option value="TF">TF — 情感 / 思维</option>
+                      <option value="JP">JP — 判断 / 知觉</option>
+                    </select>
                   </div>
                 </div>
               )}
@@ -606,6 +631,29 @@ export const QuestionEditor: React.FC = () => {
                     <div key={n} className={`flex-1 h-8 rounded-lg border border-violet-500/20 flex items-center justify-center text-xs text-violet-300/60 ${n === 3 ? 'bg-violet-500/20 border-violet-500/40' : 'bg-white/5'}`}>
                       {n}
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* MBTI Spectrum Preview */}
+            {isMBTI && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-blue-400 font-medium">{templateSettings.leftTrait || 'Left Trait'}</span>
+                  <span className="text-[10px] text-violet-300/30">—— vs ——</span>
+                  <span className="text-[11px] text-purple-400 font-medium">{templateSettings.rightTrait || 'Right Trait'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <div key={n} className={`flex-1 h-10 rounded-lg border flex items-center justify-center text-sm font-bold ${n === 3 ? 'border-white/20 bg-white/5 text-white/40' : n < 3 ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-purple-500/30 bg-purple-500/10 text-purple-400'}`}>
+                      {n}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  {['总是如此', '经常如此', '视情况而定', '经常如此', '总是如此'].map((label, i) => (
+                    <span key={i} className="text-[8px] text-violet-300/40 text-center flex-1">{label}</span>
                   ))}
                 </div>
               </div>

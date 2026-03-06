@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export type TemplateType = 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8';
+export type TemplateType = 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9';
 export type QuestionStatus = 'draft' | 'published';
 export type AdminView = 'login' | 'questions' | 'editor' | 'templates' | 'media' | 'settings';
 export type SortMode = 'id' | 'custom';
@@ -17,6 +17,7 @@ export const TEMPLATE_INFO: Record<TemplateType, { name: string; desc: string; f
   F6: { name: 'Ranking Top N', desc: '从列表中选 Top N 并排序（N 可编辑，默认 3）', fields: '题干、选项列表、TopN 值', icon: '🏆' },
   F7: { name: 'Direction Dial 0–360', desc: '方向罗盘选择角度；场景图标可配置', fields: '题干、场景物体、Reset 文案', icon: '🧭' },
   F8: { name: 'Video + Single Choice', desc: '视频播放器 + 单选选项（2–8 个）', fields: '题干、视频 URL、2–8 个选项', icon: '🎬' },
+  F9: { name: 'MBTI Spectrum', desc: 'MBTI 风格光谱选择（左右特质 + 5 档）', fields: '题干、左特质、右特质', icon: '⚖️' },
 };
 
 // Category options for scoring (matches report dimensions 1:1)
@@ -73,7 +74,7 @@ export interface PublishLog {
   timestamp: string;
 }
 
-const MAX_QUESTIONS = 80;
+const MAX_QUESTIONS = 200;
 
 interface AdminContextType {
   // Auth

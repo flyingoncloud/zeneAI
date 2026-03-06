@@ -1432,6 +1432,7 @@ def start_questionnaire(
     Start or resume questionnaire with progress tracking.
 
     Returns progress record and questions list.
+    MBTI (F9) questions are pre-seeded in DB via seed_mbti_questions script.
     """
     try:
         logger.info(f"Starting questionnaire for user {request.user_id}, questionnaire {request.questionnaire_id}")
@@ -1451,12 +1452,13 @@ def start_questionnaire(
                 'id': q.id,
                 'question_number': q.question_number,
                 'text': q.text,
-                'subtitle': q.subtitle,  # Include subtitle field
+                'subtitle': q.subtitle,
                 'template': q.template,
                 'category': q.category,
                 'options': q.options or [],
                 'mediaUrl': q.media_url,
-                'mediaType': q.media_type
+                'mediaType': q.media_type,
+                'templateSettings': q.template_settings or {}
             }
             formatted_questions.append(question_dict)
 

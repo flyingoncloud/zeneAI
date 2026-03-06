@@ -356,9 +356,11 @@ class QuestionnaireProgressService:
             '2.3.2': 'relationship_sensitivity',
             '2.3.3': 'relationship_sensitivity',
             '2.3.4': 'relationship_sensitivity',
-            '2.4': 'internal_conflict',         # 内在对话能力
-            '2.4.1': 'internal_conflict',
-            '2.4.2': 'internal_conflict',
+            '2.4': 'internal_conflict',         # 内在对话能力 / MBTI性格类型测试
+            '2.4.1': 'internal_conflict',       # J-P 判断-感知
+            '2.4.2': 'internal_conflict',       # T-F 思考-情感
+            '2.4.3': 'internal_conflict',       # E-I 外向-内向
+            '2.4.4': 'internal_conflict',       # S-N 感觉-直觉
             '2.5': 'growth_potential',          # 成长潜力
             '2.5.1': 'growth_potential',
             '2.5.2': 'growth_potential',

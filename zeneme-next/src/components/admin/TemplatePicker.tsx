@@ -27,6 +27,7 @@ export const TemplatePicker: React.FC = () => {
     F6: 'from-amber-500/20 to-orange-500/10',
     F7: 'from-cyan-500/20 to-sky-500/10',
     F8: 'from-rose-500/20 to-red-500/10',
+    F9: 'from-purple-500/20 to-violet-500/10',
   };
 
   const borderColors: Record<TemplateType, string> = {
@@ -38,6 +39,7 @@ export const TemplatePicker: React.FC = () => {
     F6: 'hover:border-amber-500/40',
     F7: 'hover:border-cyan-500/40',
     F8: 'hover:border-rose-500/40',
+    F9: 'hover:border-purple-500/40',
   };
 
   return (

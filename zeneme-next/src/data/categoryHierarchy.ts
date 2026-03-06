@@ -226,9 +226,35 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
   },
   "2.4": {
     code: "2.4",
-    name: "性格类型",
-    nameEn: "Personality Type",
-    description: "Personality type classification"
+    name: "MBTI性格类型测试",
+    nameEn: "MBTI Personality Type",
+    description: "MBTI personality type assessment across four dimensions",
+    children: {
+      "2.4.1": {
+        code: "2.4.1",
+        name: "判断-感知 (J-P)",
+        nameEn: "Judging vs Perceiving (J-P)",
+        description: "Planning and organization vs flexibility and spontaneity"
+      },
+      "2.4.2": {
+        code: "2.4.2",
+        name: "思考-情感 (T-F)",
+        nameEn: "Thinking vs Feeling (T-F)",
+        description: "Logic-based vs values-based decision making"
+      },
+      "2.4.3": {
+        code: "2.4.3",
+        name: "外向-内向 (E-I)",
+        nameEn: "Extraversion vs Introversion (E-I)",
+        description: "Energy from social interaction vs solitude"
+      },
+      "2.4.4": {
+        code: "2.4.4",
+        name: "感觉-直觉 (S-N)",
+        nameEn: "Sensing vs Intuition (S-N)",
+        description: "Focus on concrete facts vs abstract possibilities"
+      }
+    }
   },
   "2.5": {
     code: "2.5",
