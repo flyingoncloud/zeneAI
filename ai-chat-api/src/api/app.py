@@ -1617,9 +1617,24 @@ def reset_questionnaire_progress(
             PsychologyReport.generation_status != 'completed'
         ).delete()
 
-        assessments_deleted = db.query(PsychologyAssessment).filter(
-            PsychologyAssessment.user_id == request.user_id
-        ).delete()
+        # Only delete assessments that have NO completed reports
+        # (cascade="all, delete-orphan" on assessment.reports would wipe completed reports)
+        assessment_ids_with_completed = db.query(PsychologyReport.assessment_id).filter(
+            PsychologyReport.user_id == request.user_id,
+            PsychologyReport.generation_status == 'completed',
+            PsychologyReport.assessment_id.isnot(None)
+        ).distinct().all()
+        safe_ids = {r[0] for r in assessment_ids_with_completed}
+
+        if safe_ids:
+            assessments_deleted = db.query(PsychologyAssessment).filter(
+                PsychologyAssessment.user_id == request.user_id,
+                ~PsychologyAssessment.id.in_(safe_ids)
+            ).delete(synchronize_session=False)
+        else:
+            assessments_deleted = db.query(PsychologyAssessment).filter(
+                PsychologyAssessment.user_id == request.user_id
+            ).delete()
 
         db.commit()
 
