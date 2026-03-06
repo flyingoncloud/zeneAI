@@ -1609,10 +1609,12 @@ def reset_questionnaire_progress(
             ).delete(synchronize_session=False)
 
         # Delete psychology reports and assessments for this user
+        # Only delete non-completed reports (keep completed ones for history)
         from src.database.psychology_models import PsychologyReport, PsychologyAssessment
 
         reports_deleted = db.query(PsychologyReport).filter(
-            PsychologyReport.user_id == request.user_id
+            PsychologyReport.user_id == request.user_id,
+            PsychologyReport.generation_status != 'completed'
         ).delete()
 
         assessments_deleted = db.query(PsychologyAssessment).filter(
