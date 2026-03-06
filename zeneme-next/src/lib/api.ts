@@ -1446,3 +1446,37 @@ export async function getUserConversations(userId: string): Promise<{
     };
   }
 }
+
+/**
+ * Get user psychology reports (history)
+ */
+export async function getUserReports(userId: string): Promise<{
+  ok: boolean;
+  reports?: Array<{
+    id: number;
+    type: string;
+    date: string;
+    title: string;
+    preview: string;
+    mind_indices?: Record<string, number>;
+    has_file?: boolean;
+  }>;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/reports/user/${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return { ok: false, reports: [], error: `Failed: ${response.statusText}` };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('[API] Error fetching user reports:', error);
+    return { ok: false, reports: [], error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}

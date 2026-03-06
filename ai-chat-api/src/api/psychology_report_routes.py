@@ -614,3 +614,60 @@ async def download_report(
     except Exception as e:
         logger.error(f"Error downloading report: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"下载报告时出错: {str(e)}")
+
+
+@router.get("/reports/user/{user_id}")
+async def list_user_reports(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List all completed psychology reports for a user.
+
+    Returns report summaries sorted by most recent first.
+    """
+    try:
+        logger.info(f"Listing reports for user {user_id}")
+
+        reports = db.query(PsychologyReport).filter(
+            PsychologyReport.user_id == user_id,
+            PsychologyReport.generation_status == 'completed'
+        ).order_by(PsychologyReport.generated_at.desc()).all()
+
+        result = []
+        for report in reports:
+            # Extract mind_indices for preview
+            mind_indices = {}
+            if report.report_data and isinstance(report.report_data, dict):
+                mind_indices = report.report_data.get('mind_indices', {})
+
+            # Build a preview string from scores
+            preview_parts = []
+            dim_labels = {
+                'emotional_regulation': '情绪调节',
+                'cognitive_flexibility': '认知灵活',
+                'relational_sensitivity': '关系敏感',
+                'inner_conflict': '内在冲突',
+                'growth_potential': '成长潜能',
+            }
+            for key, label in dim_labels.items():
+                score = mind_indices.get(key)
+                if score is not None:
+                    preview_parts.append(f"{label} {score}")
+            preview = ' · '.join(preview_parts) if preview_parts else '心理洞察报告'
+
+            result.append({
+                'id': report.id,
+                'type': report.report_type or 'comprehensive',
+                'date': report.generated_at.strftime('%Y-%m-%d') if report.generated_at else '',
+                'title': f'心理洞察报告 #{report.id}',
+                'preview': preview,
+                'mind_indices': mind_indices,
+                'has_file': bool(report.file_path),
+            })
+
+        return {'ok': True, 'reports': result}
+
+    except Exception as e:
+        logger.error(f"Error listing reports for user {user_id}: {e}", exc_info=True)
+        return {'ok': False, 'reports': [], 'error': str(e)}
