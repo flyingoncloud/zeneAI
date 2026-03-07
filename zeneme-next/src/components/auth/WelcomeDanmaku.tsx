@@ -46,8 +46,8 @@ export const WelcomeDanmaku: React.FC = () => {
       if (prev.length >= MAX_BUBBLES) return prev;
 
       const isLeft = Math.random() > 0.5;
-      const minX = isLeft ? 5 : 75;
-      const maxX = isLeft ? 25 : 95;
+      const minX = isLeft ? 8 : 60;
+      const maxX = isLeft ? 28 : 82;
       let spawnX = minX + Math.random() * (maxX - minX);
 
       if (checkOverlap(spawnX, prev)) {
