@@ -276,10 +276,10 @@ export const QuestionEditor: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handleSaveDraft} disabled={saving} className="h-9 px-4 rounded-xl border border-white/[0.08] text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2 disabled:opacity-40 transition-colors cursor-pointer">
+          <button onClick={handleSaveDraft} disabled={saving} className="h-9 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white flex items-center gap-2 disabled:opacity-40 transition-colors cursor-pointer shadow-sm">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 保存草稿
           </button>
-          <button onClick={() => setShowPublishModal(true)} className="h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-sm text-white flex items-center gap-2 hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg shadow-violet-600/20 cursor-pointer">
+          <button onClick={() => setShowPublishModal(true)} className="h-9 px-4 rounded-xl border border-[#E6EAF2] text-sm text-[#6B7280] hover:bg-[#F3F5FA] flex items-center gap-2 transition-all cursor-pointer">
             <Send size={14} /> 发布
           </button>
         </div>
