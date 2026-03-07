@@ -22,6 +22,7 @@ interface Bubble {
   swayAmplitude: number;
   swayFrequency: number;
   swayPhase: number;
+  swayX: number;
   opacity: number;
   isClicking: boolean;
 }
@@ -68,6 +69,7 @@ export const WelcomeDanmaku: React.FC = () => {
         swayAmplitude: 15 + Math.random() * 20,
         swayFrequency: 0.002 + Math.random() * 0.003,
         swayPhase: Math.random() * Math.PI * 2,
+        swayX: 0,
         opacity: 0,
         isClicking: false
       };
@@ -76,7 +78,7 @@ export const WelcomeDanmaku: React.FC = () => {
     });
   }, []);
 
-  const update = useCallback((time: number) => {
+  function update(time: number) {
     if (time - lastSpawnTime.current > SPAWN_INTERVAL) {
       spawnBubble();
       lastSpawnTime.current = time;
@@ -98,24 +100,27 @@ export const WelcomeDanmaku: React.FC = () => {
             newOpacity = 1;
           }
 
+          const swayX = Math.sin(time * b.swayFrequency + b.swayPhase) * b.swayAmplitude;
+
           return {
             ...b,
             y: newY,
-            opacity: newOpacity
+            opacity: newOpacity,
+            swayX
           };
         })
         .filter(b => b.y > -100 && b.opacity > 0);
     });
 
     requestRef.current = requestAnimationFrame(update);
-  }, [spawnBubble]);
+  }
 
   useEffect(() => {
     requestRef.current = requestAnimationFrame(update);
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [update]);
+  }, []);
 
   const handleBubbleClick = (e: React.MouseEvent, bubble: Bubble) => {
     e.stopPropagation();
@@ -140,7 +145,7 @@ export const WelcomeDanmaku: React.FC = () => {
             animate={{
               opacity: b.isClicking ? 0 : b.opacity,
               scale: b.isClicking ? 1.5 : b.size,
-              x: `calc(${b.x}vw + ${Math.sin(Date.now() * b.swayFrequency + b.swayPhase) * b.swayAmplitude}px)`,
+              x: `calc(${b.x}vw + ${b.swayX}px)`,
               y: b.y
             }}
             exit={{ opacity: 0, scale: 0 }}

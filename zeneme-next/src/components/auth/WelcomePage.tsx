@@ -17,7 +17,6 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onNavigateAuth }) => {
     <div className="flex flex-col items-center justify-center min-h-screen w-full relative z-20 px-6 text-center overflow-hidden bg-gradient-to-b from-purple-700 via-purple-600 to-pink-500">
 
       {/* Background Danmaku Layer */}
-      <WelcomeDanmaku />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
