@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, ChevronRight, Clock, Trash2, Lock, ArrowRight, Download, Eye, RefreshCw } from 'lucide-react';
+import { FileText, ChevronRight, Clock, Lock, ArrowRight, Download, RefreshCw, Palette, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '../../ui/button';
+import { Card } from '../../ui/card';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
 import { useAuthStore } from '../../../hooks/useAuthStore';
 import { getUserReports, downloadPsychologyReport } from '../../../lib/api';
 import { DK } from '../../../styles/darktheme';
 import {
-  ConfirmDialog,
   Toast,
   ListSkeleton,
   EmptyState
 } from '../../shared/GlobalFeedback';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface ReportItem {
   id: number;
@@ -21,6 +23,8 @@ interface ReportItem {
   preview: string;
   mind_indices?: Record<string, number>;
   has_file?: boolean;
+  image_url?: string;
+  full_analysis?: string;
 }
 
 export const HistoryReports: React.FC = () => {
@@ -33,6 +37,7 @@ export const HistoryReports: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [viewingSketch, setViewingSketch] = useState<ReportItem | null>(null);
 
   const fetchReports = useCallback(async () => {
     if (!user?.id) return;
@@ -78,9 +83,12 @@ export const HistoryReports: React.FC = () => {
   };
 
   const handleReportClick = (report: ReportItem) => {
-    // Navigate to InnerQuickTest result view for this report
-    setViewingReportId(report.id);
-    setCurrentView('test');
+    if (report.type === 'sketch') {
+      setViewingSketch(report);
+    } else {
+      setViewingReportId(report.id);
+      setCurrentView('test');
+    }
   };
 
   const handleLogin = () => {
@@ -108,6 +116,50 @@ export const HistoryReports: React.FC = () => {
             立即登录 / 注册
             <ArrowRight className="ml-2 w-4 h-4 opacity-80" />
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Sketch detail view
+  if (viewingSketch) {
+    return (
+      <div className="flex flex-col h-full w-full overflow-hidden relative" style={{ backgroundColor: DK.bgPage }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 8% 40%, rgba(139,92,246,0.08) 0%, transparent 55%)' }} />
+        <div className="flex flex-col h-full w-full pt-20 overflow-y-auto relative z-10 px-6 md:px-8 pb-10">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewingSketch(null)}
+            className="text-slate-400 hover:text-white self-start mb-4"
+          >
+            <ArrowLeft size={16} className="mr-1.5" /> 返回历史记录
+          </Button>
+
+          <h1 className="text-2xl font-bold text-white mb-1">内视涂鸦分析</h1>
+          <p className="text-sm text-slate-500 mb-6 flex items-center gap-1"><Clock size={12} /> {viewingSketch.date}</p>
+
+          {viewingSketch.image_url && (
+            <div className="rounded-2xl overflow-hidden border mb-6" style={{ borderColor: DK.border, backgroundColor: '#0f172a' }}>
+              <img
+                src={`${API_BASE_URL}${viewingSketch.image_url}`}
+                alt="内视涂鸦"
+                className="w-full max-h-[50vh] object-contain"
+              />
+            </div>
+          )}
+
+          <Card className="p-6 bg-slate-900/60 border-white/10 backdrop-blur-md">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-violet-500/20 rounded-full text-violet-300 border border-violet-500/30 hidden sm:block">
+                <Sparkles size={20} />
+              </div>
+              <div className="space-y-2 flex-1">
+                <h3 className="font-semibold text-white">AI 分析结果</h3>
+                <p className="text-slate-300 leading-relaxed text-sm md:text-base whitespace-pre-wrap">{viewingSketch.full_analysis || viewingSketch.preview}</p>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     );
@@ -147,7 +199,7 @@ export const HistoryReports: React.FC = () => {
             <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: DK.bgPanel, border: `1px solid ${DK.border}` }}>
               {reports.map((report, idx) => (
                 <div
-                  key={report.id}
+                  key={`${report.type}-${report.id}`}
                   onClick={() => handleReportClick(report)}
                   className="group relative flex items-center gap-4 p-5 transition-all cursor-pointer w-full hover:bg-white/[0.03]"
                   style={{
@@ -156,9 +208,13 @@ export const HistoryReports: React.FC = () => {
                   }}
                 >
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: 'rgba(139,92,246,0.12)', border: `1px solid ${DK.border}` }}
+                    style={{ backgroundColor: report.type === 'sketch' ? 'rgba(99,102,241,0.12)' : 'rgba(139,92,246,0.12)', border: `1px solid ${DK.border}` }}
                   >
-                    <FileText style={{ color: 'rgba(167,139,250,0.80)' }} size={20} />
+                    {report.type === 'sketch' ? (
+                      <Palette style={{ color: 'rgba(129,140,248,0.80)' }} size={20} />
+                    ) : (
+                      <FileText style={{ color: 'rgba(167,139,250,0.80)' }} size={20} />
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0 text-left">

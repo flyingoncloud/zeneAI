@@ -3,6 +3,7 @@ import * as Icons from '../../ui/icons';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { useZenemeStore } from '../../../hooks/useZenemeStore';
+import { useAuthStore } from '../../../hooks/useAuthStore';
 import { AnalysisProgress } from '../../AnalysisProgress';
 import {
   Tooltip,
@@ -49,6 +50,7 @@ const DEFAULT_COLOR = '#e2e8f0';
 
 export const InnerSketch: React.FC = () => {
   const { t, setCurrentView, addMessage, conversationId, setModuleStatus, setPendingModuleCompletion, setExitAction, clearExitAction } = useZenemeStore();
+  const { user } = useAuthStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -233,7 +235,7 @@ const undo = () => {
       setAnalysisStep(2);
 
       const { analyzeSketch } = await import('../../../lib/api');
-      const response = await analyzeSketch(dataUrl);
+      const response = await analyzeSketch(dataUrl, undefined, user?.id);
 
       setAnalysisStep(3);
 

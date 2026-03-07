@@ -289,16 +289,22 @@ export async function uploadSketch(
 export interface AnalyzeSketchResponse {
   ok: boolean;
   analysis: string;
+  sketch_id?: number;
+  image_url?: string;
 }
 
 export async function analyzeSketch(
   imageData: string,
-  prompt: string = "请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。"
+  prompt: string = "请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。",
+  userId?: string
 ): Promise<AnalyzeSketchResponse> {
   try {
     const formData = new FormData();
     formData.append('image_data', imageData);
     formData.append('prompt', prompt);
+    if (userId) {
+      formData.append('user_id', userId);
+    }
 
     const response = await fetch(`${API_BASE_URL}/analyze-sketch/`, {
       method: 'POST',

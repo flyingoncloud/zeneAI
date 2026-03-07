@@ -622,13 +622,13 @@ async def list_user_reports(
     db: Session = Depends(get_db)
 ):
     """
-    List all completed psychology reports for a user.
-
-    Returns report summaries sorted by most recent first.
+    List all completed psychology reports AND sketch records for a user.
+    Returns items sorted by most recent first.
     """
     try:
         logger.info(f"Listing reports for user {user_id}")
 
+        # 1) Psychology reports
         reports = db.query(PsychologyReport).filter(
             PsychologyReport.user_id == user_id,
             PsychologyReport.generation_status == 'completed'
@@ -636,12 +636,10 @@ async def list_user_reports(
 
         result = []
         for report in reports:
-            # Extract mind_indices for preview
             mind_indices = {}
             if report.report_data and isinstance(report.report_data, dict):
                 mind_indices = report.report_data.get('mind_indices', {})
 
-            # Build a preview string from scores
             preview_parts = []
             dim_labels = {
                 'emotional_regulation': '情绪调节',
@@ -665,6 +663,45 @@ async def list_user_reports(
                 'mind_indices': mind_indices,
                 'has_file': bool(report.file_path),
             })
+
+        # 2) Sketch records
+        try:
+            from src.database.psychology_models import SketchRecord
+            sketches = db.query(SketchRecord).filter(
+                SketchRecord.user_id == user_id
+            ).order_by(SketchRecord.created_at.desc()).all()
+
+            for sketch in sketches:
+                preview_text = sketch.analysis_text[:60] + '...' if len(sketch.analysis_text) > 60 else sketch.analysis_text
+                result.append({
+                    'id': sketch.id,
+                    'type': 'sketch',
+                    'date': sketch.created_at.strftime('%Y-%m-%d') if sketch.created_at else '',
+                    'title': '内视涂鸦分析',
+                    'preview': preview_text,
+                    'full_analysis': sketch.analysis_text,
+                    'image_url': sketch.image_url,
+                    'has_file': False,
+                    '_sort_dt': sketch.created_at,
+                })
+        except Exception as e:
+            logger.warning(f"Failed to load sketch records (table may not exist yet): {e}")
+
+        # Add sort key to report items too, then sort everything by date desc
+        for item in result:
+            if '_sort_dt' not in item:
+                # Use the date string to create a comparable key
+                from datetime import datetime as _dt
+                try:
+                    item['_sort_dt'] = _dt.strptime(item['date'], '%Y-%m-%d') if item['date'] else _dt.min
+                except Exception:
+                    item['_sort_dt'] = _dt.min
+
+        result.sort(key=lambda x: x.get('_sort_dt') or __import__('datetime').datetime.min, reverse=True)
+
+        # Remove internal sort key before returning
+        for item in result:
+            item.pop('_sort_dt', None)
 
         return {'ok': True, 'reports': result}
 

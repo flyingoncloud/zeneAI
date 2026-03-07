@@ -566,45 +566,77 @@ def analyze_image_uri(
 @app.post("/analyze-sketch/")
 async def analyze_sketch(
     image_data: str = Form(...),
-    prompt: str = Form("请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。")
+    prompt: str = Form("请分析这张内视涂鸦，描述你看到的内容、情绪和可能的心理意义。"),
+    user_id: Optional[str] = Form(None)
 ):
     """
-    Analyze sketch image from base64 data without saving to disk
-
-    This endpoint is used for the "开始分析" (Analyze) button to provide
-    immediate AI analysis without uploading/saving the image.
-
-    Parameters:
-    - image_data: Base64 encoded image data (with or without data URI prefix)
-    - prompt: Analysis prompt (default: Chinese prompt for Inner Doodling)
-
-    Returns:
-    - analysis: AI analysis text
+    Analyze sketch image from base64 data.
+    If user_id is provided, saves the image and analysis to sketch_records for history.
     """
-    logger.info(f"Received sketch analysis request")
-    logger.info(f"Prompt: {prompt[:100]}...")
+    logger.info(f"Received sketch analysis request, user_id={user_id}")
 
     try:
+        raw_image_data = image_data
         # Remove data URI prefix if present (e.g., "data:image/png;base64,")
         if image_data.startswith('data:'):
             image_data = image_data.split(',', 1)[1]
 
         logger.info(f"Base64 data length: {len(image_data)}")
 
-        # Import language detection from chat_service
         from src.api.chat_service import detect_language
-
-        # Auto-detect language from prompt (should be Chinese)
         language = detect_language(prompt)
-        logger.info(f"Auto-detected language for sketch analysis: {language}")
 
         # Analyze with AI
         analysis = get_ai_response_with_image(prompt, image_data, language=language)
         logger.info(f"AI analysis completed: {analysis[:100]}...")
 
+        # Save to DB + disk if user is logged in
+        sketch_id = None
+        image_url = None
+        if user_id:
+            try:
+                from src.database.psychology_models import SketchRecord, UserProfile
+                from pathlib import Path
+                import uuid as _uuid
+
+                db = next(get_db())
+
+                # Ensure UserProfile exists
+                profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+                if not profile:
+                    profile = UserProfile(user_id=user_id)
+                    db.add(profile)
+                    db.flush()
+
+                # Save image to disk
+                upload_dir = Path("uploads/sketches")
+                upload_dir.mkdir(parents=True, exist_ok=True)
+                filename = f"{_uuid.uuid4()}.png"
+                file_path = upload_dir / filename
+                import base64 as _b64
+                with open(file_path, "wb") as f:
+                    f.write(_b64.b64decode(image_data))
+
+                image_url = f"/uploads/sketches/{filename}"
+
+                record = SketchRecord(
+                    user_id=user_id,
+                    image_path=str(file_path),
+                    image_url=image_url,
+                    analysis_text=analysis,
+                )
+                db.add(record)
+                db.commit()
+                sketch_id = record.id
+                logger.info(f"Saved sketch record #{sketch_id} for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to save sketch record: {e}")
+
         return {
             "ok": True,
-            "analysis": analysis
+            "analysis": analysis,
+            "sketch_id": sketch_id,
+            "image_url": image_url,
         }
 
     except Exception as e:

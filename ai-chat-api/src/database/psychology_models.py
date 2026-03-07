@@ -491,3 +491,24 @@ class PsychologyReport(Base):
     # Relationships
     assessment = relationship("PsychologyAssessment", back_populates="reports")
     progress_records = relationship("UserQuestionnaireProgress", back_populates="report")
+
+
+class SketchRecord(Base):
+    """Saved inner-sketch (内视涂鸦) analysis records"""
+    __tablename__ = "sketch_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(255), ForeignKey("user_profiles.user_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Image storage
+    image_path = Column(String(500))  # local file path on server
+    image_url = Column(String(500))   # URL accessible from frontend
+
+    # AI analysis result
+    analysis_text = Column(Text, nullable=False)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = relationship("UserProfile")
