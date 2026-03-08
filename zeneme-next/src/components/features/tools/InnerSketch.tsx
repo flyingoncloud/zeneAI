@@ -17,7 +17,7 @@ import {
 } from '../../ui/dialog';
 import { Check, Loader2, MessageCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { uploadSketch } from '../../../lib/api';
+import { uploadSketch, completeModuleWithRetry } from '../../../lib/api';
 
 type IconProps = {
   size?: number | string;
@@ -324,6 +324,26 @@ const undo = () => {
             if (result.module_status) {
               setModuleStatus(result.module_status);
             }
+
+            // Explicit module completion call as guaranteed backup
+            // This ensures the module is marked complete even if upload-sketch
+            // didn't have a valid conversationId
+            if (conversationId) {
+              try {
+                const completeResult = await completeModuleWithRetry(
+                  conversationId,
+                  'inner_doodling',
+                  { image_uri: result.file_uri, analysis: result.analysis }
+                );
+                if (completeResult.ok && completeResult.module_status) {
+                  setModuleStatus(completeResult.module_status);
+                  console.log('[Module Explicitly Completed]', completeResult.module_status);
+                }
+              } catch (err) {
+                console.warn('[Module Complete Backup Failed]', err);
+              }
+            }
+
             addMessage("用户刚刚完成了「内视涂鸦」模块。请不要再推荐内视涂鸦。请自然地继续对话，关注用户在涂鸦中表达的情绪和感受，帮助他们进一步探索。如果合适的时机出现，可以温和地引导到其他尚未完成的模块。", "system");
             setPendingModuleCompletion('inner_doodling');
 

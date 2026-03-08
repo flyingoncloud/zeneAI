@@ -17,7 +17,7 @@ import { MoodTracker } from "@/components/features/tools/MoodTracker";
 import { useZenemeStore, type View } from "@/hooks/useZenemeStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { DEFAULT_VIEW, VIEW_QUERY_KEY, isRoutableView, viewToHref, type RoutableView } from "@/lib/routes";
-import { sendChatMessage, sendModuleCompletionMessage } from "@/lib/api";
+import { sendChatMessage, sendModuleCompletionMessage, completeModuleWithRetry } from "@/lib/api";
 import { filterFunctionCallText, validateModuleData } from "@/utils/contentFilter";
 import { BreathingPage } from "@/components/features/tools/firstaid/BreathingPage";
 import { EmotionPage } from "@/components/features/tools/firstaid/EmotionPage";
@@ -160,6 +160,17 @@ React.useEffect(() => {
         setPendingModuleCompletion(null);
 
         try {
+          // Ensure module is marked complete in DB before sending completion message
+          // This is a backup in case upload-sketch didn't have conversationId
+          if (conversationId) {
+            try {
+              await completeModuleWithRetry(conversationId, moduleId);
+              console.log(`[PendingCompletion] Module ${moduleId} explicitly completed for conversation ${conversationId}`);
+            } catch (err) {
+              console.warn(`[PendingCompletion] completeModule backup failed:`, err);
+            }
+          }
+
           // Send to API for AI response (user message already added by the module component)
           const response = await sendModuleCompletionMessage(sessionId, moduleId);
 
@@ -185,7 +196,7 @@ React.useEffect(() => {
     };
 
     handlePendingCompletion();
-  }, [currentView, pendingModuleCompletion, sessionId, setPendingModuleCompletion, addMessage, setModuleStatus]);
+  }, [currentView, pendingModuleCompletion, sessionId, conversationId, setPendingModuleCompletion, addMessage, setModuleStatus]);
 
   const handleSendMessage = async (text: string, attachment?: {
     type: 'image' | 'voice' | 'sketch' | 'gallery';

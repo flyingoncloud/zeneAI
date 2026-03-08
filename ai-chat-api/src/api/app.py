@@ -334,13 +334,47 @@ def chat(
     db.commit()
     db.refresh(assistant_message)
 
+    # Filter out completed modules from recommendations before returning to frontend
+    # CRITICAL: Refresh conversation from DB to get latest module_status
+    # (upload-sketch may have committed changes in a separate session)
+    db.refresh(conversation)
+    fresh_module_status = conversation.extra_data.get("module_status", {}) if conversation.extra_data else {}
+
+    # Merge: use the freshest data — prefer DB-refreshed status over in-memory
+    # updated_module_status comes from get_ai_response which may have loaded stale data
+    if not has_images:
+        for mod_id, mod_data in fresh_module_status.items():
+            if mod_data.get("completed_at"):
+                if mod_id not in updated_module_status:
+                    updated_module_status[mod_id] = {}
+                updated_module_status[mod_id]["completed_at"] = mod_data["completed_at"]
+                if mod_data.get("completion_data"):
+                    updated_module_status[mod_id]["completion_data"] = mod_data["completion_data"]
+
+    final_module_status = updated_module_status if not has_images else fresh_module_status
+
+    logger.info(f"[Module Filter] final_module_status keys: {list(final_module_status.keys())}")
+    for mid, mdata in final_module_status.items():
+        if mdata.get("completed_at"):
+            logger.info(f"[Module Filter] {mid} is COMPLETED at {mdata['completed_at']}")
+
+    filtered_recommendations = [
+        m for m in recommended_modules
+        if not final_module_status.get(m.get("module_id"), {}).get("completed_at")
+    ]
+
+    logger.info(f"[Module Filter] Before filter: {len(recommended_modules)} modules, After filter: {len(filtered_recommendations)} modules")
+    if len(recommended_modules) != len(filtered_recommendations):
+        removed = [m["module_id"] for m in recommended_modules if m not in filtered_recommendations]
+        logger.info(f"[Module Filter] Removed completed modules: {removed}")
+
     response = {
         "session_id": conversation.session_id,
         "conversation_id": conversation.id,
         "user_message": user_message,
         "assistant_message": assistant_message,
-        "recommended_modules": recommended_modules,  # Include at top level
-        "module_status": updated_module_status if not has_images else conversation.extra_data.get("module_status", {})  # Use updated status from AI response
+        "recommended_modules": filtered_recommendations,
+        "module_status": final_module_status
     }
     logger.info(f"Returning response for session {conversation.session_id}")
     return response
