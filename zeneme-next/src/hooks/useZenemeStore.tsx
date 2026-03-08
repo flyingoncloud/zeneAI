@@ -82,6 +82,7 @@ interface ZenemeContextType {
   createNewSession: () => void;
   selectSession: (id: string) => void;
   loadUserConversations: (userId: string) => Promise<void>;
+  resetConversationState: () => void;
 
   // Module Status
   moduleStatus?: ModuleStatus;
@@ -167,7 +168,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // user state
   const USER_ID_STORAGE_KEY = 'zeneme_user_id';
 
-  const [userId, setUserId] = useState<string>(() => {
+  const [userId, setUserIdRaw] = useState<string>(() => {
     if (typeof window === 'undefined') return 'guest';
 
   const existing = window.localStorage.getItem(USER_ID_STORAGE_KEY);
@@ -180,6 +181,14 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     window.localStorage.setItem(USER_ID_STORAGE_KEY, newId);
     return newId;
   });
+
+  // Wrap setUserId to also update localStorage
+  const setUserId = useCallback((id: string) => {
+    setUserIdRaw(id);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(USER_ID_STORAGE_KEY, id);
+    }
+  }, []);
 
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -374,6 +383,27 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setExitModuleToComplete(null);
   }, []);
 
+  // Reset all conversation state — called when user switches accounts
+  const resetConversationState = useCallback(() => {
+    const freshId = Date.now().toString();
+    const freshSession: ChatSession = {
+      id: freshId,
+      title: 'New Chat',
+      messages: [],
+      updatedAt: new Date(),
+      isDraft: true,
+    };
+    setSessions([freshSession]);
+    setCurrentSessionId(freshId);
+    setSessionId(undefined);
+    setConversationId(undefined);
+    setModuleStatus(undefined);
+    setPendingModuleCompletion(null);
+    setCurrentView('chat');
+    setConversationsLoaded(false);
+    console.log('[Store] resetConversationState — all conversation data cleared');
+  }, []);
+
   // Load user conversations from backend
   const loadUserConversations = useCallback(async (userId: string) => {
     console.log('[Store] loadUserConversations called with userId:', userId);
@@ -424,23 +454,20 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           messageCount: s.messages.length
         })));
 
-        // Set loaded sessions in sidebar, but DON'T make them active
-        // User should see a fresh empty conversation on login
+        // Set loaded sessions — replace existing sessions since resetConversationState
+        // was already called before this for user switches
         if (loadedSessions.length > 0) {
           setSessions(prev => {
-            // If there's a current active session, preserve it
+            // Keep the current fresh/empty session, add loaded sessions
             const currentSession = prev.find(s => s.id === currentSessionId);
-            if (currentSession) {
-              // Merge: keep current session + add loaded sessions (avoiding duplicates)
-              const loadedIds = new Set(loadedSessions.map(s => s.id));
-              const filtered = prev.filter(s => s.id === currentSessionId || !loadedIds.has(s.id));
-              return [...filtered, ...loadedSessions];
+            if (currentSession && currentSession.messages.length === 0) {
+              // Current session is empty (fresh start) — keep it active, add history
+              return [currentSession, ...loadedSessions];
             }
-            // No current session, just use loaded sessions
+            // Otherwise just use loaded sessions
             return loadedSessions;
           });
-          // Don't set currentSessionId - let user start fresh or click a conversation
-          console.log('[Store] Loaded conversations into sidebar, keeping current empty session');
+          console.log('[Store] Loaded conversations, keeping fresh session active');
         } else {
           console.log('[Store] No conversations to load');
         }
@@ -471,6 +498,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         createNewSession,
         selectSession,
         loadUserConversations,
+        resetConversationState,
         moduleStatus,
         setModuleStatus,
         pendingModuleCompletion,

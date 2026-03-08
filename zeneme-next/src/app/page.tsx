@@ -46,7 +46,8 @@ function HomeContent() {
     userId,
     setUserId,
     setPendingModuleCompletion,
-    loadUserConversations
+    loadUserConversations,
+    resetConversationState
   } = useZenemeStore();
 
   const { status, user } = useAuthStore();
@@ -95,9 +96,21 @@ function HomeContent() {
     }
   }, [status, postLoginTarget, setCurrentView]);
 
-  // Load user conversations when authenticated
+  // Track previous user to detect user switches
+  const prevUserIdRef = React.useRef<string | null>(null);
+
+  // Load user conversations when authenticated, reset state on user switch
   React.useEffect(() => {
     if (status === 'authenticated' && user?.id) {
+      const prevUserId = prevUserIdRef.current;
+      prevUserIdRef.current = user.id;
+
+      // If switching to a different user, clear all conversation state first
+      if (prevUserId && prevUserId !== user.id) {
+        console.log('[Page] User switched from', prevUserId, 'to', user.id, '— resetting conversation state');
+        resetConversationState();
+      }
+
       console.log('[Page] User authenticated, loading conversations for:', user.id);
 
       // Update ZenemeStore userId to match authenticated user
@@ -108,7 +121,14 @@ function HomeContent() {
         console.error('[Page] Failed to load conversations:', err);
       });
     }
-  }, [status, user?.id, loadUserConversations]);
+
+    // Also reset when going back to idle (logout)
+    if (status === 'idle') {
+      console.log('[Page] User logged out — resetting conversation state');
+      prevUserIdRef.current = null;
+      resetConversationState();
+    }
+  }, [status, user?.id, loadUserConversations, resetConversationState, setUserId]);
 
 // 用 ref 读取最新 currentView，避免把 currentView 放进 URL->Store 的依赖里
 const currentViewRef = React.useRef<View>(currentView);
