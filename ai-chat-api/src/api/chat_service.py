@@ -477,6 +477,7 @@ def _detect_module_mentions(
     Fallback detection: Check if AI response mentions any modules without calling function
 
     This serves as a safety net to ensure recommendations are never missed.
+    BUT it should NOT trigger when the AI is merely acknowledging a completed module.
 
     Args:
         text: AI response text to analyze
@@ -495,14 +496,20 @@ def _detect_module_mentions(
             "inner_doodling": ["内视涂鸦", "涂鸦", "画一幅", "绘制"],
             "quick_assessment": ["内视快测", "快测", "评估", "测试", "量表"]
         }
+        # Words that indicate the AI is acknowledging completion, NOT recommending
+        completion_context_words = ["完成了", "已完成", "做完了", "结束了", "刚刚完成", "完成过"]
     else:
         module_patterns = {
             "emotional_first_aid": ["emotional first aid", "breathing exercise", "breathing practice", "deep breath", "emotion labeling", "label emotion", "name emotion"],
             "inner_doodling": ["inner doodling", "doodling", "draw", "sketch"],
             "quick_assessment": ["quick assessment", "assessment", "test", "questionnaire"]
         }
+        completion_context_words = ["completed", "finished", "just completed", "already done", "you did"]
 
     text_lower = text.lower()
+
+    # Check if the text is primarily about acknowledging a completion
+    has_completion_context = any(w in text_lower for w in completion_context_words)
 
     for module_id, keywords in module_patterns.items():
         # Skip if module is already completed
@@ -512,6 +519,11 @@ def _detect_module_mentions(
         # Check if any keyword is mentioned
         for keyword in keywords:
             if keyword.lower() in text_lower:
+                # If the text has completion context words near this module mention,
+                # it's likely acknowledging completion, not recommending
+                if has_completion_context:
+                    logger.info(f"[Fallback] Skipping {module_id} — text appears to acknowledge completion, not recommend")
+                    break
                 detected.append(module_id)
                 break  # Only add once per module
 

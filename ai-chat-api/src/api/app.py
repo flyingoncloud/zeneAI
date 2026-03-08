@@ -353,6 +353,24 @@ def chat(
 
     final_module_status = updated_module_status if not has_images else fresh_module_status
 
+    # Safety net: detect module completion from user message text
+    # If user says "我刚刚完成了X", force-mark that module as completed
+    user_msg_lower = chat_request.message.lower()
+    completion_module_map = {
+        "inner_doodling": ["内视涂鸦", "涂鸦"],
+        "emotional_first_aid": ["情绪急救"],
+        "quick_assessment": ["内视快测", "快测"]
+    }
+    for mod_id, keywords in completion_module_map.items():
+        for kw in keywords:
+            if f"完成了{kw}" in user_msg_lower or f"完成了「{kw}」" in user_msg_lower:
+                if mod_id not in final_module_status:
+                    final_module_status[mod_id] = {}
+                if not final_module_status[mod_id].get("completed_at"):
+                    final_module_status[mod_id]["completed_at"] = datetime.utcnow().isoformat()
+                    logger.info(f"[Module Filter] Force-marked {mod_id} as completed based on user message")
+                break
+
     logger.info(f"[Module Filter] final_module_status keys: {list(final_module_status.keys())}")
     for mid, mdata in final_module_status.items():
         if mdata.get("completed_at"):
