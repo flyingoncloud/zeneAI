@@ -113,6 +113,6 @@ AI_FORCE_LANGUAGE = os.getenv("AI_FORCE_LANGUAGE", "true").lower() == "true"  # 
 
 # AI Response Control Settings
 AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.7"))  # Creativity vs consistency (0.0-2.0)
-AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "1500"))  # Max response length (increased for better responses)
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "2500"))  # Max response length (increased for deeper psychological analysis)
 AI_PRESENCE_PENALTY = float(os.getenv("AI_PRESENCE_PENALTY", "0.3"))  # Reduce repetition (0.0-2.0)
 AI_FREQUENCY_PENALTY = float(os.getenv("AI_FREQUENCY_PENALTY", "0.3"))  # Encourage word diversity (0.0-2.0)

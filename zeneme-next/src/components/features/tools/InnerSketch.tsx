@@ -101,7 +101,7 @@ export const InnerSketch: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setExitAction("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "inner_doodling");
+    setExitAction("用户刚刚完成了「内视涂鸦」模块。请不要再推荐内视涂鸦。请自然地继续对话，关注用户在涂鸦中表达的情绪和感受，帮助他们进一步探索。如果合适的时机出现，可以温和地引导到其他尚未完成的模块。", "inner_doodling");
     return () => {
       clearExitAction();
     };
@@ -324,7 +324,7 @@ const undo = () => {
             if (result.module_status) {
               setModuleStatus(result.module_status);
             }
-            addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
+            addMessage("用户刚刚完成了「内视涂鸦」模块。请不要再推荐内视涂鸦。请自然地继续对话，关注用户在涂鸦中表达的情绪和感受，帮助他们进一步探索。如果合适的时机出现，可以温和地引导到其他尚未完成的模块。", "system");
             setPendingModuleCompletion('inner_doodling');
 
             // Create data URL for local display

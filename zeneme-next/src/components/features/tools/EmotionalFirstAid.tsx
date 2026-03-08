@@ -63,7 +63,7 @@ export const EmotionalFirstAid: React.FC = () => {
           });
 
           // Add system message to inform AI that module was completed
-          addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
+          addMessage("用户刚刚完成了「情绪急救」模块（呼吸训练和情绪命名）。请不要再推荐情绪急救。请自然地继续对话，关注用户当前的情绪状态，帮助他们进一步探索。如果合适的时机出现，可以温和地引导到其他尚未完成的模块。", "system");
           setPendingModuleCompletion('emotional_first_aid');
 
           toast.success('情绪急救已完成！');
