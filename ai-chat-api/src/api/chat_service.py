@@ -571,7 +571,7 @@ def get_ai_response(
     messages: List[Dict[str, str]],
     conversation_id: int,
     db_session: Session,
-    model: str = "gpt-4",
+    model: str = "gpt-4o",
     language: Optional[str] = None
 ) -> Dict:
     """
