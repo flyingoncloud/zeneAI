@@ -315,8 +315,27 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
         <div className="flex flex-col justify-between min-h-[700px] h-full">
           
           {/* ✅ 顶部和主体内容区域 */}
-          <div className="w-full px-6 md:px-12 pt-12 pb-8 flex-1 z-10">
-            <div className="max-w-4xl mx-auto mt-[30px]">
+          {/* 1. 给这个外层容器加上 relative，作为计时器的定位锚点 */}
+          <div className="w-full px-6 md:px-12 pt-12 pb-8 flex-1 z-10 relative">
+            
+            {/* 2. 新增：将计时器单独提取出来，用绝对定位和 Flexbox 占满这个区域并居中 */}
+            <div className="absolute left-1/2 top-[80%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
+              <div className="pointer-events-auto">
+                <BreathingArcTimer
+                  isPlaying={isTimerRunning}
+                  onPhaseChange={(p) => {
+                    setBreathPhase(p);
+                    if (p === 'inhale') {
+                      setCompletedCycle(true);
+                      setWaveCycleKey((k) => k + 1);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* 3. 原本的文字内容区域，加上 relative z-10 确保文字在计时器上层 */}
+            <div className="max-w-4xl mx-auto mt-[30px] relative z-10 pointer-events-none">
               <div className="mb-4">
                 <div className="block w-fit mx-auto px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md text-slate-300 text-sm mb-4 border border-white/10">
                   {t.breathing.stepLabel}
@@ -337,23 +356,14 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 </span>
               </div>
 
-              <div className="mb-8">
-                <BreathingArcTimer
-                  isPlaying={isTimerRunning}
-                  onPhaseChange={(p) => {
-                    setBreathPhase(p);
-                    if (p === 'inhale') {
-                      setCompletedCycle(true);
-                      setWaveCycleKey((k) => k + 1);
-                    }
-                  }}
-                />
-              </div>
+              {/* ⚠️ 注意：这里原本的 BreathingArcTimer 已经被删除了，因为我们把它移到了上面的 absolute 容器里 */}
 
-              <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
-              <p className="text-gray-400 text-lg max-w-3xl">
-                四步呼吸法（箱式呼吸）：吸气 4 秒 → 停 4 秒 → 呼气 4 秒 → 停 4 秒。用稳定节奏激活副交感神经，让你更快恢复平静与掌控感。
-              </p>
+              <div className="mt-16 pointer-events-auto">
+                <h1 className="text-4xl text-white mb-4">四步呼吸法</h1>
+                <p className="text-gray-400 text-lg max-w-3xl">
+                  四步呼吸法（箱式呼吸）：吸气 4 秒 → 停 4 秒 → 呼气 4 秒 → 停 4 秒。用稳定节奏激活副交感神经，让你更快恢复平静与掌控感。
+                </p>
+              </div>
             </div>
           </div>
 

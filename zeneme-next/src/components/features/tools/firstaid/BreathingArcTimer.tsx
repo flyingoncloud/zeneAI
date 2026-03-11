@@ -192,7 +192,7 @@ export function BreathingArcTimer({
   const content = (
     <div
       className={cn(
-            "fixed left-1/2 top-1/2 z-10 -translate-x-1/2 translate-y-[50px] md:translate-y-[40px] pointer-events-none",
+            "relative z-10 pointer-events-none",
             className
             )}
 
@@ -258,6 +258,6 @@ export function BreathingArcTimer({
   //  未挂载前不渲染（防止 document 不可用）
   if (!mounted) return null;
 
-  //  Portal：避免 fixed 被父级 transform/overflow 裁剪或层级覆盖
-  return createPortal(content, document.body);
+  if (!mounted) return null;
+  return content; // 直接渲染在当前 DOM 层级
 }
