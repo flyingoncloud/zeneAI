@@ -763,3 +763,51 @@ async def get_inline_assessment_progress(
     except Exception as e:
         logger.error(f"Error fetching inline assessment progress for user {user_id}: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
+
+
+@router.get("/inline-assessment/question/{user_id}/{domain}")
+async def get_inline_question(
+    user_id: str,
+    domain: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a single unasked question for a domain.
+    Used by the frontend to display clickable questions in the chat.
+    """
+    try:
+        from src.services.inline_assessment_service import get_question_for_domain
+
+        result = get_question_for_domain(
+            db=db,
+            user_id=user_id,
+            conversation_id=0,
+            domain=domain,
+        )
+
+        if result.get("status") != "success":
+            return {"ok": False, "error": result.get("reason", "no_questions")}
+
+        q = result["question"]
+        raw_options = q.get("options") or []
+        options = []
+        for opt in raw_options:
+            if isinstance(opt, dict):
+                options.append({
+                    "value": opt.get("value") or opt.get("score", 0),
+                    "text": opt.get("label") or opt.get("text", ""),
+                })
+
+        return {
+            "ok": True,
+            "question": {
+                "id": q["id"],
+                "text": q["text"],
+                "domain": q.get("domain", domain),
+                "subcategory": q.get("subcategory"),
+                "options": options,
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching inline question: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)}

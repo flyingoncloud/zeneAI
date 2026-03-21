@@ -84,10 +84,15 @@ export const InnerQuickTest: React.FC = () => {
 
   // Reusable function to handle returning to conversation after completion
   const handleReturnToConversation = () => {
-    console.log('[InnerQuickTest] Return to conversation - questionnaire completed');
-    console.log('[InnerQuickTest] Setting pendingModuleCompletion to quick_assessment');
-    // Send completion message to trigger AI response
-    setPendingModuleCompletion('quick_assessment');
+    const isActuallyCompleted = submissionState === 'success';
+    if (isActuallyCompleted) {
+      console.log('[InnerQuickTest] Return to conversation - questionnaire completed');
+      setPendingModuleCompletion('quick_assessment');
+    } else {
+      console.log('[InnerQuickTest] Return to conversation - questionnaire NOT completed');
+      // Trigger AI to acknowledge the user came back without completing
+      setPendingModuleCompletion('quick_assessment_partial');
+    }
     setCurrentView('chat');
   };
   const { user } = useAuthStore(); // Get user from auth store
@@ -123,13 +128,18 @@ export const InnerQuickTest: React.FC = () => {
   // Submission progress state
   const [submissionState, setSubmissionState] = useState<'idle' | 'submitting' | 'success'>('idle');
 
-  // useEffect for setExitAction - from incoming
+  // useEffect for setExitAction - only mark as completed if actually finished
   useEffect(() => {
-    setExitAction("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "quick_assessment");
+    const isCompleted = submissionState === 'success';
+    if (isCompleted) {
+      setExitAction("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "quick_assessment");
+    } else {
+      setExitAction("用户从内视快测返回，但尚未完成全部题目。请自然地继续对话，询问用户在测试中的感受或发现，不要说用户完成了测试。", "quick_assessment_partial");
+    }
     return () => {
       clearExitAction();
     };
-  }, [setExitAction, clearExitAction]);
+  }, [setExitAction, clearExitAction, submissionState]);
 
   // Report generation state
   const [reportId, setReportId] = useState<number | null>(null);
@@ -976,9 +986,7 @@ export const InnerQuickTest: React.FC = () => {
               </Button>
               <Button
                 onClick={() => {
-                  console.log('[InnerQuickTest] Return to conversation clicked - questionnaire completed');
-                  console.log('[InnerQuickTest] Setting pendingModuleCompletion to quick_assessment');
-                  // Questionnaires were already submitted in handleAnswer, just navigate back
+                  console.log('[InnerQuickTest] Return to conversation from result view');
                   addMessage("the user has completed the recommended module, you can continue the conversation and continue to recommend the remaining modules. Remember not to directly recommend the remaining module, but to patiently continue the conversation and recommend the remaining modules whenever appropriate.", "system");
                   setPendingModuleCompletion('quick_assessment');
                   setCurrentView('chat');

@@ -9,10 +9,12 @@ import { ReportPage } from './ReportPage';
 import { ChatInput } from '../../ChatInput';
 import { Heart, PenTool, ClipboardList, Maximize2, X } from 'lucide-react';
 import { Dialog, DialogContent } from '../../ui/dialog';
-import { generateConversationReport, getReportStatus, getInlineAssessmentProgress, getUserIdFromAuth, type InlineAssessmentProgress } from '../../../lib/api';
+import { generateConversationReport, getReportStatus, getInlineAssessmentProgress, getUserIdFromAuth, type InlineAssessmentProgress, fetchInlineQuestion, recordInlineAnswer, sendChatMessage } from '../../../lib/api';
+import { filterFunctionCallText } from '../../../utils/contentFilter';
 import { ModuleRecommendationCard } from './ModuleRecommendationCard';
 import { AssessmentProgressIndicator } from './AssessmentProgressIndicator';
 import { ReportReadyNotification } from './ReportReadyNotification';
+import { InlineQuestionDisplay } from './InlineQuestionDisplay';
 import { toast } from 'sonner';
 import { SplashDanmakuLayer } from './SplashDanmakuLayer';
 
@@ -447,7 +449,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { t, setCurrentView, addMessage, conversationId, language, moduleStatus } = useZenemeStore();
+  const { t, setCurrentView, addMessage, conversationId, sessionId, language, moduleStatus, setModuleStatus } = useZenemeStore();
 
   const lastMessage = messages[messages.length - 1];
 
@@ -679,8 +681,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
             domainsCovered={assessmentProgress?.domains_covered ?? []}
             domainQuestionCounts={assessmentProgress?.domain_question_counts ?? {}}
             canGenerateReport={assessmentProgress?.can_generate_report ?? false}
-            onDomainSelect={(code, prompt) => {
-              onSendMessage(prompt);
+            onDomainSelect={async (code, prompt) => {
+              const userId = getUserIdFromAuth();
+              if (!userId) return;
+
+              // Fetch a question for this domain directly
+              const result = await fetchInlineQuestion(userId, code);
+              if (result.ok && result.question) {
+                // Add the question as an AI message with inline_question data
+                addMessage(
+                  `让我们来探索一下这个领域：`,
+                  'ai',
+                  undefined,
+                  { inline_question: result.question }
+                );
+              } else {
+                // Fallback: send as text message to AI
+                onSendMessage(prompt);
+              }
             }}
           />
         </div>
@@ -772,6 +790,51 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                           delay={idx * 0.1}
                         />
                       ))}
+                  </div>
+                )}
+
+                {/* Inline Assessment Question — clickable options */}
+                {message.role === 'ai' && message.inline_question && (
+                  <div className="pl-8 mt-3">
+                    <InlineQuestionDisplay
+                      question={message.inline_question}
+                      onAnswer={async (questionId, answerValue) => {
+                        const userId = getUserIdFromAuth();
+                        if (userId && conversationId) {
+                          // Record the answer
+                          await recordInlineAnswer(userId, conversationId, questionId, answerValue);
+                          // Refresh progress
+                          const progressResult = await getInlineAssessmentProgress(userId);
+                          if (progressResult.ok && progressResult.progress) {
+                            setAssessmentProgress(progressResult.progress);
+                          }
+                        }
+                        // Send the answer to the AI for insight
+                        const q = message.inline_question;
+                        const optionText = q?.options.find(o => o.value === answerValue)?.text || String(answerValue);
+                        // Show clean message to user, hide system instructions
+                        const userVisibleText = `关于"${q?.text}"，我选择了：${optionText}`;
+                        // The actual message sent to backend includes hidden context
+                        const backendMessage = `${userVisibleText}\n\n<!-- system: 答案已自动记录(question_id=${q?.id}, value=${answerValue})，不需要调用record_inline_answer。请直接基于回答给出洞察。 -->`;
+                        // Add clean message to UI
+                        addMessage(userVisibleText, 'user');
+                        // Send full message to backend (with hidden context)
+                        const response = await sendChatMessage({
+                          message: backendMessage,
+                          session_id: sessionId || '',
+                          user_id: getUserIdFromAuth() || undefined,
+                        });
+                        if (response?.assistant_message?.content) {
+                          const filteredContent = filterFunctionCallText(response.assistant_message.content);
+                          if (filteredContent) {
+                            addMessage(filteredContent, 'ai');
+                          }
+                          if (response.module_status) {
+                            setModuleStatus(response.module_status);
+                          }
+                        }
+                      }}
+                    />
                   </div>
                 )}
 

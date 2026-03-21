@@ -299,6 +299,12 @@ def get_ai_response(
             logger.error(f"Pacing check failed, defaulting to allow: {e}", exc_info=True)
             allow_question = True
 
+        # Override pacing when user explicitly requests domain assessment
+        domain_request_keywords = ["请从这个领域开始提问", "从这个领域开始", "开始提问", "请从", "领域开始"]
+        if any(kw in latest_user_text for kw in domain_request_keywords):
+            allow_question = True
+            logger.info("Pacing: overridden — user explicitly requested domain assessment")
+
         if not allow_question:
             # Remove request_assessment_question tool but keep record_inline_answer
             tools = [t for t in tools if t.get("function", {}).get("name") != "request_assessment_question"]
@@ -327,7 +333,7 @@ def get_ai_response(
         assessment_tool_calls = _find_inline_assessment_tool_calls(message)
         if assessment_tool_calls:
             user_id = conversation.user_id or conversation.session_id
-            follow_up_message, assessment_fn_calls = _handle_assessment_tool_calls(
+            follow_up_message, assessment_fn_calls, captured_question = _handle_assessment_tool_calls(
                 assessment_tool_calls, db_session, user_id, conversation_id
             )
 
@@ -366,10 +372,12 @@ def get_ai_response(
                             f"Follow-up response has {len(follow_up_tool_calls)} "
                             "additional assessment tool call(s)"
                         )
-                        fu_tool_msgs, fu_fn_calls = _handle_assessment_tool_calls(
+                        fu_tool_msgs, fu_fn_calls, fu_question = _handle_assessment_tool_calls(
                             follow_up_tool_calls, db_session, user_id, conversation_id
                         )
                         assessment_fn_calls.extend(fu_fn_calls)
+                        if fu_question and not captured_question:
+                            captured_question = fu_question
 
                         if fu_tool_msgs:
                             # Third API call to let AI incorporate the tool results
@@ -412,8 +420,10 @@ def get_ai_response(
 
             # Record assessment function calls for the response
             function_calls_from_assessment = assessment_fn_calls
+            inline_question_data = captured_question
         else:
             function_calls_from_assessment = []
+            inline_question_data = None
 
         # --- 7. Extract module recommendations ---
         recommended_modules, function_calls = _extract_module_recommendations(
@@ -447,6 +457,7 @@ def get_ai_response(
             "recommended_modules": recommended_modules,
             "function_calls": function_calls,
             "module_status": module_status,
+            "inline_question": inline_question_data,
         }
 
     except Exception as e:
@@ -640,24 +651,14 @@ def _handle_assessment_tool_calls(
     """
     Execute inline assessment tool calls and build tool response messages.
 
-    Handles both tool types:
-    - request_assessment_question: fetch a new question for a domain
-    - record_inline_answer: record the user's answer to a previous question
-
-    For each tool call:
-    1. Parse the arguments
-    2. Dispatch to the appropriate service function
-    3. Build a tool response message with the result
-
     Returns:
-        (tool_response_messages, function_calls_log)
-        - tool_response_messages: list of dicts for the follow-up OpenAI call
-        - function_calls_log: list of dicts recording what was called
+        (tool_response_messages, function_calls_log, inline_question_data)
     """
     from src.services.inline_assessment_service import get_question_for_domain, record_answer
 
     tool_response_messages = []
     function_calls_log = []
+    inline_question_data = None
 
     for tool_call in tool_calls:
         tool_call_id = tool_call.id
@@ -681,6 +682,25 @@ def _handle_assessment_tool_calls(
             result = _execute_request_assessment_question(
                 args, db_session, user_id, conversation_id
             )
+            # Capture question data for frontend inline display
+            if result.get("status") == "success" and "question" in result:
+                q = result["question"]
+                raw_options = q.get("options") or []
+                normalized_options = []
+                for opt in raw_options:
+                    if isinstance(opt, dict):
+                        normalized_options.append({
+                            "value": opt.get("value") or opt.get("score", 0),
+                            "text": opt.get("label") or opt.get("text", ""),
+                        })
+                inline_question_data = {
+                    "id": q.get("id"),
+                    "text": q.get("text", ""),
+                    "domain": q.get("domain", ""),
+                    "subcategory": q.get("subcategory"),
+                    "options": normalized_options,
+                }
+                logger.info(f"Captured inline_question: id={q.get('id')}, options={len(normalized_options)}")
         elif fn_name == "record_inline_answer":
             result = _execute_record_inline_answer(
                 args, db_session, user_id, conversation_id
@@ -704,7 +724,7 @@ def _handle_assessment_tool_calls(
             "result_status": result.get("status"),
         })
 
-    return tool_response_messages, function_calls_log
+    return tool_response_messages, function_calls_log, inline_question_data
 
 
 def _execute_request_assessment_question(

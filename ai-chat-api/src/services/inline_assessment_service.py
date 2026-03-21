@@ -207,21 +207,47 @@ def get_question_for_domain(
         domain_parts = domain.split(".")
         questionnaire_pattern = f"questionnaire_{domain_parts[0]}_{domain_parts[1]}%"
 
-        # Query questions for this domain
+        # Also map domain to category names for admin_created questions
+        DOMAIN_TO_CATEGORIES = {
+            "2.1": ["情绪调节能力", "情绪识别能力", "情绪觉察"],
+            "2.2": ["认知重构能力", "认知模式"],
+            "2.3": ["关系互动能力", "关系模式"],
+            "2.4": ["内在对话能力", "性格类型", "MBTI"],
+            "2.5": ["成长潜力", "成长指数"],
+        }
+        category_names = DOMAIN_TO_CATEGORIES.get(domain, [])
+
+        # Query questions: match by questionnaire_id pattern OR category OR sub_section prefix
+        conditions = [AssessmentQuestion.questionnaire_id.like(questionnaire_pattern)]
+        if category_names:
+            conditions.append(AssessmentQuestion.category.in_(category_names))
+        # Also match by sub_section starting with domain code (e.g. "2.5" matches "2.5.1", "2.5.2")
+        conditions.append(AssessmentQuestion.sub_section.like(f"{domain}%"))
+
         query = db.query(AssessmentQuestion).filter(
-            AssessmentQuestion.questionnaire_id.like(questionnaire_pattern)
+            or_(*conditions),
+            AssessmentQuestion.status == 'published',
         )
 
-        # When subcategory provided, additionally filter by sub_section or category
+        # When subcategory provided, try to filter — but fall back to domain-level if no matches
         if subcategory:
-            query = query.filter(
+            subcategory_query = query.filter(
                 or_(
                     AssessmentQuestion.sub_section == subcategory,
-                    AssessmentQuestion.category == subcategory
+                    AssessmentQuestion.sub_section.like(f"{subcategory}%"),
+                    AssessmentQuestion.category == subcategory,
+                    AssessmentQuestion.dimension.like(f"%{subcategory}%") if subcategory else False,
                 )
             )
-
-        all_questions = query.all()
+            subcategory_questions = subcategory_query.all()
+            if subcategory_questions:
+                all_questions = subcategory_questions
+            else:
+                # Fall back to all questions in the domain (ignore subcategory)
+                logger.info(f"No questions for subcategory={subcategory}, falling back to domain={domain}")
+                all_questions = query.all()
+        else:
+            all_questions = query.all()
 
         if not all_questions:
             logger.info(f"No questions found for domain={domain}, subcategory={subcategory}")

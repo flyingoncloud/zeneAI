@@ -14,8 +14,10 @@ export const TopBar: React.FC = () => {
   if (currentView === 'chat' || currentView ==='breathing' || currentView === 'sketch' || currentView ==='breathingtraining' || currentView === 'naming' || currentView ==='mood' || currentView ==='history') return null;
   console.log('[TopBar] currentView =', currentView);
   const handleBackToChat = () => {
-    if (exitMessage && exitModuleToComplete) {
+    if (exitMessage) {
       addMessage(exitMessage, "system");
+    }
+    if (exitModuleToComplete) {
       setPendingModuleCompletion(exitModuleToComplete);
     }
     setCurrentView('chat');

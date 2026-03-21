@@ -38,6 +38,13 @@ export interface ChatResponse {
   recommended_modules?: ModuleRecommendation[];
   reply?: string;
   module_status?: Record<string, any>;
+  inline_question?: {
+    id: number;
+    text: string;
+    domain: string;
+    subcategory?: string;
+    options: Array<{ value: number; text: string }>;
+  };
 }
 
 export interface UploadResponse {
@@ -1518,6 +1525,29 @@ export async function getInlineAssessmentProgress(userId: string): Promise<{
     return { ok: true, progress: data.progress };
   } catch (error) {
     console.error('[API] Error fetching inline assessment progress:', error);
+    return { ok: false, error: String(error) };
+  }
+}
+
+export interface InlineQuestion {
+  id: number;
+  text: string;
+  domain: string;
+  subcategory?: string;
+  options: Array<{ value: number; text: string }>;
+}
+
+export async function fetchInlineQuestion(userId: string, domain: string): Promise<{
+  ok: boolean;
+  question?: InlineQuestion;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/inline-assessment/question/${userId}/${domain}`);
+    if (!response.ok) return { ok: false, error: `HTTP ${response.status}` };
+    const data = await response.json();
+    return { ok: data.ok, question: data.question, error: data.error };
+  } catch (error) {
     return { ok: false, error: String(error) };
   }
 }

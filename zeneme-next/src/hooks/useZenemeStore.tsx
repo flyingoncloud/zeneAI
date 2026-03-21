@@ -39,11 +39,19 @@ export type Message = {
   timestamp: Date;
   attachment?: {
     type: 'image' | 'voice' | 'sketch' | 'gallery';
-    url?: string; // We'll use this for the base64 data url or image path
+    url?: string;
     preview?: string;
   };
   // Module recommendation data
   recommended_modules?: RecommendedModule[];
+  // Inline assessment question embedded in AI message
+  inline_question?: {
+    id: number;
+    text: string;
+    domain: string;
+    subcategory?: string;
+    options: Array<{ value: number; text: string }>;
+  };
 };
 
 export type MoodLog = {
@@ -116,6 +124,7 @@ interface ZenemeContextType {
     moduleData?: {
       recommended_modules?: RecommendedModule[];
       module_status?: ModuleStatus;
+      inline_question?: Message['inline_question'];
     }
   ) => void;
 
@@ -282,6 +291,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     moduleData?: {
       recommended_modules?: RecommendedModule[];
       module_status?: ModuleStatus;
+      inline_question?: Message['inline_question'];
     }
   ) => {
     setSessions(prev => {
@@ -306,6 +316,7 @@ export const ZenemeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           attachment,
           ...(moduleData && {
             recommended_modules: moduleData.recommended_modules,
+            inline_question: moduleData.inline_question,
           })
         };
 

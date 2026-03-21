@@ -392,7 +392,8 @@ def chat(
         "user_message": user_message,
         "assistant_message": assistant_message,
         "recommended_modules": filtered_recommendations,
-        "module_status": final_module_status
+        "module_status": final_module_status,
+        "inline_question": ai_response_data.get("inline_question") if not has_images else None,
     }
     logger.info(f"Returning response for session {conversation.session_id}")
     return response

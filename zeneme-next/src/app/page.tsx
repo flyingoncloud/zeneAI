@@ -179,6 +179,32 @@ React.useEffect(() => {
         // Clear immediately to prevent duplicate calls
         setPendingModuleCompletion(null);
 
+        // Handle partial return (user didn't complete the questionnaire)
+        if (moduleId === 'quick_assessment_partial') {
+          try {
+            // Show a visible message from the user
+            addMessage('我从测评返回了，还没有完成全部题目。', 'user');
+
+            const response = await sendChatMessage({
+              message: '我刚从测评回来，还没有完成全部题目。我们继续聊吧。',
+              session_id: sessionId,
+              user_id: userId || undefined,
+            });
+            if (response?.assistant_message?.content) {
+              const filteredContent = filterFunctionCallText(response.assistant_message.content);
+              if (filteredContent) {
+                addMessage(filteredContent, "ai", undefined, {
+                  recommended_modules: (response.recommended_modules || []).filter(validateModuleData),
+                });
+              }
+              if (response.module_status) setModuleStatus(response.module_status);
+            }
+          } catch (error) {
+            console.error('Error sending partial return message:', error);
+          }
+          return;
+        }
+
         try {
           // Ensure module is marked complete in DB before sending completion message
           // This is a backup in case upload-sketch didn't have conversationId
@@ -257,6 +283,7 @@ React.useEffect(() => {
 
         addMessage(filteredContent, "ai", undefined, {
           recommended_modules: validModules,
+          inline_question: response.inline_question || undefined,
         });
         if (response.module_status) {
           setModuleStatus(response.module_status);
