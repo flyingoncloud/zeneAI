@@ -22,6 +22,7 @@ type QuestionItem = QuestionnaireDetail['questions'][number];
 
 type CategoryScoreObj = { sub_section?: string; category?: string; score?: number; count?: number };
 import { toast } from 'sonner';
+import { DomainProgressBar } from './DomainProgressBar';
 
 type IconLikeProps = {
   size?: number | string;
@@ -92,6 +93,7 @@ export const InnerQuickTest: React.FC = () => {
   const { user } = useAuthStore(); // Get user from auth store
   const [view, setView] = useState<'test' | 'result'>('test');
   const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [highWaterMark, setHighWaterMark] = useState(0); // Tracks furthest question reached
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +102,15 @@ export const InnerQuickTest: React.FC = () => {
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [categoryScores, setCategoryScores] = useState<Record<string, number>>({});
   const [currentAnswer, setCurrentAnswer] = useState<number | undefined>(undefined); // For UI feedback only
+
+  // Domain progress tracking
+  const [domainSummary, setDomainSummary] = useState<Record<string, { total: number; answered: number }>>({});
+
+  // Track which question indices have been answered (for domain jumping)
+  const [answeredIndices, setAnsweredIndices] = useState<Set<number>>(new Set());
+
+  // Store answers per question index for showing selected state when navigating back
+  const [answersMap, setAnswersMap] = useState<Record<number, number>>({});
 
   // F6 Ranking state: tracks which options are selected in which rank positions
   const [rankingSelections, setRankingSelections] = useState<Record<number, string[]>>({});
@@ -398,6 +409,7 @@ export const InnerQuickTest: React.FC = () => {
 
         setProgressId(result.progress.id);
         setQuestions(result.questions);
+        if (result.domain_summary) setDomainSummary(result.domain_summary);
 
         const len = result.questions.length;
         const idx = result.progress.current_question_index ?? 0;
@@ -407,10 +419,26 @@ export const InnerQuickTest: React.FC = () => {
           console.log('[InnerQuickTest] Progress is completed, showing result view');
           setProgressId(result.progress.id);
           setQuestions(result.questions);
+          if (result.domain_summary) setDomainSummary(result.domain_summary);
           setCurrentQIndex(idx);
           setCategoryScores(result.progress.category_scores || {});
           setReportId(result.progress.report_id);
+          setHighWaterMark(idx);
           setReportStatus('completed');
+
+          // Initialize answered indices from saved answers
+          const savedAnswers = result.progress.answers || {};
+          const answeredSet = new Set<number>();
+          const restoredAnswers: Record<number, number> = {};
+          result.questions.forEach((q: any, i: number) => {
+            const key = String(q.question_number);
+            if (key in savedAnswers) {
+              answeredSet.add(i);
+              restoredAnswers[i] = savedAnswers[key];
+            }
+          });
+          setAnsweredIndices(answeredSet);
+          setAnswersMap(restoredAnswers);
           setView('result');
           setSubmissionState('success');
           setError(null);
@@ -443,6 +471,7 @@ export const InnerQuickTest: React.FC = () => {
           // Use the fresh data
           setProgressId(retryResult.progress.id);
           setQuestions(retryResult.questions);
+          if (retryResult.domain_summary) setDomainSummary(retryResult.domain_summary);
           setCurrentQIndex(0);
           setCategoryScores({});
           setView('test');
@@ -453,8 +482,34 @@ export const InnerQuickTest: React.FC = () => {
         }
 
         // Normal in_progress - resume
-        setCurrentQIndex(idx);
         setCategoryScores(result.progress.category_scores || {});
+
+        // Initialize answered indices from saved answers
+        const savedAnswers = result.progress.answers || {};
+        const answeredSet = new Set<number>();
+        const restoredAnswers: Record<number, number> = {};
+        result.questions.forEach((q: any, i: number) => {
+          const key = String(q.question_number);
+          if (key in savedAnswers) {
+            answeredSet.add(i);
+            restoredAnswers[i] = savedAnswers[key];
+          }
+        });
+        setAnsweredIndices(answeredSet);
+        setAnswersMap(restoredAnswers);
+
+        // Find first unanswered question to resume from
+        let resumeIdx = 0;
+        for (let i = 0; i < result.questions.length; i++) {
+          if (!answeredSet.has(i)) {
+            resumeIdx = i;
+            break;
+          }
+          // If all answered, stay at last
+          if (i === result.questions.length - 1) resumeIdx = i;
+        }
+        setCurrentQIndex(resumeIdx);
+        setHighWaterMark(answeredSet.size);
         setView('test');
         setSubmissionState('idle');
 
@@ -471,6 +526,13 @@ export const InnerQuickTest: React.FC = () => {
     startQuestionnaireWithProgress();
   }, [sessionId, setSessionId]); // Run when sessionId is ready (conversation is optional)
 
+  // Restore selected answer when navigating to a previously answered question
+  useEffect(() => {
+    const saved = answersMap[currentQIndex];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentAnswer(saved !== undefined ? saved : undefined);
+  }, [currentQIndex, answersMap]);
+
   const totalQuestions = questions.length;
 
   // NEW: Auto-save answer with progress tracking
@@ -481,6 +543,7 @@ export const InnerQuickTest: React.FC = () => {
 
     // Update UI immediately for feedback
     setCurrentAnswer(value);
+    setAnswersMap((prev) => ({ ...prev, [currentQIndex]: value }));
 
     try {
       const requestData = {
@@ -504,7 +567,52 @@ export const InnerQuickTest: React.FC = () => {
       // Update local state
       setCategoryScores(result.category_scores);
 
-      // Check if completed
+      // Update domain progress for the answered question
+      const answeredDomain = (currentQuestion as any).domain;
+      if (answeredDomain) {
+        setDomainSummary((prev) => {
+          const entry = prev[answeredDomain] || { total: 0, answered: 0 };
+          return {
+            ...prev,
+            [answeredDomain]: { ...entry, answered: entry.answered + 1 },
+          };
+        });
+      }
+
+      // Track this question as answered
+      setAnsweredIndices((prev) => new Set(prev).add(currentQIndex));
+      setHighWaterMark((hw) => Math.max(hw, currentQIndex + 1));
+
+      // Check if ALL questions are now answered
+      const newAnsweredCount = answeredIndices.size + 1; // +1 for current
+      if (newAnsweredCount >= totalQuestions && !result.is_completed) {
+        console.log('[Questionnaire] All questions answered locally — triggering backend completion');
+        // Call backend to force completion check
+        try {
+          const completeRes = await fetch(`${API_BASE_URL}/api/questionnaire/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ progress_id: progressId }),
+          });
+          const completeData = await completeRes.json();
+          if (completeData.ok && completeData.report_id) {
+            setReportId(completeData.report_id);
+            setReportStatus('pending');
+            setSubmissionState('submitting');
+            setView('result');
+            return;
+          }
+        } catch (err) {
+          console.error('[Questionnaire] Backend completion call failed:', err);
+        }
+        // Fallback: show result view anyway
+        setSubmissionState('submitting');
+        setReportStatus('pending');
+        setView('result');
+        return;
+      }
+
+      // Check if completed (from backend response)
       if (result.is_completed && result.report_id) {
         console.log('[Questionnaire Completed]', { report_id: result.report_id });
         setReportId(result.report_id);
@@ -514,11 +622,16 @@ export const InnerQuickTest: React.FC = () => {
         return;
       }
 
-      // Auto-advance to next question if not last
+      // Auto-advance: find next unanswered question (not just currentQIndex + 1)
+      // This handles domain jumping where the next sequential question may already be answered
       if (currentQIndex < totalQuestions - 1) {
         setTimeout(() => {
-          setCurrentQIndex((prev) => prev + 1);
-          setCurrentAnswer(undefined); // Clear for next question
+          setCurrentQIndex((prev) => {
+            const next = prev + 1;
+            setHighWaterMark((hw) => Math.max(hw, next));
+            return next;
+          });
+          setCurrentAnswer(undefined);
         }, 200);
       }
     } catch (err) {
@@ -898,29 +1011,77 @@ export const InnerQuickTest: React.FC = () => {
   const progress = ((currentQIndex + 1) / totalQuestions) * 100;
   const currentQuestion = questions[currentQIndex];
 
+  // Jump to first unanswered question in a domain
+  const handleDomainSelect = (domainCode: string) => {
+    const hasBackendDomains = questions.some((q: any) => q.domain);
+
+    if (hasBackendDomains) {
+      // Find first unanswered question in this domain
+      const targetIdx = questions.findIndex(
+        (q: any, idx: number) => q.domain === domainCode && !answeredIndices.has(idx)
+      );
+      // If all answered, jump to first question in domain
+      const fallbackIdx = questions.findIndex((q: any) => q.domain === domainCode);
+      const jumpTo = targetIdx >= 0 ? targetIdx : (fallbackIdx >= 0 ? fallbackIdx : -1);
+
+      if (jumpTo >= 0 && jumpTo !== currentQIndex) {
+        setCurrentQIndex(jumpTo);
+        setCurrentAnswer(undefined);
+      }
+    } else {
+      // Fallback: use sequential ranges
+      const WEIGHTS = [10, 46, 27, 0, 6];
+      const CODES = ['2.1', '2.2', '2.3', '2.4', '2.5'];
+      const totalW = WEIGHTS.reduce((a, b) => a + b, 0);
+      let cursor = 0;
+      for (let i = 0; i < CODES.length; i++) {
+        const count = Math.round((WEIGHTS[i] / totalW) * totalQuestions);
+        if (CODES[i] === domainCode) {
+          // Find first unanswered within this range
+          let jumpTo = -1;
+          for (let j = cursor; j < cursor + count; j++) {
+            if (!answeredIndices.has(j)) {
+              jumpTo = j;
+              break;
+            }
+          }
+          // If all answered in this domain, jump to domain start
+          if (jumpTo < 0) jumpTo = cursor;
+
+          if (jumpTo !== currentQIndex) {
+            setCurrentQIndex(jumpTo);
+            setCurrentAnswer(undefined);
+          }
+          break;
+        }
+        cursor += count;
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-transparent">
 
       {/* 修复点 1: 移除外层滚动容器的 justify-center，避免内容超长时顶部被吞掉无法滚动 */}
       <div className="flex-1 flex flex-col items-center p-4 md:p-8 overflow-y-auto">
 
+        {/* Domain progress — separate section above the card */}
+        <DomainProgressBar
+          totalQuestions={totalQuestions}
+          currentIndex={currentQIndex}
+          highWaterMark={highWaterMark}
+          currentDomain={(currentQuestion as any)?.domain ?? null}
+          domainSummary={domainSummary}
+          answeredIndices={answeredIndices}
+          onDomainSelect={handleDomainSelect}
+        />
+
         {/* 卡片容器：利用 my-auto 替代 justify-center 实现安全居中 */}
         <div className="w-full max-w-3xl space-y-4 md:space-y-6 backdrop-blur-xl px-5 py-6 md:px-10 md:py-8 lg:p-10 rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl my-auto relative">
 
-          {/* --- 头部区域：题号、进度条、题目文本 --- */}
+          {/* --- 头部区域：题目文本 --- */}
           <div className="space-y-4 text-left w-full">
-            <div className="text-slate-200 font-medium text-sm tracking-wide">
-              Question {currentQIndex + 1}/{totalQuestions}
-            </div>
-
-            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-
-            <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug pt-2 md:pt-4 drop-shadow-lg">
+            <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug drop-shadow-lg">
               {currentQuestion?.text}
             </h3>
 

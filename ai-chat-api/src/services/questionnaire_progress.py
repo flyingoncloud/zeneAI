@@ -175,7 +175,7 @@ class QuestionnaireProgressService:
             logger.warning(f"⚠️ SKIPPING scoring for template {question.template} question {question_id} - special template sends non-score values")
 
             # Still update progress but don't store answer or update scores
-            progress.current_question_index += 1
+            progress.current_question_index = len(progress.answers or {}) + 1  # Count skipped as answered
             progress.last_updated_at = datetime.utcnow()
             db.commit()
             db.refresh(progress)
@@ -237,16 +237,17 @@ class QuestionnaireProgressService:
         else:
             logger.warning(f"⚠️ No category found for question {question_id} - score not tracked by category")
 
-        # Update progress
-        progress.current_question_index += 1
+        # Update progress - track by answer count, not sequential index
+        # When jumping between domains, current_question_index may not be sequential
+        progress.current_question_index = len(progress.answers)
         progress.last_updated_at = datetime.utcnow()
 
         # Commit immediately to persist JSON changes
         db.commit()
         db.refresh(progress)
 
-        # Check if completed
-        is_completed = progress.current_question_index >= progress.total_questions
+        # Check if completed - based on total answers collected, not sequential index
+        is_completed = len(progress.answers) >= progress.total_questions
 
         if is_completed:
             progress.status = 'completed'

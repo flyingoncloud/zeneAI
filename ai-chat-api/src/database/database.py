@@ -6,6 +6,8 @@ from src.database.models import Base
 from src.database import psychology_models  # noqa: F401
 # Import questionnaire models to register them with Base.metadata
 from src.database import questionnaire_models  # noqa: F401
+# Import inline assessment models to register them with Base.metadata
+from src.database import inline_assessment_models  # noqa: F401
 import logging
 
 logger = logging.getLogger(__name__)

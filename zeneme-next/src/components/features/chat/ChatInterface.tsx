@@ -9,8 +9,10 @@ import { ReportPage } from './ReportPage';
 import { ChatInput } from '../../ChatInput';
 import { Heart, PenTool, ClipboardList, Maximize2, X } from 'lucide-react';
 import { Dialog, DialogContent } from '../../ui/dialog';
-import { generateConversationReport, getReportStatus } from '../../../lib/api';
+import { generateConversationReport, getReportStatus, getInlineAssessmentProgress, getUserIdFromAuth, type InlineAssessmentProgress } from '../../../lib/api';
 import { ModuleRecommendationCard } from './ModuleRecommendationCard';
+import { AssessmentProgressIndicator } from './AssessmentProgressIndicator';
+import { ReportReadyNotification } from './ReportReadyNotification';
 import { toast } from 'sonner';
 import { SplashDanmakuLayer } from './SplashDanmakuLayer';
 
@@ -433,6 +435,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
 
+  // Inline assessment state
+  const [assessmentProgress, setAssessmentProgress] = useState<InlineAssessmentProgress | null>(null);
+
   // AI Response State
   const [isAiReplying, setIsAiReplying] = useState(false); // Controls Input Lock
   const [isAiResponseStopped, setIsAiResponseStopped] = useState(false);
@@ -491,6 +496,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking, isAiReplying, messages.length]); // Added messages.length to dependency to ensure scroll on new tokens if needed (though typically scroll is on new message)
+
+  // Fetch inline assessment progress when conversation starts
+  useEffect(() => {
+    const userId = getUserIdFromAuth();
+    if (!userId) return;
+
+    getInlineAssessmentProgress(userId).then(result => {
+      if (result.ok && result.progress) {
+        setAssessmentProgress(result.progress);
+      }
+    });
+  }, [conversationId]);
 
   const handleAiReplyComplete = () => {
     setIsAiReplying(false);
@@ -576,6 +593,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
     else if (action === 'test') setCurrentView('test' as unknown as Parameters<typeof setCurrentView>[0]);
   };
 
+  const handleViewInlineReport = () => {
+    setCurrentView('test' as unknown as Parameters<typeof setCurrentView>[0]);
+  };
+
   // Handle module access from recommendation cards
   const handleModuleAccess = (moduleId: string) => {
     const targetView = MODULE_VIEW_MAP[moduleId];
@@ -611,20 +632,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
       )}
       {/* 1. Header Analysis Progress - Only show if not welcome state */}
       {!isWelcomeState && (
-        <div className="w-full bg-slate-900/40 border-b border-white/5 p-4 sticky top-0 z-20 flex items-center gap-4 backdrop-blur-xl">
-          {!isReadyForReport ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-400">
-                {language === 'zh'
-                  ? '持续对话或完成内视快测，可形成你专属的内视觉察报告'
-                  : 'Continue conversation or complete Quick Test to generate report'}
-              </span>
-            </div>
-          ) : (
+        <div className="w-full bg-slate-900/40 border-b border-white/5 p-3 sticky top-0 z-20 backdrop-blur-xl space-y-2">
+          {/* Report ready banner OR hint text */}
+          {isReadyForReport ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 ml-auto"
+              className="flex items-center gap-2 justify-end"
             >
               <span className="text-xs font-medium text-violet-300 bg-violet-500/20 px-2 py-1 rounded-full border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
                 {reportType === 'advanced'
@@ -650,7 +664,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                 )}
               </Button>
             </motion.div>
+          ) : (
+            <p className="text-[11px] text-slate-500 text-center">
+              {language === 'zh'
+                ? '点击下方领域开始测评，或继续对话自然完成'
+                : 'Tap a domain below to start, or continue chatting'}
+            </p>
           )}
+
+          {/* Domain progress — always visible */}
+          <AssessmentProgressIndicator
+            totalAnswered={assessmentProgress?.total_answered ?? 0}
+            totalQuestions={assessmentProgress?.total_questions ?? 83}
+            domainsCovered={assessmentProgress?.domains_covered ?? []}
+            domainQuestionCounts={assessmentProgress?.domain_question_counts ?? {}}
+            canGenerateReport={assessmentProgress?.can_generate_report ?? false}
+            onDomainSelect={(code, prompt) => {
+              onSendMessage(prompt);
+            }}
+          />
         </div>
       )}
 
@@ -740,6 +772,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                           delay={idx * 0.1}
                         />
                       ))}
+                  </div>
+                )}
+
+                {/* Inline Assessment: Report Ready Notification */}
+                {message.role === 'ai' && index === messages.length - 1 && assessmentProgress?.can_generate_report && (
+                  <div className="pl-8 mt-3">
+                    <ReportReadyNotification onViewReport={handleViewInlineReport} />
                   </div>
                 )}
               </div>

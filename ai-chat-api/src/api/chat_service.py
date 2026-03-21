@@ -276,12 +276,39 @@ def get_ai_response(
         else:
             messages[0] = {"role": "system", "content": full_system_prompt}
 
-        # --- 5. Call OpenAI ---
+        # --- 5. Call OpenAI (with pacing-aware tool list) ---
+        from src.services.inline_assessment_service import should_ask_question
+
+        tools = get_openai_tools()
+
+        # Extract the latest user message text for pacing check
+        latest_user_text = ""
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    latest_user_text = content
+                break
+
+        # Build conversation history (exclude system messages) for pacing
+        conversation_history = [m for m in messages if m.get("role") != "system"]
+
+        try:
+            allow_question = should_ask_question(conversation_history, latest_user_text)
+        except Exception as e:
+            logger.error(f"Pacing check failed, defaulting to allow: {e}", exc_info=True)
+            allow_question = True
+
+        if not allow_question:
+            # Remove request_assessment_question tool but keep record_inline_answer
+            tools = [t for t in tools if t.get("function", {}).get("name") != "request_assessment_question"]
+            logger.info("Pacing: removed request_assessment_question tool for this call")
+
         logger.info(f"Calling OpenAI ({model}) with {len(messages)} messages")
         response = client.chat.completions.create(
             model=model,
             messages=messages,
-            tools=get_openai_tools(),
+            tools=tools,
             tool_choice="auto",
             temperature=AI_TEMPERATURE,
             max_tokens=AI_MAX_TOKENS,
@@ -293,12 +320,108 @@ def get_ai_response(
         ai_content = filter_function_call_text((message.content or "").strip())
         logger.info(f"AI content (filtered): {repr(ai_content[:120])}")
 
-        # --- 6. Extract function calls ---
+        # --- 6. Handle assessment tool calls (multi-turn) ---
+        # If the AI requested an assessment question or recorded an answer,
+        # execute the tool calls and make a follow-up API call so the AI can
+        # weave the question/insight into its response.
+        assessment_tool_calls = _find_inline_assessment_tool_calls(message)
+        if assessment_tool_calls:
+            user_id = conversation.user_id or conversation.session_id
+            follow_up_message, assessment_fn_calls = _handle_assessment_tool_calls(
+                assessment_tool_calls, db_session, user_id, conversation_id
+            )
+
+            if follow_up_message:
+                # Build messages for the second API call:
+                # original messages + assistant message with tool_calls + tool results
+                follow_up_messages = messages + [message] + follow_up_message
+                logger.info(
+                    f"Making follow-up OpenAI call with {len(follow_up_messages)} messages "
+                    f"(including {len(assessment_tool_calls)} tool response(s))"
+                )
+                try:
+                    follow_up_response = client.chat.completions.create(
+                        model=model,
+                        messages=follow_up_messages,
+                        tools=get_openai_tools(),
+                        tool_choice="auto",
+                        temperature=AI_TEMPERATURE,
+                        max_tokens=AI_MAX_TOKENS,
+                        presence_penalty=AI_PRESENCE_PENALTY,
+                        frequency_penalty=AI_FREQUENCY_PENALTY,
+                    )
+                    follow_up_msg = follow_up_response.choices[0].message
+                    ai_content = filter_function_call_text(
+                        (follow_up_msg.content or "").strip()
+                    )
+                    logger.info(
+                        f"Follow-up AI content (filtered): {repr(ai_content[:120])}"
+                    )
+
+                    # Check follow-up response for additional tool calls
+                    # (e.g. record_inline_answer in the follow-up after a question request)
+                    follow_up_tool_calls = _find_inline_assessment_tool_calls(follow_up_msg)
+                    if follow_up_tool_calls:
+                        logger.info(
+                            f"Follow-up response has {len(follow_up_tool_calls)} "
+                            "additional assessment tool call(s)"
+                        )
+                        fu_tool_msgs, fu_fn_calls = _handle_assessment_tool_calls(
+                            follow_up_tool_calls, db_session, user_id, conversation_id
+                        )
+                        assessment_fn_calls.extend(fu_fn_calls)
+
+                        if fu_tool_msgs:
+                            # Third API call to let AI incorporate the tool results
+                            third_messages = (
+                                follow_up_messages + [follow_up_msg] + fu_tool_msgs
+                            )
+                            logger.info(
+                                f"Making third OpenAI call with {len(third_messages)} messages"
+                            )
+                            try:
+                                third_response = client.chat.completions.create(
+                                    model=model,
+                                    messages=third_messages,
+                                    tools=get_openai_tools(),
+                                    tool_choice="auto",
+                                    temperature=AI_TEMPERATURE,
+                                    max_tokens=AI_MAX_TOKENS,
+                                    presence_penalty=AI_PRESENCE_PENALTY,
+                                    frequency_penalty=AI_FREQUENCY_PENALTY,
+                                )
+                                message = third_response.choices[0].message
+                                ai_content = filter_function_call_text(
+                                    (message.content or "").strip()
+                                )
+                                logger.info(
+                                    f"Third-call AI content (filtered): {repr(ai_content[:120])}"
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"Third OpenAI call failed, using follow-up response: {e}"
+                                )
+                                message = follow_up_msg
+                    else:
+                        message = follow_up_msg
+                except Exception as e:
+                    logger.error(
+                        f"Follow-up OpenAI call failed, using initial response: {e}"
+                    )
+                    # Fall through with original ai_content
+
+            # Record assessment function calls for the response
+            function_calls_from_assessment = assessment_fn_calls
+        else:
+            function_calls_from_assessment = []
+
+        # --- 7. Extract module recommendations ---
         recommended_modules, function_calls = _extract_module_recommendations(
             message, language
         )
+        function_calls.extend(function_calls_from_assessment)
 
-        # --- 7. Fallback detection ---
+        # --- 8. Fallback detection ---
         for module_id in _detect_module_mentions(ai_content, module_status, language):
             if not any(m["module_id"] == module_id for m in recommended_modules):
                 logger.warning(f"[Fallback] Adding missed recommendation: {module_id}")
@@ -488,6 +611,242 @@ def _load_questionnaire_progress(db_session, conversation, conversation_id):
         f"Progress query by conversation_id={conversation_id}: found={progress is not None}"
     )
     return progress
+
+
+def _find_inline_assessment_tool_calls(message) -> list:
+    """
+    Extract inline assessment tool calls from the AI response message.
+
+    Finds both `request_assessment_question` and `record_inline_answer` calls.
+
+    Returns a list of tool_call objects for inline assessment handling.
+    """
+    if not message.tool_calls:
+        return []
+
+    assessment_tool_names = {"request_assessment_question", "record_inline_answer"}
+    return [
+        tc for tc in message.tool_calls
+        if tc.function.name in assessment_tool_names
+    ]
+
+
+def _handle_assessment_tool_calls(
+    tool_calls: list,
+    db_session: Session,
+    user_id: str,
+    conversation_id: int,
+) -> tuple:
+    """
+    Execute inline assessment tool calls and build tool response messages.
+
+    Handles both tool types:
+    - request_assessment_question: fetch a new question for a domain
+    - record_inline_answer: record the user's answer to a previous question
+
+    For each tool call:
+    1. Parse the arguments
+    2. Dispatch to the appropriate service function
+    3. Build a tool response message with the result
+
+    Returns:
+        (tool_response_messages, function_calls_log)
+        - tool_response_messages: list of dicts for the follow-up OpenAI call
+        - function_calls_log: list of dicts recording what was called
+    """
+    from src.services.inline_assessment_service import get_question_for_domain, record_answer
+
+    tool_response_messages = []
+    function_calls_log = []
+
+    for tool_call in tool_calls:
+        tool_call_id = tool_call.id
+        fn_name = tool_call.function.name
+
+        try:
+            args = json.loads(tool_call.function.arguments)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Failed to parse {fn_name} arguments: {e}")
+            tool_response_messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call_id,
+                "content": json.dumps({
+                    "status": "error",
+                    "reason": "invalid_arguments",
+                }),
+            })
+            continue
+
+        if fn_name == "request_assessment_question":
+            result = _execute_request_assessment_question(
+                args, db_session, user_id, conversation_id
+            )
+        elif fn_name == "record_inline_answer":
+            result = _execute_record_inline_answer(
+                args, db_session, user_id, conversation_id
+            )
+        else:
+            logger.warning(f"Unknown assessment tool call: {fn_name}")
+            result = {
+                "status": "error",
+                "reason": "unknown_tool",
+                "message": f"Unknown tool: {fn_name}",
+            }
+
+        tool_response_messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call_id,
+            "content": json.dumps(result, ensure_ascii=False),
+        })
+        function_calls_log.append({
+            "function": fn_name,
+            "arguments": args,
+            "result_status": result.get("status"),
+        })
+
+    return tool_response_messages, function_calls_log
+
+
+def _execute_request_assessment_question(
+    args: dict,
+    db_session: Session,
+    user_id: str,
+    conversation_id: int,
+) -> dict:
+    """Execute a request_assessment_question tool call."""
+    from src.services.inline_assessment_service import get_question_for_domain
+
+    domain = args.get("domain", "")
+    subcategory = args.get("subcategory")
+    reasoning = args.get("reasoning", "")
+
+    logger.info(
+        f"  request_assessment_question: domain={domain}, "
+        f"subcategory={subcategory}, reasoning={reasoning}"
+    )
+
+    try:
+        result = get_question_for_domain(
+            db=db_session,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            domain=domain,
+            subcategory=subcategory,
+        )
+        logger.info(
+            f"  Assessment question result: status={result.get('status')}"
+        )
+        return result
+    except Exception as e:
+        logger.error(
+            f"Error calling get_question_for_domain: {e}", exc_info=True
+        )
+        return {
+            "status": "error",
+            "reason": "service_error",
+            "message": "Failed to retrieve assessment question",
+        }
+
+
+def _execute_record_inline_answer(
+    args: dict,
+    db_session: Session,
+    user_id: str,
+    conversation_id: int,
+) -> dict:
+    """
+    Execute a record_inline_answer tool call.
+
+    Parses question_id, answer_value, and optional reasoning from the AI's
+    tool call arguments, then delegates to record_answer() in the
+    inline_assessment_service.
+    """
+    from src.services.inline_assessment_service import record_answer
+
+    question_id = args.get("question_id")
+    answer_value = args.get("answer_value")
+    reasoning = args.get("reasoning", "")
+
+    logger.info(
+        f"  record_inline_answer: question_id={question_id}, "
+        f"answer_value={answer_value}, reasoning={reasoning}"
+    )
+
+    # Basic argument validation before calling the service
+    if question_id is None or answer_value is None:
+        logger.error(
+            "record_inline_answer missing required arguments: "
+            f"question_id={question_id}, answer_value={answer_value}"
+        )
+        return {
+            "status": "error",
+            "reason": "invalid_arguments",
+            "message": "question_id and answer_value are required",
+        }
+
+    # Coerce question_id and answer_value to int safely
+    # The AI may send strings like "15" or floats like 3.0
+    try:
+        question_id_int = int(question_id)
+    except (ValueError, TypeError):
+        logger.error(
+            f"record_inline_answer: non-numeric question_id={question_id!r}"
+        )
+        return {
+            "status": "error",
+            "reason": "invalid_arguments",
+            "message": "question_id must be a valid integer",
+        }
+
+    try:
+        answer_value_int = int(answer_value)
+    except (ValueError, TypeError):
+        logger.error(
+            f"record_inline_answer: non-numeric answer_value={answer_value!r}"
+        )
+        return {
+            "status": "error",
+            "reason": "invalid_arguments",
+            "message": "answer_value must be a valid integer",
+        }
+
+    # Build context dict with AI reasoning if provided
+    context = {}
+    if reasoning:
+        context["ai_reasoning"] = reasoning
+
+    try:
+        result = record_answer(
+            db=db_session,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            question_id=question_id_int,
+            answer_value=answer_value_int,
+            context=context if context else None,
+        )
+        logger.info(
+            f"  Record answer result: status={result.get('status')}, "
+            f"progress={result.get('progress', {}).get('total_answered', 'N/A')}"
+        )
+
+        # Log when report generation threshold is reached
+        progress = result.get("progress", {})
+        if progress.get("can_generate_report"):
+            logger.info(
+                f"  Report generation threshold reached for user={user_id} "
+                f"(total_answered={progress.get('total_answered')})"
+            )
+
+        return result
+    except Exception as e:
+        logger.error(
+            f"Error calling record_answer: {e}", exc_info=True
+        )
+        return {
+            "status": "error",
+            "reason": "service_error",
+            "message": "Failed to record answer",
+        }
 
 
 def _extract_module_recommendations(message, language: str):

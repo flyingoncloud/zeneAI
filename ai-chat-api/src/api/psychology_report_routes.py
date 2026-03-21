@@ -17,6 +17,7 @@ from datetime import datetime
 
 from src.database.database import get_db
 from src.database.psychology_models import PsychologyAssessment, PsychologyReport
+from src.database.inline_assessment_models import InlineAssessmentSummary
 from src.services.psychology.dominant_elements import identify_all_dominant_elements
 from src.services.psychology.analysis_generator import generate_all_analysis_texts
 from src.services.psychology.personality_classifier import classify_and_save_personality
@@ -708,3 +709,57 @@ async def list_user_reports(
     except Exception as e:
         logger.error(f"Error listing reports for user {user_id}: {e}", exc_info=True)
         return {'ok': False, 'reports': [], 'error': str(e)}
+
+
+@router.get("/inline-assessment/progress/{user_id}")
+async def get_inline_assessment_progress(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a user's inline assessment progress.
+
+    Returns the InlineAssessmentSummary data including total answered,
+    completion percentage, domains covered, and report generation eligibility.
+    """
+    try:
+        logger.info(f"Fetching inline assessment progress for user {user_id}")
+
+        summary = db.query(InlineAssessmentSummary).filter(
+            InlineAssessmentSummary.user_id == user_id
+        ).first()
+
+        if not summary:
+            return {
+                "ok": True,
+                "progress": {
+                    "total_answered": 0,
+                    "total_questions": 83,
+                    "completion_percentage": 0.0,
+                    "domains_covered": [],
+                    "domain_question_counts": {},
+                    "can_generate_report": False,
+                    "report_generated": False,
+                    "started_at": None,
+                    "last_updated_at": None
+                }
+            }
+
+        return {
+            "ok": True,
+            "progress": {
+                "total_answered": summary.total_answered,
+                "total_questions": summary.total_questions,
+                "completion_percentage": summary.completion_percentage,
+                "domains_covered": summary.domains_covered or [],
+                "domain_question_counts": summary.domain_question_counts or {},
+                "can_generate_report": summary.can_generate_report,
+                "report_generated": summary.report_generated,
+                "started_at": summary.started_at.isoformat() if summary.started_at else None,
+                "last_updated_at": summary.last_updated_at.isoformat() if summary.last_updated_at else None
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching inline assessment progress for user {user_id}: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)}

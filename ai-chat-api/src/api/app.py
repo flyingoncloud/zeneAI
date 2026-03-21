@@ -1532,6 +1532,36 @@ def start_questionnaire(
         # Format questions for response
         formatted_questions = []
         for q in questions:
+            # Compute domain code from questionnaire_id or sub_section
+            domain = None
+            if q.questionnaire_id and q.questionnaire_id.startswith('questionnaire_'):
+                # e.g. "questionnaire_2_1" → "2.1"
+                parts = q.questionnaire_id.replace('questionnaire_', '').split('_')
+                if len(parts) >= 2:
+                    domain = f"{parts[0]}.{parts[1]}"
+            if not domain and q.sub_section:
+                # e.g. "2.2.1" → "2.2"
+                ss_parts = q.sub_section.split('.')
+                if len(ss_parts) >= 2:
+                    domain = f"{ss_parts[0]}.{ss_parts[1]}"
+            if not domain and q.category:
+                # Map category names to domains
+                cat = q.category
+                if any(k in cat for k in ['情绪', 'Emotion']):
+                    domain = '2.1'
+                elif any(k in cat for k in ['认知', 'Managers', 'Firefighters', 'Exiles', 'Self Energy', '管理者', '消防员', '流亡者', '自性', '灾难', '非黑即白', '以偏概全', '心理过滤', '否定积极', '读心术', '预言家', '应该', '放大']):
+                    domain = '2.2'
+                elif any(k in cat for k in ['关系', 'Secure', 'Anxious', 'Avoidant', 'Disorganized', '安全型', '焦虑型', '回避型', '混乱型']):
+                    domain = '2.3'
+                elif any(k in cat for k in ['MBTI', '性格', '内在对话']):
+                    domain = '2.4'
+                elif any(k in cat for k in ['成长', 'Growth', '潜力']):
+                    domain = '2.5'
+            if not domain and q.dimension:
+                dim = q.dimension
+                if any(k in dim for k in ['洞察', '可塑', '韧性', 'Insight', 'Plasticity', 'Resilience']):
+                    domain = '2.5'
+
             question_dict = {
                 'id': q.id,
                 'question_number': q.question_number,
@@ -1539,6 +1569,9 @@ def start_questionnaire(
                 'subtitle': q.subtitle,
                 'template': q.template,
                 'category': q.category,
+                'sub_section': q.sub_section,
+                'questionnaire_id': q.questionnaire_id,
+                'domain': domain,
                 'options': q.options or [],
                 'mediaUrl': q.media_url,
                 'mediaType': q.media_type,
@@ -1546,10 +1579,30 @@ def start_questionnaire(
             }
             formatted_questions.append(question_dict)
 
+        # Build domain summary: total and answered per domain
+        domain_summary = {}
+        answered_questions = set()
+        if progress.answers:
+            answered_questions = set(int(k) for k in progress.answers.keys())
+
+        for fq in formatted_questions:
+            d = fq.get('domain')
+            if not d:
+                continue
+            if d not in domain_summary:
+                domain_summary[d] = {'total': 0, 'answered': 0}
+            domain_summary[d]['total'] += 1
+            if fq['question_number'] in answered_questions or (
+                progress.current_question_index is not None and
+                formatted_questions.index(fq) < progress.current_question_index
+            ):
+                domain_summary[d]['answered'] += 1
+
         return {
             'ok': True,
             'progress': progress.to_dict(),
             'questions': formatted_questions,
+            'domain_summary': domain_summary,
             'message': 'Questionnaire started' if progress.current_question_index == 0 else 'Resuming questionnaire'
         }
 
@@ -1618,6 +1671,78 @@ def save_questionnaire_answer(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error saving answer: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CompleteRequest(BaseModel):
+    progress_id: int
+
+
+@app.post("/api/questionnaire/complete")
+def complete_questionnaire(
+    request: CompleteRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Force-complete a questionnaire when all questions are answered.
+    Called by frontend when it detects all questions answered but backend
+    hasn't triggered completion (e.g., due to non-sequential answering).
+    """
+    try:
+        progress = db.query(UserQuestionnaireProgress).filter(
+            UserQuestionnaireProgress.id == request.progress_id
+        ).first()
+
+        if not progress:
+            raise HTTPException(status_code=404, detail="Progress not found")
+
+        if progress.status == 'completed' and progress.report_id:
+            return {'ok': True, 'report_id': progress.report_id, 'message': 'Already completed'}
+
+        # Verify all questions are answered
+        answers = progress.answers or {}
+        if len(answers) < progress.total_questions:
+            return {'ok': False, 'error': f'Only {len(answers)}/{progress.total_questions} answered'}
+
+        # Mark as completed
+        from datetime import datetime
+        progress.status = 'completed'
+        progress.completed_at = datetime.utcnow()
+        progress.current_question_index = progress.total_questions
+
+        # Generate report
+        report_id = QuestionnaireProgressService._generate_report(progress, db)
+        progress.report_id = report_id
+        db.commit()
+        db.refresh(progress)
+
+        # Trigger background report generation
+        if report_id:
+            from src.api.psychology_report_routes import generate_report_background
+            from src.database.psychology_models import PsychologyAssessment
+
+            assessment = db.query(PsychologyAssessment).filter(
+                PsychologyAssessment.user_id == progress.user_id,
+                PsychologyAssessment.assessment_type == 'questionnaire'
+            ).order_by(PsychologyAssessment.created_at.desc()).first()
+
+            if assessment:
+                logger.info(f"[Complete] Triggering report generation for report_id={report_id}")
+                background_tasks.add_task(
+                    generate_report_background,
+                    report_id=report_id,
+                    assessment_id=assessment.id,
+                    user_id=progress.user_id,
+                    language='zh'
+                )
+
+        return {'ok': True, 'report_id': report_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing questionnaire: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

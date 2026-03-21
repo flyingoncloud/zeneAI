@@ -79,7 +79,7 @@ export interface AnalyzeImageResponse {
  * Send a chat message to the backend
  * Uses guest ID from auth store for guest users, or authenticated user ID
  */
-function getUserIdFromAuth(): string | undefined {
+export function getUserIdFromAuth(): string | undefined {
   if (typeof window === 'undefined') return undefined;
 
   try {
@@ -581,6 +581,8 @@ export interface QuestionnaireDetail extends Questionnaire {
     category?: string | null;
     sub_section?: string | null;
     dimension?: string | null;
+    questionnaire_id?: string | null;
+    domain?: string | null;
     options?: QuestionOption[];
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
@@ -908,6 +910,7 @@ export interface StartQuestionnaireResponse {
     report_id?: number;
   };
   questions?: QuestionnaireDetail['questions'];
+  domain_summary?: Record<string, { total: number; answered: number }>;
   message?: string;
   error?: string;
 }
@@ -1484,5 +1487,65 @@ export async function getUserReports(userId: string): Promise<{
   } catch (error) {
     console.error('[API] Error fetching user reports:', error);
     return { ok: false, reports: [], error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+
+// ============================================================================
+// Inline Assessment API Methods
+// ============================================================================
+
+export interface InlineAssessmentProgress {
+  total_answered: number;
+  total_questions: number;
+  completion_percentage: number;
+  domains_covered: string[];
+  domain_question_counts: Record<string, number>;
+  can_generate_report: boolean;
+}
+
+export async function getInlineAssessmentProgress(userId: string): Promise<{
+  ok: boolean;
+  progress?: InlineAssessmentProgress;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/inline-assessment/progress/${userId}`);
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}` };
+    }
+    const data = await response.json();
+    return { ok: true, progress: data.progress };
+  } catch (error) {
+    console.error('[API] Error fetching inline assessment progress:', error);
+    return { ok: false, error: String(error) };
+  }
+}
+
+export async function recordInlineAnswer(
+  userId: string,
+  conversationId: number,
+  questionId: number,
+  answerValue: number
+): Promise<{ ok: boolean; progress?: InlineAssessmentProgress; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/psychology/inline-assessment/record-answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        conversation_id: conversationId,
+        question_id: questionId,
+        answer_value: answerValue,
+      }),
+    });
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}` };
+    }
+    const data = await response.json();
+    return { ok: true, progress: data.progress };
+  } catch (error) {
+    console.error('[API] Error recording inline answer:', error);
+    return { ok: false, error: String(error) };
   }
 }
