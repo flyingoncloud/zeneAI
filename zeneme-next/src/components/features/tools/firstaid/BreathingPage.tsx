@@ -19,7 +19,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
   const [waveCycleKey, setWaveCycleKey] = useState(0);
   // ✅ BGM audio
   const bgmRef = useRef<HTMLAudioElement | null>(null);
-
+  const bgmStartedRef = useRef(false);
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(60);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
@@ -50,12 +50,26 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = 0.35; // 你可以调小一点
+    audio.muted = true; // 默认静音播放
     bgmRef.current = audio;
+
+    const startPlayback = async () => {
+      try {
+        await audio.play();
+      } catch (e) {
+        console.error('[BGM] autoplay failed:', e);
+      }
+    };
+
+    startPlayback();
 
     return () => {
       audio.pause();
+      audio.currentTime = 0;
       bgmRef.current = null;
+      bgmStartedRef.current = false;
     };
+
   }, []);
   // Play breathing sound based on phase
   const playBreathingSound = (phase: 'inhale' | 'hold' | 'exhale') => {
@@ -313,11 +327,11 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
       <div className="w-full h-full relative z-10 overflow-y-auto">
         {/* ✅ 新增：用 flex 布局和最小高度 (min-h-[700px]) 来撑开页面 */}
         <div className="flex flex-col justify-between min-h-[700px] h-full">
-          
+
           {/* ✅ 顶部和主体内容区域 */}
           {/* 1. 给这个外层容器加上 relative，作为计时器的定位锚点 */}
           <div className="w-full px-6 md:px-12 pt-12 pb-8 flex-1 z-10 relative">
-            
+
             {/* 2. 新增：将计时器单独提取出来，用绝对定位和 Flexbox 占满这个区域并居中 */}
             <div className="absolute left-1/2 top-[80%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
               <div className="pointer-events-auto">
@@ -374,20 +388,35 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
                 onClick={async () => {
                   const next = !soundOn;
                   setSoundOn(next);
+
                   if (audioContextRef.current?.state === 'suspended') {
-                    try { await audioContextRef.current.resume(); } catch {}
+                    try {
+                      await audioContextRef.current.resume();
+                    } catch { }
                   }
+
                   const bgm = bgmRef.current;
                   if (!bgm) return;
-                  if (next) {
-                    try {
+
+                  try {
+                    // 确保音频一直在播
+                    if (bgm.paused) {
                       await bgm.play();
-                    } catch (e) {
-                      console.error('[BGM] play failed:', e);
-                      setSoundOn(false);
                     }
-                  } else {
-                    bgm.pause();
+
+                    // 只切换静音，不暂停
+                    bgm.muted = !next;
+                    console.log('[BGM status after toggle]', {
+                      soundOnNext: next,
+                      paused: bgm.paused,
+                      muted: bgm.muted,
+                      currentTime: bgm.currentTime,
+                      ended: bgm.ended,
+                      readyState: bgm.readyState,
+                    });
+                  } catch (e) {
+                    console.error('[BGM] toggle mute failed:', e);
+                    setSoundOn(false);
                   }
                 }}
                 className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white transition-colors backdrop-blur-md bg-white/10 rounded-full border border-white/5"
@@ -407,7 +436,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
               </button>
             </div>
           </div>
-          
+
         </div>
       </div>
 
