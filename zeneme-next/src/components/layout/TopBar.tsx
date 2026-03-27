@@ -25,7 +25,7 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <div className="w-full px-6 pt-6 pb-2 flex items-center bg-transparent shrink-0 min-w-0 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="w-full px-1 md:px-6 pt-3 pb-1 flex items-center bg-transparent shrink-0 min-w-0 animate-in fade-in slide-in-from-top-2 duration-300">
       <Button
         variant="ghost"
         onClick={handleBackToChat}

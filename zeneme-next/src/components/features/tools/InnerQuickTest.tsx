@@ -1078,7 +1078,7 @@ export const InnerQuickTest: React.FC = () => {
     <div className="flex flex-col h-full bg-transparent">
 
       {/* 修复点 1: 移除外层滚动容器的 justify-center，避免内容超长时顶部被吞掉无法滚动 */}
-      <div className="flex-1 flex flex-col items-center p-4 md:p-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center p-2 md:p-8 overflow-y-auto gap-5 md:gap-6">
 
         {/* Domain progress — separate section above the card */}
         <DomainProgressBar
@@ -1092,12 +1092,12 @@ export const InnerQuickTest: React.FC = () => {
         />
 
         {/* 卡片容器：利用 my-auto 替代 justify-center 实现安全居中 */}
-        <div className="w-full max-w-3xl space-y-4 md:space-y-6 backdrop-blur-xl px-5 py-6 md:px-10 md:py-8 lg:p-10 rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl my-auto relative">
+        <div className="w-full max-w-3xl space-y-3 md:space-y-6 backdrop-blur-xl px-4 py-4 md:px-10 md:py-8 lg:p-10 rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl mt-[8vh] md:my-auto relative">
 
           {/* --- 头部区域：题目文本 --- */}
-          <div className="space-y-4 text-left w-full">
-            <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug drop-shadow-lg">
-              <span className="text-sm font-normal text-slate-500 mr-1">{currentQuestion?.id}.</span>
+          <div className="space-y-3 text-left w-full">
+            <h3 className="text-lg md:text-3xl font-semibold text-white leading-snug drop-shadow-lg">
+              <span className="text-xs md:text-sm font-normal text-slate-500 mr-1">{currentQuestion?.id}.</span>
               {currentQuestion?.text}
             </h3>
 
@@ -1188,9 +1188,8 @@ export const InnerQuickTest: React.FC = () => {
                 </div>
               </div>
             ) : currentQuestion.template === 'F1' ? (
-              <div className="space-y-4 md:space-y-6 w-full">
-                {/* 修复点 2: 修正了 items-center 的拼写错误 */}
-                <div className="flex justify-center items-center gap-2 md:gap-4 w-full">
+              <div className="space-y-4 md:space-y-6 w-full flex flex-col items-center">
+                <div className="flex justify-between items-end w-full">
                   {[1, 2, 3, 4, 5].map((value, idx) => {
                     const sizeClasses = [
                       "w-[56px] h-[56px] md:w-[96px] md:h-[96px]",
@@ -1222,11 +1221,11 @@ export const InnerQuickTest: React.FC = () => {
                   })}
                 </div>
 
-                <div className="flex justify-between items-center w-full px-[2px] md:px-0">
-                  <div className="text-slate-300 font-medium text-xs md:text-sm text-center w-14 md:w-24">
+                <div className="flex justify-between items-start w-full">
+                  <div className="text-slate-300 font-medium text-[10px] md:text-sm whitespace-nowrap text-center" style={{ width: '56px' }}>
                     非常不同意
                   </div>
-                  <div className="text-slate-300 font-medium text-xs md:text-sm text-center w-14 md:w-24">
+                  <div className="text-slate-300 font-medium text-[10px] md:text-sm whitespace-nowrap text-center" style={{ width: '56px' }}>
                     非常同意
                   </div>
                 </div>

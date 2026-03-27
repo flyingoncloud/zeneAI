@@ -2,7 +2,7 @@ import React from 'react';
 import { useAdminStore, AdminView } from '../../hooks/useAdminStore';
 import {
   ClipboardList, Layers, Image as ImageIcon, Settings,
-  LogOut, ChevronLeft, Bell, Search
+  LogOut, ChevronLeft, Bell, Search, Menu, X
 } from 'lucide-react';
 import { QuestionsList } from './QuestionsList';
 import { QuestionEditor } from './QuestionEditor';
@@ -20,6 +20,9 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: React.ElementType }[] = [
 
 export const AdminLayout: React.FC = () => {
   const { currentView, setCurrentView, logout, questions } = useAdminStore();
+  const [sidebarOpen, setSidebarOpen] = React.useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
 
   const renderPage = () => {
     switch (currentView) {
@@ -46,7 +49,12 @@ export const AdminLayout: React.FC = () => {
   return (
     <div className="flex h-screen w-full bg-[#F7F8FC] text-[#111827] overflow-hidden">
       {/* Sidebar */}
-      <div className="w-[240px] bg-white border-r border-[#E6EAF2] flex flex-col shrink-0">
+      <div className={`
+        shrink-0 bg-white border-r border-[#E6EAF2] flex flex-col
+        transition-all duration-200 ease-out overflow-hidden
+        ${sidebarOpen ? 'w-[240px]' : 'w-0'}
+      `}>
+        <div className="w-[240px] h-full flex flex-col">
         {/* Brand */}
         <div className="px-5 py-6 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6D28D9] to-indigo-600 flex items-center justify-center shadow-lg shadow-[rgba(109,40,217,0.15)] shrink-0">
@@ -65,7 +73,7 @@ export const AdminLayout: React.FC = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => setCurrentView(item.id)}
+                onClick={() => { setCurrentView(item.id); setSidebarOpen(false); }}
                 className={`w-full h-10 px-3 rounded-xl flex items-center gap-3 text-sm transition-all cursor-pointer relative ${
                   isActive
                     ? 'bg-[rgba(109,40,217,0.08)] text-[#111827] border border-[rgba(109,40,217,0.18)] shadow-[0_1px_3px_rgba(109,40,217,0.06)]'
@@ -100,13 +108,21 @@ export const AdminLayout: React.FC = () => {
             <LogOut size={16} /> 退出登录
           </button>
         </div>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <div className="h-14 shrink-0 border-b border-[#E6EAF2] bg-white flex items-center justify-between px-6">
+        <div className="h-14 shrink-0 border-b border-[#E6EAF2] bg-white flex items-center justify-between px-3 md:px-6">
           <div className="flex items-center gap-3">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="w-8 h-8 rounded-lg hover:bg-[#F3F5FA] flex items-center justify-center text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer"
+            >
+              <Menu size={18} />
+            </button>
             {currentView === 'editor' && (
               <button onClick={() => setCurrentView('questions')} className="w-7 h-7 rounded-lg hover:bg-[#F3F5FA] flex items-center justify-center text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer">
                 <ChevronLeft size={18} />
@@ -115,7 +131,7 @@ export const AdminLayout: React.FC = () => {
             <span className="text-sm text-[#4B5563]">{getPageTitle()}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
               <input
                 placeholder="全局搜索…"
@@ -130,7 +146,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           {renderPage()}
         </div>
       </div>
