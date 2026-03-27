@@ -90,6 +90,7 @@ interface AdminContextType {
   questions: AdminQuestion[];
   addQuestion: (template: TemplateType) => AdminQuestion;
   updateQuestion: (id: number, updates: Partial<AdminQuestion>) => void;
+  togglePublishQuestion: (id: number) => Promise<void>;
   deleteQuestion: (id: number) => void;
   duplicateQuestion: (id: number) => AdminQuestion | null;
   getNextAvailableId: () => number;
@@ -276,6 +277,25 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updates, updatedAt: new Date().toISOString().slice(0, 10) } : q));
   }, []);
 
+  const togglePublishQuestion = useCallback(async (id: number) => {
+    const question = questions.find(q => q.id === id);
+    if (!question) return;
+
+    const newStatus = question.status === 'published' ? 'draft' : 'published';
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/questions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      setQuestions(prev => prev.map(q => q.id === id ? { ...q, status: newStatus, updatedAt: new Date().toISOString().slice(0, 10) } : q));
+    } catch (error) {
+      console.error('Toggle publish failed:', error);
+      throw error;
+    }
+  }, [questions]);
+
   const deleteQuestion = useCallback(async (id: number) => {
     try {
       // Call backend API to delete the question
@@ -377,12 +397,12 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const value = useMemo(() => ({
     isLoggedIn, login, logout,
     currentView, setCurrentView,
-    questions, addQuestion, updateQuestion, deleteQuestion, duplicateQuestion, getNextAvailableId, canAddQuestion,
+    questions, addQuestion, updateQuestion, togglePublishQuestion, deleteQuestion, duplicateQuestion, getNextAvailableId, canAddQuestion,
     editingQuestionId, setEditingQuestionId,
     sortMode, setSortMode, reorderQuestion,
     mediaItems, addMediaItem, removeMediaItem, reloadMediaItems, reloadQuestions, publishLogs,
     isTemplatePickerOpen, setTemplatePickerOpen,
-  }), [isLoggedIn, login, logout, currentView, questions, addQuestion, updateQuestion, deleteQuestion, duplicateQuestion, getNextAvailableId, canAddQuestion, editingQuestionId, sortMode, mediaItems, addMediaItem, removeMediaItem, reloadMediaItems, reloadQuestions, publishLogs, isTemplatePickerOpen, reorderQuestion]);
+  }), [isLoggedIn, login, logout, currentView, questions, addQuestion, updateQuestion, togglePublishQuestion, deleteQuestion, duplicateQuestion, getNextAvailableId, canAddQuestion, editingQuestionId, sortMode, mediaItems, addMediaItem, removeMediaItem, reloadMediaItems, reloadQuestions, publishLogs, isTemplatePickerOpen, reorderQuestion]);
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 };

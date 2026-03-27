@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAdminStore, TemplateType, TEMPLATE_INFO } from '@/hooks/useAdminStore';
 import {
   Search, Plus, Filter, GripVertical, Edit3, Copy, Trash2, ChevronDown,
-  AlertTriangle, X, ArrowUpDown
+  AlertTriangle, X, ArrowUpDown, EyeOff, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,12 +10,33 @@ export const QuestionsList: React.FC = () => {
   const {
     questions, deleteQuestion, duplicateQuestion, canAddQuestion,
     setEditingQuestionId, setCurrentView, setTemplatePickerOpen,
-    sortMode, setSortMode,
+    sortMode, setSortMode, togglePublishQuestion, editingQuestionId,
+    currentView,
   } = useAdminStore();
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hasScrolledRef = useRef(false);
+
+  // Scroll to last edited question when the list view mounts/becomes visible
+  useEffect(() => {
+    if (currentView === 'questions' && editingQuestionId && !hasScrolledRef.current) {
+      hasScrolledRef.current = true;
+      setTimeout(() => {
+        const row = scrollContainerRef.current?.querySelector(`[data-question-id="${editingQuestionId}"]`);
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+    }
+    if (currentView !== 'questions') {
+      hasScrolledRef.current = false;
+    }
+  }, [currentView, editingQuestionId]);
 
   const [search, setSearch] = useState('');
   const [filterTemplate, setFilterTemplate] = useState<TemplateType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'published'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [toast, setToast] = useState('');
@@ -28,10 +49,11 @@ export const QuestionsList: React.FC = () => {
     }
     if (filterTemplate !== 'all') list = list.filter(q => q.template === filterTemplate);
     if (filterStatus !== 'all') list = list.filter(q => q.status === filterStatus);
+    if (filterCategory !== 'all') list = list.filter(q => (q.category || '') === filterCategory);
     if (sortMode === 'id') list.sort((a, b) => a.id - b.id);
     else list.sort((a, b) => a.order - b.order);
     return list;
-  }, [questions, search, filterTemplate, filterStatus, sortMode]);
+  }, [questions, search, filterTemplate, filterStatus, filterCategory, sortMode]);
 
   const handleEdit = (id: number) => {
     setEditingQuestionId(id);
@@ -156,19 +178,6 @@ export const QuestionsList: React.FC = () => {
             >
               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#E6EAF2]">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#6B7280]">模板:</span>
-                  {(['all', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setFilterTemplate(f)}
-                      className={`px-2 py-1 rounded-md text-xs transition-colors cursor-pointer ${filterTemplate === f ? 'bg-[rgba(109,40,217,0.08)] text-[#6D28D9] border border-[rgba(109,40,217,0.28)]' : 'text-[#6B7280] hover:text-[#111827] border border-transparent'}`}
-                    >
-                      {f === 'all' ? '全部' : f}
-                    </button>
-                  ))}
-                </div>
-                <div className="w-px h-5 bg-[#E6EAF2]" />
-                <div className="flex items-center gap-2">
                   <span className="text-xs text-[#6B7280]">状态:</span>
                   {(['all', 'draft', 'published'] as const).map(s => (
                     <button
@@ -180,6 +189,20 @@ export const QuestionsList: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                <div className="w-px h-5 bg-[#E6EAF2]" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-[#6B7280]">类别:</span>
+                  <select
+                    value={filterCategory}
+                    onChange={e => setFilterCategory(e.target.value)}
+                    className="h-8 px-3 bg-white border border-[#E6EAF2] rounded-lg text-xs text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all cursor-pointer"
+                  >
+                    <option value="all">全部</option>
+                    {Array.from(new Set(questions.map(q => q.category).filter(Boolean))).sort().map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </motion.div>
           )}
@@ -187,7 +210,7 @@ export const QuestionsList: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6" ref={scrollContainerRef}>
         <div className="bg-white border border-[#E6EAF2] rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
           {/* Table Header */}
           <div className="grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-2.5 text-xs text-[#6B7280] uppercase tracking-wider border-b border-[#E6EAF2] bg-[#F3F5FA]">
@@ -213,7 +236,8 @@ export const QuestionsList: React.FC = () => {
               {filtered.map((q) => (
                 <div
                   key={q.id}
-                  className="grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-3.5 items-center group hover:bg-[#EEF2FF] transition-colors cursor-pointer"
+                  data-question-id={q.id}
+                  className={`grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-3.5 items-center group hover:bg-[#EEF2FF] transition-colors cursor-pointer ${editingQuestionId === q.id ? 'bg-[#EEF2FF] ring-1 ring-[#6D28D9]/20' : ''}`}
                   onClick={() => handleEdit(q.id)}
                 >
                   {/* Drag */}
@@ -279,6 +303,26 @@ export const QuestionsList: React.FC = () => {
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await togglePublishQuestion(q.id);
+                          setToast(q.status === 'published' ? `Q${q.id} 已取消发布` : `Q${q.id} 已发布`);
+                          setTimeout(() => setToast(''), 2500);
+                        } catch {
+                          setToast('操作失败，请重试');
+                          setTimeout(() => setToast(''), 2500);
+                        }
+                      }}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                        q.status === 'published'
+                          ? 'hover:bg-[rgba(245,158,11,0.08)] text-[#6B7280] hover:text-[#F59E0B]'
+                          : 'hover:bg-[rgba(22,163,74,0.08)] text-[#6B7280] hover:text-[#16A34A]'
+                      }`}
+                      title={q.status === 'published' ? '取消发布' : '发布'}
+                    >
+                      {q.status === 'published' ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
                     <button onClick={() => handleEdit(q.id)} className="w-7 h-7 rounded-lg hover:bg-[rgba(109,40,217,0.08)] flex items-center justify-center text-[#6B7280] hover:text-[#6D28D9] transition-colors cursor-pointer" title="编辑">
                       <Edit3 size={14} />
                     </button>

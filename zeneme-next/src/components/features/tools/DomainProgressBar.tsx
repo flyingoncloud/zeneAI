@@ -15,11 +15,9 @@ const TOTAL_WEIGHT = DOMAINS.reduce((s, d) => s + d.weight, 0);
 interface DomainProgressBarProps {
   totalQuestions: number;
   currentIndex: number;
-  /** Highest question index reached (doesn't decrease when jumping back) */
   highWaterMark: number;
   currentDomain?: string | null;
   domainSummary: Record<string, { total: number; answered: number }>;
-  /** Set of answered question indices — used for accurate per-domain counts in fallback mode */
   answeredIndices: Set<number>;
   onDomainSelect?: (domainCode: string) => void;
 }
@@ -27,16 +25,13 @@ interface DomainProgressBarProps {
 export const DomainProgressBar: React.FC<DomainProgressBarProps> = ({
   totalQuestions,
   currentIndex,
-  highWaterMark,
   currentDomain,
   domainSummary,
   answeredIndices,
   onDomainSelect,
 }) => {
-  // Check if backend provided real domain data
   const hasBackendData = Object.values(domainSummary).some((s) => s.total > 0);
 
-  // Fallback: compute sequential ranges from weights scaled to totalQuestions
   const fallback = useMemo(() => {
     const ranges: Array<{ start: number; end: number; total: number }> = [];
     let cursor = 0;
@@ -48,7 +43,6 @@ export const DomainProgressBar: React.FC<DomainProgressBarProps> = ({
     return ranges;
   }, [totalQuestions]);
 
-  // Compute per-domain answered counts from answeredIndices + fallback ranges
   const fallbackDomainAnswered = useMemo(() => {
     const counts: number[] = [];
     for (const range of fallback) {
@@ -61,122 +55,61 @@ export const DomainProgressBar: React.FC<DomainProgressBarProps> = ({
     return counts;
   }, [fallback, answeredIndices]);
 
+  // Compute per-domain data for rendering
+  const domainData = useMemo(() => {
+    return DOMAINS.map((d, idx) => {
+      const bs = domainSummary[d.code];
+      const fb = fallback[idx];
+      const total = hasBackendData ? (bs?.total ?? 0) : fb.total;
+      const answered = hasBackendData ? (bs?.answered ?? 0) : fallbackDomainAnswered[idx];
+      const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+      const active = hasBackendData
+        ? currentDomain === d.code
+        : (currentIndex >= fb.start && currentIndex < fb.end);
+      return { ...d, total, answered, pct, active, fb };
+    }).filter(d => d.total > 0);
+  }, [hasBackendData, domainSummary, fallback, fallbackDomainAnswered, currentDomain, currentIndex]);
+
+  const overallAnswered = hasBackendData
+    ? Object.values(domainSummary).reduce((s, v) => s + v.answered, 0)
+    : fallbackDomainAnswered.reduce((s, v) => s + v, 0);
+  const overallPct = totalQuestions > 0 ? Math.round((overallAnswered / totalQuestions) * 100) : 0;
+
+  const base = hasBackendData
+    ? Object.values(domainSummary).reduce((s, v) => s + v.total, 0)
+    : totalQuestions;
+
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-5 text-center">
+    <div className="w-full max-w-3xl mx-auto space-y-3 text-center">
       {/* Header */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase text-emerald-400/80">
-          内 视 快 测
-        </p>
+      <div className="space-y-1">
         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-wide">
           五维心理评估
         </h2>
         <p className="text-sm text-slate-400">
           探索你在五大心理维度上的内在模式
         </p>
+        <div className="flex items-baseline justify-between px-1">
+          <span className="text-xs text-slate-500">{overallAnswered}/{totalQuestions}</span>
+          <span className="text-xs text-slate-500">{overallPct}%完成</span>
+        </div>
       </div>
-
-      {/* Counter: domain-specific + overall */}
-      {(() => {
-        // Determine active domain — from backend or fallback ranges
-        let activeDomainCode = currentDomain;
-        if (!activeDomainCode) {
-          for (let i = 0; i < DOMAINS.length; i++) {
-            const r = fallback[i];
-            if (r.total > 0 && currentIndex >= r.start && currentIndex < r.end) {
-              activeDomainCode = DOMAINS[i].code;
-              break;
-            }
-          }
-        }
-
-        const activeMeta = DOMAINS.find((d) => d.code === activeDomainCode);
-        const activeIdx = DOMAINS.findIndex((d) => d.code === activeDomainCode);
-        const bs = activeDomainCode ? domainSummary[activeDomainCode] : null;
-        const fb = fallback[activeIdx >= 0 ? activeIdx : 0];
-
-        const dTotal = hasBackendData ? (bs?.total ?? 0) : fb?.total ?? 0;
-        const dAnswered = hasBackendData
-          ? (bs?.answered ?? 0)
-          : (activeIdx >= 0 ? fallbackDomainAnswered[activeIdx] : 0);
-        const dPct = dTotal > 0 ? Math.round((dAnswered / dTotal) * 100) : 0;
-
-        const overallAnswered = hasBackendData
-          ? Object.values(domainSummary).reduce((s, v) => s + v.answered, 0)
-          : fallbackDomainAnswered.reduce((s, v) => s + v, 0);
-        const overallPct = totalQuestions > 0 ? Math.round((overallAnswered / totalQuestions) * 100) : 0;
-
-        return (
-          <div className="px-1 space-y-1">
-            {/* Active domain progress */}
-            {activeMeta && dTotal > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: activeMeta.color }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: activeMeta.color }}>
-                    {activeMeta.label}
-                  </span>
-                  <span className="text-sm text-slate-400">
-                    {dAnswered}/{dTotal}
-                  </span>
-                </div>
-                <span className="text-sm" style={{ color: activeMeta.color }}>
-                  {dPct}%
-                </span>
-              </div>
-            )}
-            {/* Overall progress */}
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-xs text-slate-500">总进度 </span>
-                <span className="text-xs text-slate-400">{overallAnswered}/{totalQuestions}</span>
-              </div>
-              <span className="text-xs text-slate-500">{overallPct}% complete</span>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Segmented bar */}
       <div className="flex gap-[3px] w-full items-center">
-        {DOMAINS.map((d, idx) => {
-          const bs = domainSummary[d.code];
-          const fb = fallback[idx];
-
-          const domainTotal = hasBackendData ? (bs?.total ?? 0) : fb.total;
-          if (domainTotal === 0) return null;
-
-          const base = hasBackendData
-            ? Object.values(domainSummary).reduce((s, v) => s + v.total, 0)
-            : totalQuestions;
-          const w = base > 0 ? (domainTotal / base) * 100 : 0;
-
-          // Fill calculation
-          let fill: number;
-          if (hasBackendData) {
-            fill = domainTotal > 0 ? ((bs?.answered ?? 0) / domainTotal) * 100 : 0;
-          } else {
-            // Use actual answered count per domain range
-            fill = domainTotal > 0 ? (fallbackDomainAnswered[idx] / domainTotal) * 100 : 0;
-          }
-
-          const active = hasBackendData
-            ? currentDomain === d.code
-            : (currentIndex >= fb.start && currentIndex < fb.end);
-
+        {domainData.map((d) => {
+          const w = base > 0 ? (d.total / base) * 100 : 0;
+          const fill = d.total > 0 ? (d.answered / d.total) * 100 : 0;
           return (
             <button
               type="button"
               key={d.code}
               onClick={() => onDomainSelect?.(d.code)}
-              aria-label={`跳转到${d.label}领域`}
+              aria-label={`${d.label} ${d.answered}/${d.total}`}
               className="relative rounded-full overflow-hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all"
               style={{
                 width: `${w}%`,
-                height: active ? '10px' : '7px',
+                height: d.active ? '10px' : '7px',
                 backgroundColor: 'rgba(255,255,255,0.06)',
                 transition: 'height 0.3s ease',
               }}
@@ -186,7 +119,7 @@ export const DomainProgressBar: React.FC<DomainProgressBarProps> = ({
                 style={{
                   width: `${fill}%`,
                   backgroundColor: d.color,
-                  boxShadow: active ? `0 0 12px ${d.color}` : 'none',
+                  boxShadow: d.active ? `0 0 12px ${d.color}` : 'none',
                   transition: 'width 0.5s ease-out, box-shadow 0.3s ease',
                 }}
               />
@@ -195,36 +128,27 @@ export const DomainProgressBar: React.FC<DomainProgressBarProps> = ({
         })}
       </div>
 
-      {/* Labels */}
+      {/* Labels with inline progress for active domain */}
       <div className="flex gap-[3px] w-full">
-        {DOMAINS.map((d, idx) => {
-          const bs = domainSummary[d.code];
-          const fb = fallback[idx];
-
-          const domainTotal = hasBackendData ? (bs?.total ?? 0) : fb.total;
-          if (domainTotal === 0) return null;
-
-          const base = hasBackendData
-            ? Object.values(domainSummary).reduce((s, v) => s + v.total, 0)
-            : totalQuestions;
-          const w = base > 0 ? (domainTotal / base) * 100 : 0;
-
-          const active = hasBackendData
-            ? currentDomain === d.code
-            : (currentIndex >= fb.start && currentIndex < fb.end);
-
+        {domainData.map((d) => {
+          const w = base > 0 ? (d.total / base) * 100 : 0;
           return (
             <div key={d.code} className="text-center truncate" style={{ width: `${w}%` }}>
               <button
                 type="button"
                 onClick={() => onDomainSelect?.(d.code)}
-                className="text-[11px] font-semibold cursor-pointer hover:opacity-80 transition-all"
+                className="text-[11px] font-semibold cursor-pointer hover:opacity-80 transition-all leading-tight"
                 style={{
-                  color: active ? d.color : 'rgba(148,163,184,0.4)',
+                  color: d.active ? d.color : 'rgba(148,163,184,0.4)',
                   transition: 'color 0.3s ease',
                 }}
               >
                 {d.label}
+                {d.active && (
+                  <span className="block text-[9px] font-normal opacity-70">
+                    {d.answered}/{d.total} {d.pct}%
+                  </span>
+                )}
               </button>
             </div>
           );

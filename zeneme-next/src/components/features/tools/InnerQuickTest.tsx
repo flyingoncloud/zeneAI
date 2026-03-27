@@ -82,6 +82,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8010';
 export const InnerQuickTest: React.FC = () => {
   const { t, conversationId, sessionId, setSessionId, setConversationId, setModuleStatus, setCurrentView, setPendingModuleCompletion, addMessage, setExitAction, clearExitAction, viewingReportId, setViewingReportId } = useZenemeStore();
 
+  // Persist debug flag from URL to sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === 'true') {
+      window.sessionStorage.setItem('debug', 'true');
+    }
+  }, []);
+
   // Reusable function to handle returning to conversation after completion
   const handleReturnToConversation = () => {
     const isActuallyCompleted = submissionState === 'success';
@@ -1090,6 +1097,7 @@ export const InnerQuickTest: React.FC = () => {
           {/* --- 头部区域：题目文本 --- */}
           <div className="space-y-4 text-left w-full">
             <h3 className="text-2xl md:text-3xl font-semibold text-white leading-snug drop-shadow-lg">
+              <span className="text-sm font-normal text-slate-500 mr-1">{currentQuestion?.id}.</span>
               {currentQuestion?.text}
             </h3>
 

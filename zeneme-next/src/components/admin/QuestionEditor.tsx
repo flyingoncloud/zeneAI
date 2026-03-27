@@ -186,7 +186,7 @@ export const QuestionEditor: React.FC = () => {
   };
 
   const handleBack = () => {
-    setEditingQuestionId(null);
+    // Don't clear editingQuestionId — the list uses it to scroll to the edited question
     setCurrentView('questions');
   };
 
