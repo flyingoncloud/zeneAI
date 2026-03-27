@@ -235,7 +235,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
           login(result.user);
           toast.success('Google 登录成功！');
         } else {
-          toast.error(result.error || '登录失败');
+          toast.error('登录失败');
         }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '登录失败');
