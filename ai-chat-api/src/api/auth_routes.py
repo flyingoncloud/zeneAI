@@ -740,42 +740,69 @@ async def social_login(
 ):
     """
     Login with social provider (Google, WeChat)
-
-    This is a placeholder implementation. In production:
-    - For Google: Verify token with Google OAuth API
-    - For WeChat: Verify token with WeChat API
+    For Google: verifies access token with Google userinfo API
     """
     try:
-        # TODO: Verify token with provider
-        # For now, accept any token for demo purposes
-
         if request.provider not in ['google', 'wechat']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Unsupported provider"
             )
 
-        # Extract user info from token (in production, get from provider API)
-        user_info = request.user_info or {}
-        email = user_info.get('email', f"{request.provider}_{request.token[:8]}@example.com")
-        name = user_info.get('name', f"{request.provider.title()} User")
+        if request.provider == 'google':
+            # Verify Google access token by fetching user info
+            import httpx
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {request.token}'}
+                )
+                if resp.status_code != 200:
+                    logger.error(f"[Auth] Google token verification failed: {resp.status_code} {resp.text}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid Google token"
+                    )
+                google_user = resp.json()
 
-        # Create or get user
-        user_id = f"{request.provider}_{hashlib.md5(email.encode()).hexdigest()}"
-        user_data = {
-            'user_id': user_id,
-            'username': name,
-            'email': email,
-            'auth_provider': request.provider,
-            'provider_id': email,
-        }
+            email = google_user.get('email', '')
+            name = google_user.get('name', 'Google User')
+            avatar = google_user.get('picture', '')
+            google_sub = google_user.get('sub', '')
+
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Google account has no email"
+                )
+
+            user_id = f"google_{hashlib.md5(email.encode()).hexdigest()}"
+            user_data = {
+                'user_id': user_id,
+                'username': name,
+                'email': email,
+                'avatar_url': avatar,
+                'auth_provider': 'google',
+                'provider_id': google_sub or email,
+            }
+        else:
+            # WeChat — placeholder
+            user_info = request.user_info or {}
+            email = user_info.get('email', f"wechat_{request.token[:8]}@placeholder.com")
+            name = user_info.get('name', 'WeChat User')
+            user_id = f"wechat_{hashlib.md5(email.encode()).hexdigest()}"
+            user_data = {
+                'user_id': user_id,
+                'username': name,
+                'email': email,
+                'auth_provider': 'wechat',
+                'provider_id': email,
+            }
 
         user = create_or_update_user(db, user_data)
-
-        # Generate token
         token = generate_token()
 
-        logger.info(f"[Auth] Social login successful for {request.provider}: {email}")
+        logger.info(f"[Auth] Social login successful for {request.provider}: {user_data.get('email')}")
 
         return AuthResponse(
             success=True,

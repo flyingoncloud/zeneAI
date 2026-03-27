@@ -5,6 +5,7 @@ import { useZenemeStore } from '@/hooks/useZenemeStore';
 import { motion } from 'motion/react';
 import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGoogleLogin } from '@react-oauth/google';
 import {
   sendPhoneVerificationCode,
   loginWithPhone,
@@ -212,32 +213,40 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'wechat') => {
-    try {
-      setIsLoading(true);
-
-      // For demo purposes, generate a mock token
-      // In production, this would come from OAuth flow
-      const mockToken = `${provider}_token_${Date.now()}`;
-
-      const result = await loginWithSocial({
-        provider,
-        token: mockToken,
-        user_info: {
-          name: `${provider === 'google' ? 'Google' : '微信'} User`,
-          email: `${provider}user@example.com`
-        }
-      });
-
-      if (result.success && result.user) {
-        login(result.user);
-        toast.success('登录成功！');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '登录失败');
-    } finally {
-      setIsLoading(false);
+    if (provider === 'wechat') {
+      toast.info('微信登录即将上线，敬请期待');
+      return;
     }
+    // Google login is handled by the useGoogleLogin hook below
   };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setIsLoading(true);
+        // Send the access token to our backend for verification
+        const result = await loginWithSocial({
+          provider: 'google',
+          token: tokenResponse.access_token,
+          user_info: {},
+        });
+
+        if (result.success && result.user) {
+          login(result.user);
+          toast.success('Google 登录成功！');
+        } else {
+          toast.error(result.error || '登录失败');
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '登录失败');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error('Google 登录失败，请重试');
+    },
+  });
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen w-full relative z-20 px-6 py-8 overflow-y-auto bg-gradient-to-b from-purple-700 via-purple-600 to-pink-500">
@@ -275,7 +284,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleSocialLogin('google')}
+              onClick={() => googleLogin()}
+              disabled={isLoading}
               className="w-full h-11 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white transition-all"
             >
               Continue with Google
