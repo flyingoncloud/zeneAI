@@ -5,6 +5,7 @@ import {
   AlertTriangle, X, ArrowUpDown, EyeOff, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { QuestionPreview } from './QuestionPreview';
 
 export const QuestionsList: React.FC = () => {
   const {
@@ -39,6 +40,7 @@ export const QuestionsList: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState('');
 
   const filtered = useMemo(() => {
@@ -124,6 +126,12 @@ export const QuestionsList: React.FC = () => {
               <span className="text-[#111827]">{questions.length}</span>
               <span className="text-[#9CA3AF]"> / 80</span>
             </span>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="h-9 px-4 rounded-xl border border-[#E6EAF2] text-sm text-[#4B5563] hover:text-[#6D28D9] hover:border-[#6D28D9]/30 hover:bg-[rgba(109,40,217,0.04)] flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Eye size={16} /> 预览
+            </button>
             <button
               onClick={() => setTemplatePickerOpen(true)}
               disabled={!canAddQuestion}
@@ -382,6 +390,9 @@ export const QuestionsList: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Full Questionnaire Preview */}
+      <QuestionPreview isOpen={showPreview} onClose={() => setShowPreview(false)} />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryPicker } from './CategoryPicker';
+import { QuestionPreview } from './QuestionPreview';
 import { getCategoryLabel } from '@/data/categoryHierarchy';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -18,6 +19,7 @@ export const QuestionEditor: React.FC = () => {
   const question = useMemo(() => questions.find(q => q.id === editingQuestionId), [questions, editingQuestionId]);
 
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [mediaPickerTarget, setMediaPickerTarget] = useState<'stem' | { type: 'option', index: number } | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -86,9 +88,12 @@ export const QuestionEditor: React.FC = () => {
         template: question.template,
         stem,
         subtitle: subtitle || undefined,
-        category: category || undefined,  // NEW: Include category
+        category: category || undefined,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        options,
+        options: options.map(o => ({
+          ...o,
+          sub_category: o.sub_category || null,  // Preserve sub_category in JSON
+        })),
         mediaUrl: mediaUrl || undefined,
         mediaType: mediaUrl ? mediaType : undefined,
         templateSettings,
@@ -245,7 +250,7 @@ export const QuestionEditor: React.FC = () => {
   };
 
   const updateOption = (idx: number, field: keyof AdminOption, value: any) => {
-    setOptions(options.map((o, i) => i === idx ? { ...o, [field]: value } : o));
+    setOptions(prev => prev.map((o, i) => i === idx ? { ...o, [field]: value } : o));
   };
 
   const templateInfo = TEMPLATE_INFO[question.template];
@@ -276,6 +281,12 @@ export const QuestionEditor: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowPreview(true)}
+            className="h-9 px-4 rounded-xl border border-[#E6EAF2] text-sm text-[#6B7280] hover:bg-[#F3F5FA] flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Eye size={14} /> 预览
+          </button>
           <button onClick={handleSaveDraft} disabled={saving} className="h-9 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white flex items-center gap-2 disabled:opacity-40 transition-colors cursor-pointer shadow-sm">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 保存草稿
           </button>
@@ -522,7 +533,7 @@ export const QuestionEditor: React.FC = () => {
                             onClick={() => openCategoryPicker({ type: 'option', index: idx })}
                             className="flex-1 h-7 px-2 bg-white border border-[#E6EAF2] rounded-md text-xs hover:border-violet-500/40 transition-colors text-left flex items-center justify-between"
                           >
-                            <span className={opt.sub_category ? 'text-white' : 'text-slate-600'}>
+                            <span className={opt.sub_category ? 'text-violet-600 font-medium' : 'text-slate-400'}>
                               {opt.sub_category ? getCategoryLabel(opt.sub_category) : '-- 使用题目类别 --'}
                             </span>
                             <FolderOpen size={10} className="text-slate-500" />
@@ -734,6 +745,12 @@ export const QuestionEditor: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Question Preview Modal */}
+      <QuestionPreview
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+      />
 
       {/* Media Picker Modal - Rendered via Portal */}
       {typeof window !== 'undefined' && showMediaPicker && createPortal(

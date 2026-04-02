@@ -111,13 +111,9 @@ export function CategoryPicker({
       <div key={node.code}>
         <button
           onClick={() => {
-            if (hasChildren) {
-              toggleNode(node.code);
-            } else {
-              // Only leaf nodes can be selected
-              onSelect(node.code);
-              onClose();
-            }
+            // Select this node (any level)
+            onSelect(node.code);
+            onClose();
           }}
           className={`
             w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center gap-2

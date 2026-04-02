@@ -1097,9 +1097,22 @@ export const InnerQuickTest: React.FC = () => {
           {/* --- 头部区域：题目文本 --- */}
           <div className="space-y-3 text-left w-full">
             <h3 className="text-lg md:text-3xl font-semibold text-white leading-snug drop-shadow-lg">
-              <span className="text-xs md:text-sm font-normal text-slate-500 mr-1">{currentQuestion?.id}.</span>
+              {typeof window !== 'undefined' && (
+                window.sessionStorage.getItem('debug') === 'true' ||
+                new URLSearchParams(window.location.search).get('debug') === 'true'
+              ) && (
+                <span className="text-xs md:text-sm font-normal text-slate-500 mr-1">{(currentQuestion as any)?.question_number || currentQuestion?.id}.</span>
+              )}
               {currentQuestion?.text}
             </h3>
+            {currentQuestion?.category && typeof window !== 'undefined' && (
+              window.sessionStorage.getItem('debug') === 'true' ||
+              new URLSearchParams(window.location.search).get('debug') === 'true'
+            ) && (
+              <span className="inline-block text-[10px] text-violet-300/60 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-md mt-1">
+                {currentQuestion.category}
+              </span>
+            )}
 
             {currentQuestion?.subtitle && (
               <p className="text-sm text-slate-300 mt-2">
