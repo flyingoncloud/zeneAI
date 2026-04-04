@@ -4,6 +4,7 @@ import {
   Search, Plus, Filter, GripVertical, Edit3, Copy, Trash2, ChevronDown,
   AlertTriangle, X, ArrowUpDown, EyeOff, Eye
 } from 'lucide-react';
+import { getCategoryLabel } from '@/data/categoryHierarchy';
 import { motion, AnimatePresence } from 'motion/react';
 import { QuestionPreview } from './QuestionPreview';
 
@@ -115,7 +116,7 @@ export const QuestionsList: React.FC = () => {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="shrink-0 px-6 pt-6 pb-4">
+      <div className="shrink-0 px-3 md:px-6 pt-4 md:pt-6 pb-4">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl text-[#111827]">题库管理</h1>
@@ -206,8 +207,8 @@ export const QuestionsList: React.FC = () => {
                     className="h-8 px-3 bg-white border border-[#E6EAF2] rounded-lg text-xs text-[#111827] focus:outline-none focus:border-[#6D28D9] focus:shadow-[0_0_0_3px_rgba(109,40,217,0.25)] transition-all cursor-pointer"
                   >
                     <option value="all">全部</option>
-                    {Array.from(new Set(questions.map(q => q.category).filter(Boolean))).sort().map(c => (
-                      <option key={c} value={c}>{c}</option>
+                    {Array.from(new Set(questions.map(q => q.category).filter((c): c is string => Boolean(c)))).sort().map(c => (
+                      <option key={c} value={c}>{getCategoryLabel(c)}</option>
                     ))}
                   </select>
                 </div>
@@ -218,10 +219,10 @@ export const QuestionsList: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6" ref={scrollContainerRef}>
-        <div className="bg-white border border-[#E6EAF2] rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)]">
+      <div className="flex-1 overflow-y-auto overflow-x-auto px-3 md:px-6 pb-6" ref={scrollContainerRef}>
+        <div className="bg-white border border-[#E6EAF2] rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(17,24,39,0.06),0_1px_2px_rgba(17,24,39,0.04)] overflow-x-auto">
           {/* Table Header */}
-          <div className="grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-2.5 text-xs text-[#6B7280] uppercase tracking-wider border-b border-[#E6EAF2] bg-[#F3F5FA]">
+          <div className="grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-2.5 text-xs text-[#6B7280] uppercase tracking-wider border-b border-[#E6EAF2] bg-[#F3F5FA] min-w-[900px]">
             <div></div>
             <div>ID</div>
             <div>题目</div>
@@ -245,7 +246,7 @@ export const QuestionsList: React.FC = () => {
                 <div
                   key={q.id}
                   data-question-id={q.id}
-                  className={`grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-3.5 items-center group hover:bg-[#EEF2FF] transition-colors cursor-pointer ${editingQuestionId === q.id ? 'bg-[#EEF2FF] ring-1 ring-[#6D28D9]/20' : ''}`}
+                  className={`grid grid-cols-[40px_60px_minmax(200px,1.5fr)_80px_120px_100px_80px_100px_100px] gap-4 px-4 py-3.5 items-center group hover:bg-[#EEF2FF] transition-colors cursor-pointer min-w-[900px] ${editingQuestionId === q.id ? 'bg-[#EEF2FF] ring-1 ring-[#6D28D9]/20' : ''}`}
                   onClick={() => handleEdit(q.id)}
                 >
                   {/* Drag */}
@@ -281,9 +282,7 @@ export const QuestionsList: React.FC = () => {
                   {q.category ? (
 
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-300 border border-violet-500/20">
-
-                      {q.category.replace(/能力$/, '')}
-
+                      {getCategoryLabel(q.category)}
                     </span>
 
                   ) : (

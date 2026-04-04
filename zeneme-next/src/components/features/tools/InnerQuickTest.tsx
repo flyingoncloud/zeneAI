@@ -1236,10 +1236,10 @@ export const InnerQuickTest: React.FC = () => {
 
                 <div className="flex justify-between items-start w-full">
                   <div className="text-slate-300 font-medium text-[10px] md:text-sm whitespace-nowrap text-center" style={{ width: '56px' }}>
-                    非常不同意
+                    {(currentQuestion as any)?.templateSettings?.leftLabel || '非常不同意'}
                   </div>
                   <div className="text-slate-300 font-medium text-[10px] md:text-sm whitespace-nowrap text-center" style={{ width: '56px' }}>
-                    非常同意
+                    {(currentQuestion as any)?.templateSettings?.rightLabel || '非常同意'}
                   </div>
                 </div>
               </div>

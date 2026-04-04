@@ -410,17 +410,16 @@ async def generate_report(
 @router.get("/report/{report_id}/status", response_model=ReportStatusResponse)
 async def get_report_status(
     report_id: int,
+    user_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     Get report generation status.
-
-    Returns current status, progress, and report data if completed.
+    If user_id is provided, verifies the report belongs to that user.
     """
     try:
         logger.info(f"Checking status for report {report_id}")
 
-        # Query psychology_reports table
         report = db.query(PsychologyReport).filter(
             PsychologyReport.id == report_id
         ).first()
@@ -431,6 +430,16 @@ async def get_report_status(
                 report_id=report_id,
                 status='not_found',
                 error=f"Report {report_id} not found"
+            )
+
+        # Ownership check
+        if user_id and report.user_id != user_id:
+            logger.warning(f"User {user_id} attempted to access report {report_id} owned by {report.user_id}")
+            return ReportStatusResponse(
+                ok=False,
+                report_id=report_id,
+                status='not_found',
+                error="Report not found"
             )
 
         # Calculate progress based on status
@@ -562,23 +571,27 @@ async def generate_analysis_texts(
 @router.get("/report/{report_id}/download")
 async def download_report(
     report_id: int,
+    user_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     Download psychology report as DOCX file.
-
-    Returns the generated DOCX file for download.
+    If user_id is provided, verifies the report belongs to that user.
     """
     try:
         logger.info(f"Download request for report {report_id}")
 
-        # Query report
         report = db.query(PsychologyReport).filter(
             PsychologyReport.id == report_id
         ).first()
 
         if not report:
             raise HTTPException(status_code=404, detail=f"报告 {report_id} 未找到")
+
+        # Ownership check
+        if user_id and report.user_id != user_id:
+            logger.warning(f"User {user_id} attempted to download report {report_id} owned by {report.user_id}")
+            raise HTTPException(status_code=404, detail="报告未找到")
 
         # Check if report is completed
         if report.generation_status != 'completed':

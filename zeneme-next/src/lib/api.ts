@@ -811,7 +811,9 @@ export interface PsychologyReportStatus {
  */
 export async function getPsychologyReportStatus(reportId: number): Promise<PsychologyReportStatus> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/status`, {
+    const userId = getUserIdFromAuth();
+    const params = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/status${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -844,7 +846,9 @@ export async function downloadPsychologyReport(reportId: number): Promise<{
   error?: string;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/download`, {
+    const userId = getUserIdFromAuth();
+    const params = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/psychology/report/${reportId}/download${params}`, {
       method: 'GET',
       credentials: 'include',
     });

@@ -12,7 +12,7 @@ interface BreathingPageProps {
 export function BreathingPage({ onComplete }: BreathingPageProps) {
   const { t } = useZenemeStore();
   const [completedCycle, setCompletedCycle] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const [progressPercent, setProgressPercent] = useState(25);
   // ✅ 用 BreathingArcTimer 的 inhale 作为每个 16s 周期起点，强制背景“重置对齐”
@@ -50,7 +50,7 @@ export function BreathingPage({ onComplete }: BreathingPageProps) {
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = 0.35; // 你可以调小一点
-    audio.muted = true; // 默认静音播放
+    audio.muted = false; // Auto-play with sound when training starts
     bgmRef.current = audio;
 
     const startPlayback = async () => {

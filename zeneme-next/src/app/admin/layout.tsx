@@ -14,12 +14,13 @@ export default function AdminSubLayout({
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 9999, // 确保层级最高
-      backgroundColor: '#F7F8FC', // 强制浅色背景
-      color: '#111827', // 强制深色文字
+      zIndex: 9999,
+      backgroundColor: '#F7F8FC',
+      color: '#111827',
       width: '100%',
       height: '100%',
-      overflow: 'auto'
+      overflow: 'scroll',
+      WebkitOverflowScrolling: 'touch',
     }}>
       {children}
     </div>

@@ -47,7 +47,7 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#F7F8FC] text-[#111827] overflow-hidden">
+    <div className="flex min-h-screen min-w-[960px] bg-[#F7F8FC] text-[#111827]">
       {/* Sidebar */}
       <div className={`
         shrink-0 bg-white border-r border-[#E6EAF2] flex flex-col
@@ -112,7 +112,7 @@ export const AdminLayout: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-auto">
         {/* Top Bar */}
         <div className="h-14 shrink-0 border-b border-[#E6EAF2] bg-white flex items-center justify-between px-3 md:px-6">
           <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto min-w-0">
           {renderPage()}
         </div>
       </div>
