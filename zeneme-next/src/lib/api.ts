@@ -930,6 +930,7 @@ export interface SaveAnswerRequest {
   progress_id: number;
   question_id: number;
   answer_value: number;
+  sub_category?: string;
 }
 
 export interface SaveAnswerResponse {
