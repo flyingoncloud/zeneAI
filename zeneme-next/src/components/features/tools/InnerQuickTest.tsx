@@ -584,9 +584,9 @@ export const InnerQuickTest: React.FC = () => {
       // Update local state
       setCategoryScores(result.category_scores);
 
-      // Update domain progress for the answered question
+      // Update domain progress for the answered question (only if not already counted)
       const answeredDomain = (currentQuestion as any).domain;
-      if (answeredDomain) {
+      if (answeredDomain && !answeredIndices.has(currentQIndex)) {
         setDomainSummary((prev) => {
           const entry = prev[answeredDomain] || { total: 0, answered: 0 };
           return {
@@ -600,36 +600,7 @@ export const InnerQuickTest: React.FC = () => {
       setAnsweredIndices((prev) => new Set(prev).add(currentQIndex));
       setHighWaterMark((hw) => Math.max(hw, currentQIndex + 1));
 
-      // Check if ALL questions are now answered
-      const newAnsweredCount = answeredIndices.size + 1; // +1 for current
-      if (newAnsweredCount >= totalQuestions && !result.is_completed) {
-        console.log('[Questionnaire] All questions answered locally — triggering backend completion');
-        // Call backend to force completion check
-        try {
-          const completeRes = await fetch(`${API_BASE_URL}/api/questionnaire/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ progress_id: progressId }),
-          });
-          const completeData = await completeRes.json();
-          if (completeData.ok && completeData.report_id) {
-            setReportId(completeData.report_id);
-            setReportStatus('pending');
-            setSubmissionState('submitting');
-            setView('result');
-            return;
-          }
-        } catch (err) {
-          console.error('[Questionnaire] Backend completion call failed:', err);
-        }
-        // Fallback: show result view anyway
-        setSubmissionState('submitting');
-        setReportStatus('pending');
-        setView('result');
-        return;
-      }
-
-      // Check if completed (from backend response)
+      // Check if completed (from backend response) — check this FIRST
       if (result.is_completed && result.report_id) {
         console.log('[Questionnaire Completed]', { report_id: result.report_id });
         setReportId(result.report_id);
@@ -637,6 +608,33 @@ export const InnerQuickTest: React.FC = () => {
         setSubmissionState('submitting');
         setView('result');
         return;
+      }
+
+      // Check if ALL questions are now answered locally but backend didn't trigger completion
+      const updatedAnsweredCount = answeredIndices.has(currentQIndex)
+        ? answeredIndices.size   // already counted
+        : answeredIndices.size + 1;  // +1 for current
+      if (updatedAnsweredCount >= totalQuestions && !result.is_completed) {
+        console.log('[Questionnaire] All questions answered locally — triggering backend completion');
+        try {
+          const completeRes = await fetch(`${API_BASE_URL}/api/questionnaire/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ progress_id: progressId }),
+          });
+          const completeData = await completeRes.json();
+          console.log('[Questionnaire] Complete response:', completeData);
+          if (completeData.report_id) {
+            setReportId(completeData.report_id);
+            setReportStatus('pending');
+            setSubmissionState('submitting');
+            setView('result');
+            return;
+          }
+          console.warn('[Questionnaire] Backend complete response:', completeData);
+        } catch (err) {
+          console.error('[Questionnaire] Backend completion call failed:', err);
+        }
       }
 
       // Auto-advance: find next unanswered question (not just currentQIndex + 1)
@@ -1025,6 +1023,16 @@ export const InnerQuickTest: React.FC = () => {
 
   const progress = ((currentQIndex + 1) / totalQuestions) * 100;
   const currentQuestion = questions[currentQIndex];
+
+  // Guard: if questions loaded but currentQuestion is undefined (index out of bounds or empty)
+  if (!currentQuestion && questions.length > 0) {
+    // Reset to first question
+    setCurrentQIndex(0);
+    return null;
+  }
+  if (!currentQuestion) {
+    return null;
+  }
 
   // Jump to first unanswered question in a domain
   const handleDomainSelect = (domainCode: string) => {

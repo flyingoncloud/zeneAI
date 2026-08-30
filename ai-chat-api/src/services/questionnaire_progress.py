@@ -77,8 +77,14 @@ class QuestionnaireProgressService:
                     if progress.session_id != session_id:
                         logger.info(f"Updating progress session_id from {progress.session_id} to {session_id}")
                         progress.session_id = session_id
-                        db.commit()
-                        db.refresh(progress)
+
+                    # Sync total_questions if question count changed (e.g., admin added/removed questions)
+                    if progress.total_questions != len(questions):
+                        logger.info(f"Syncing total_questions from {progress.total_questions} to {len(questions)}")
+                        progress.total_questions = len(questions)
+
+                    db.commit()
+                    db.refresh(progress)
 
                     logger.info(f"Resuming existing progress: {progress.current_question_index}/{progress.total_questions}")
                     return progress, questions
@@ -154,6 +160,16 @@ class QuestionnaireProgressService:
             raise ValueError(f"Progress record {progress_id} not found")
 
         if progress.status != 'in_progress':
+            # If already completed, return completion info instead of error
+            if progress.status == 'completed':
+                logger.info(f"Questionnaire already completed, returning existing report_id={progress.report_id}")
+                return {
+                    'ok': True,
+                    'current_question_index': progress.current_question_index,
+                    'category_scores': progress.category_scores or {},
+                    'is_completed': True,
+                    'report_id': progress.report_id
+                }
             raise ValueError(f"Cannot save answer: questionnaire status is {progress.status}")
 
         # Get question to determine category
@@ -174,14 +190,18 @@ class QuestionnaireProgressService:
         if question.template in SKIP_TEMPLATES:
             logger.warning(f"⚠️ SKIPPING scoring for template {question.template} question {question_id} - special template sends non-score values")
 
-            # Still update progress but don't store answer or update scores
-            progress.current_question_index = len(progress.answers or {}) + 1  # Count skipped as answered
+            # Store the answer for progress tracking (but don't update category scores)
+            answers = dict(progress.answers or {})
+            answers[str(question.question_number)] = answer_value
+            progress.answers = answers
+
+            progress.current_question_index = len(progress.answers)
             progress.last_updated_at = datetime.utcnow()
             db.commit()
             db.refresh(progress)
 
             # Check if completed
-            is_completed = progress.current_question_index >= progress.total_questions
+            is_completed = len(progress.answers) >= progress.total_questions
             if is_completed:
                 progress.status = 'completed'
                 progress.completed_at = datetime.utcnow()
