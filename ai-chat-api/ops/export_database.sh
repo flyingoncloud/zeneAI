@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 # Detect OS and set pg_dump path
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS
-  PG_DUMP="/opt/homebrew/opt/postgresql@15/bin/pg_dump"
+  PG_DUMP="/opt/homebrew/opt/postgresql@16/bin/pg_dump"
   if [ ! -f "$PG_DUMP" ]; then
     PG_DUMP="pg_dump"  # Fallback to system pg_dump
   fi

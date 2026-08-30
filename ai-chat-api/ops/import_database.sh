@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 # Detect OS and set pg_restore path
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS
-  PG_RESTORE="/opt/homebrew/opt/postgresql@15/bin/pg_restore"
+  PG_RESTORE="/opt/homebrew/opt/postgresql@16/bin/pg_restore"
   if [ ! -f "$PG_RESTORE" ]; then
     PG_RESTORE="pg_restore"  # Fallback to system pg_restore
   fi
@@ -62,14 +62,17 @@ fi
 
 echo -e "${YELLOW}Starting database import...${NC}"
 
-# Import database
-# -c flag: clean (drop) database objects before recreating them
+# Drop and recreate database to avoid foreign key dependency issues
+PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+
+# Import database into clean database
 PGPASSWORD="${DB_PASSWORD}" "${PG_RESTORE}" \
   -h "${DB_HOST}" \
   -U "${DB_USER}" \
   -d "${DB_NAME}" \
-  -c \
-  --if-exists \
+  --no-owner \
+  --no-privileges \
   "${BACKUP_FILE}"
 
 # Check if import was successful

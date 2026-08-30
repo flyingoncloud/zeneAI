@@ -33,6 +33,8 @@ build/
 
 ### Uploads ###
 uploads/
+uploads.tar
+uploads*.tar.gz
 
 ### Logs ###
 *.log
