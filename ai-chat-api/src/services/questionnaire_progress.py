@@ -357,8 +357,11 @@ class QuestionnaireProgressService:
             '2.2.2.3': 'cognitive_flexibility',  # Catastrophizing
             '2.2.2.4': 'cognitive_flexibility',  # Should/Must
             '2.2.2.5': 'cognitive_flexibility',  # Self-Blame
+            '2.2.2.6': 'cognitive_flexibility',  # Functional/Flexible Thinking
             '2.2.3': 'cognitive_flexibility',
             '2.2.3.1': 'cognitive_flexibility',  # Self-Other Perspective
+            '2.2.3.1.1': 'cognitive_flexibility',  # Self Perspective
+            '2.2.3.1.2': 'cognitive_flexibility',  # Others Perspective
             '2.2.3.2': 'cognitive_flexibility',  # Spatial Perspective
             '2.2.3.3': 'cognitive_flexibility',  # Cognitive Frame
             '2.2.3.4': 'cognitive_flexibility',  # Emotional Perspective
@@ -375,7 +378,14 @@ class QuestionnaireProgressService:
             '2.3.1.3': 'relationship_sensitivity',  # Avoidant
             '2.3.1.4': 'relationship_sensitivity',  # Disorganized
             '2.3.2': 'relationship_sensitivity',
+            '2.3.2.1': 'relationship_sensitivity',  # Existential Crisis
+            '2.3.2.2': 'relationship_sensitivity',  # Worth Crisis
+            '2.3.2.3': 'relationship_sensitivity',  # Security Crisis
+            '2.3.2.4': 'relationship_sensitivity',  # Autonomy Crisis
             '2.3.3': 'relationship_sensitivity',
+            '2.3.3.1': 'relationship_sensitivity',  # Emotional Empathy
+            '2.3.3.2': 'relationship_sensitivity',  # Cognitive Empathy
+            '2.3.3.3': 'relationship_sensitivity',  # Behavioral Empathy
             '2.3.4': 'relationship_sensitivity',
             '2.4': 'internal_conflict',         # 内在对话能力 / MBTI性格类型测试
             '2.4.1': 'internal_conflict',       # J-P 判断-感知

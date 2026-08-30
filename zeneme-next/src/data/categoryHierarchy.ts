@@ -104,6 +104,11 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
             code: "2.2.2.5",
             name: "自我责备",
             nameEn: "Self-Blame"
+          },
+          "2.2.2.6": {
+            code: "2.2.2.6",
+            name: "功能性/灵活性思维",
+            nameEn: "Functional/Flexible Thinking"
           }
         }
       },
@@ -116,7 +121,19 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
           "2.2.3.1": {
             code: "2.2.3.1",
             name: "自我 vs 他人视角转换",
-            nameEn: "Self vs Others Perspective"
+            nameEn: "Self vs Others Perspective",
+            children: {
+              "2.2.3.1.1": {
+                code: "2.2.3.1.1",
+                name: "自我视角",
+                nameEn: "Self Perspective"
+              },
+              "2.2.3.1.2": {
+                code: "2.2.3.1.2",
+                name: "他人视角",
+                nameEn: "Others Perspective"
+              }
+            }
           },
           "2.2.3.2": {
             code: "2.2.3.2",
@@ -208,13 +225,52 @@ export const CATEGORY_HIERARCHY: Record<string, CategoryNode> = {
         code: "2.3.2",
         name: "冲突触发点",
         nameEn: "Conflict Triggers",
-        description: "Relationship conflict triggers"
+        description: "Relationship conflict triggers",
+        children: {
+          "2.3.2.1": {
+            code: "2.3.2.1",
+            name: "存在感危机",
+            nameEn: "Existential Crisis"
+          },
+          "2.3.2.2": {
+            code: "2.3.2.2",
+            name: "价值感危机",
+            nameEn: "Worth Crisis"
+          },
+          "2.3.2.3": {
+            code: "2.3.2.3",
+            name: "安全感危机",
+            nameEn: "Security Crisis"
+          },
+          "2.3.2.4": {
+            code: "2.3.2.4",
+            name: "自主权危机",
+            nameEn: "Autonomy Crisis"
+          }
+        }
       },
       "2.3.3": {
         code: "2.3.3",
         name: "共情能力",
         nameEn: "Empathy",
-        description: "Ability to empathize with others"
+        description: "Ability to empathize with others",
+        children: {
+          "2.3.3.1": {
+            code: "2.3.3.1",
+            name: "情绪共情",
+            nameEn: "Emotional Empathy"
+          },
+          "2.3.3.2": {
+            code: "2.3.3.2",
+            name: "认知共情",
+            nameEn: "Cognitive Empathy"
+          },
+          "2.3.3.3": {
+            code: "2.3.3.3",
+            name: "行为共情",
+            nameEn: "Behavioral Empathy"
+          }
+        }
       },
       "2.3.4": {
         code: "2.3.4",

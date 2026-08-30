@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
 from pathlib import Path
+import re
 import uuid
 import logging
 import base64
@@ -1546,22 +1547,33 @@ def start_questionnaire(
                 if len(ss_parts) >= 2:
                     domain = f"{ss_parts[0]}.{ss_parts[1]}"
             if not domain and q.category:
-                # Map category names to domains
                 cat = q.category
-                if any(k in cat for k in ['情绪', 'Emotion']):
-                    domain = '2.1'
-                elif any(k in cat for k in ['认知', 'Managers', 'Firefighters', 'Exiles', 'Self Energy', '管理者', '消防员', '流亡者', '自性', '灾难', '非黑即白', '以偏概全', '心理过滤', '否定积极', '读心术', '预言家', '应该', '放大']):
-                    domain = '2.2'
-                elif any(k in cat for k in ['关系', 'Secure', 'Anxious', 'Avoidant', 'Disorganized', '安全型', '焦虑型', '回避型', '混乱型']):
-                    domain = '2.3'
-                elif any(k in cat for k in ['MBTI', '性格', '内在对话']):
-                    domain = '2.4'
-                elif any(k in cat for k in ['成长', 'Growth', '潜力']):
-                    domain = '2.5'
+                # First: try parsing category as a hierarchical code like "2.1", "2.1.1", "2.4", "2.2.1.2"
+                # Domain is always the first two segments: "X.Y"
+                cat_match = re.match(r'^(\d+\.\d+)', cat)
+                if cat_match:
+                    candidate = cat_match.group(1)
+                    if candidate in ('2.1', '2.2', '2.3', '2.4', '2.5'):
+                        domain = candidate
+                # Fallback: map Chinese/English category names to domains
+                if not domain:
+                    if any(k in cat for k in ['情绪', 'Emotion']):
+                        domain = '2.1'
+                    elif any(k in cat for k in ['认知', 'Managers', 'Firefighters', 'Exiles', 'Self Energy', '管理者', '消防员', '流亡者', '自性', '灾难', '非黑即白', '以偏概全', '心理过滤', '否定积极', '读心术', '预言家', '应该', '放大']):
+                        domain = '2.2'
+                    elif any(k in cat for k in ['关系', 'Secure', 'Anxious', 'Avoidant', 'Disorganized', '安全型', '焦虑型', '回避型', '混乱型']):
+                        domain = '2.3'
+                    elif any(k in cat for k in ['MBTI', '性格', '内在对话']):
+                        domain = '2.4'
+                    elif any(k in cat for k in ['成长', 'Growth', '潜力']):
+                        domain = '2.5'
             if not domain and q.dimension:
                 dim = q.dimension
                 if any(k in dim for k in ['洞察', '可塑', '韧性', 'Insight', 'Plasticity', 'Resilience']):
                     domain = '2.5'
+
+            if not domain:
+                logger.warning(f"Q{q.question_number}: domain=None, category={q.category}, sub_section={q.sub_section}, questionnaire_id={q.questionnaire_id}")
 
             question_dict = {
                 'id': q.id,
@@ -1598,6 +1610,11 @@ def start_questionnaire(
                 formatted_questions.index(fq) < progress.current_question_index
             ):
                 domain_summary[d]['answered'] += 1
+
+        logger.info(f"Domain summary: {domain_summary}")
+        null_domain_count = sum(1 for fq in formatted_questions if not fq.get('domain'))
+        if null_domain_count > 0:
+            logger.warning(f"{null_domain_count}/{len(formatted_questions)} questions have no domain assigned")
 
         return {
             'ok': True,
