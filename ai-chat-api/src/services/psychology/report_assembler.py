@@ -507,6 +507,46 @@ def assemble_report_data(
     logger.info("Generating dimension interpretations")
     dimension_details = interpret_all_dimensions(dimension_scores)
 
+    # Enrich internal_conflict dimension with MBTI calculation if available
+    mbti_data = (assessment.extra_data or {}).get('mbti')
+    if mbti_data and 'internal_conflict' in dimension_details:
+        from src.services.psychology.mbti_types import MBTI_TYPES, get_mbti_type_info
+        ic = dimension_details['internal_conflict']
+        mbti_type_code = mbti_data.get('type', '')
+        # A type is only real if every dimension was determined and the resulting
+        # code is one of the 16. Anything else ('INFX', 'XXXX') means some F9
+        # questions were unanswered or exactly balanced.
+        is_real_type = bool(mbti_data.get('is_determinate')) and mbti_type_code in MBTI_TYPES
+        type_info = get_mbti_type_info(mbti_type_code) if is_real_type else {}
+
+        ic['mbti_type'] = mbti_type_code
+        ic['mbti_type_zh'] = mbti_data.get('type_zh', '')
+        ic['mbti_is_determinate'] = is_real_type
+        ic['mbti_name_zh'] = type_info.get('name_zh', '')
+        ic['mbti_name_en'] = type_info.get('name_en', '')
+        ic['mbti_tagline'] = type_info.get('tagline', '')
+        ic['mbti_cognitive_functions'] = type_info.get('cognitive_functions', '')
+        ic['mbti_dimensions'] = mbti_data.get('dimensions', {})
+        ic['mbti_confidence'] = mbti_data.get('confidence', 0)
+        ic['mbti_strengths'] = type_info.get('strengths', [])
+        ic['mbti_growth_areas'] = type_info.get('growth_areas', [])
+        ic['mbti_compatible_types'] = type_info.get('compatible_types', [])
+
+        # Override interpretation with rich MBTI-specific text. Skipped for an
+        # indeterminate type so the score-based interpretation is kept rather than
+        # replaced with traits the answers do not support.
+        if is_real_type:
+            ic['range_label'] = f"{mbti_type_code} {type_info.get('name_zh', '')}"
+            ic['description'] = type_info.get('description') or ic.get('description', '')
+            ic['interpretation'] = type_info.get('description') or ic.get('interpretation', '')
+            ic['recommendations'] = type_info.get('strengths', [])[:2] + type_info.get('growth_areas', [])[:2]
+            logger.info(f"Enriched internal_conflict with MBTI: {mbti_type_code} ({type_info.get('name_zh', '')})")
+        else:
+            logger.warning(
+                f"MBTI type '{mbti_type_code}' is indeterminate — keeping score-based "
+                f"interpretation for internal_conflict"
+            )
+
     # Generate sub-category analysis if category_scores provided
     subcategory_analysis = {}
     if category_scores:

@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-
-const DOMAINS = [
-  { code: '2.1', label: '情绪觉察', color: '#f472b6', weight: 10 },
-  { code: '2.2', label: '认知模式', color: '#34d399', weight: 46 },
-  { code: '2.3', label: '关系模式', color: '#fb923c', weight: 27 },
-  { code: '2.4', label: '性格类型', color: '#a78bfa', weight: 0 },
-  { code: '2.5', label: '成长指数', color: '#38bdf8', weight: 6 },
-];
-
-const TOTAL_WEIGHT = DOMAINS.reduce((s, d) => s + d.weight, 0);
+import { DOMAINS, TOTAL_DOMAIN_WEIGHT as TOTAL_WEIGHT } from '@/data/domains';
 
 interface DomainProgressBarProps {
   totalQuestions: number;

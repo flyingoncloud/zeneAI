@@ -496,6 +496,11 @@ class QuestionnaireProgressService:
                 # Maximum possible = 5
                 dimension_total_possible_scores[dimension] += 5
                 logger.info(f"   Q{q.question_number} (cat {q.category}): F1 default [1,2,3,4,5], max=5 → {dimension}")
+            elif q.template == 'F9':
+                # F9 MBTI spectrum template - 1-5 scale (left trait to right trait)
+                # Maximum possible = 5
+                dimension_total_possible_scores[dimension] += 5
+                logger.info(f"   Q{q.question_number} (cat {q.category}): F9 MBTI spectrum, max=5 → {dimension}")
             elif q.template == 'F6':
                 # F6 ranking template - max score is 5 (rank 1 converts to 5 points)
                 dimension_total_possible_scores[dimension] += 5
@@ -557,6 +562,23 @@ class QuestionnaireProgressService:
 
         db.commit()
         db.refresh(assessment)
+
+        # Calculate MBTI type from F9 answers
+        try:
+            from src.services.psychology.mbti_calculator import calculate_mbti
+            mbti_result = calculate_mbti(progress.answers or {}, all_questions)
+            logger.info(f"🧠 MBTI result: {mbti_result['type']} ({mbti_result['type_zh']})")
+
+            # Store MBTI result in assessment extra_data
+            extra = dict(assessment.extra_data or {})
+            extra['mbti'] = mbti_result
+            assessment.extra_data = extra
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(assessment, 'extra_data')
+            db.commit()
+            db.refresh(assessment)
+        except Exception as e:
+            logger.error(f"MBTI calculation failed (non-fatal): {e}", exc_info=True)
 
         # Create report
         report = PsychologyReport(

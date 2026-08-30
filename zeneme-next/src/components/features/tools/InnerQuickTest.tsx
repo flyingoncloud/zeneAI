@@ -23,6 +23,7 @@ type QuestionItem = QuestionnaireDetail['questions'][number];
 type CategoryScoreObj = { sub_section?: string; category?: string; score?: number; count?: number };
 import { toast } from 'sonner';
 import { DomainProgressBar } from './DomainProgressBar';
+import { DOMAIN_CODES, DOMAIN_WEIGHTS, TOTAL_DOMAIN_WEIGHT } from '@/data/domains';
 
 type IconLikeProps = {
   size?: number | string;
@@ -1053,9 +1054,9 @@ export const InnerQuickTest: React.FC = () => {
       }
     } else {
       // Fallback: use sequential ranges
-      const WEIGHTS = [10, 46, 27, 0, 6];
-      const CODES = ['2.1', '2.2', '2.3', '2.4', '2.5'];
-      const totalW = WEIGHTS.reduce((a, b) => a + b, 0);
+      const WEIGHTS = DOMAIN_WEIGHTS;
+      const CODES = DOMAIN_CODES;
+      const totalW = TOTAL_DOMAIN_WEIGHT;
       let cursor = 0;
       for (let i = 0; i < CODES.length; i++) {
         const count = Math.round((WEIGHTS[i] / totalW) * totalQuestions);
