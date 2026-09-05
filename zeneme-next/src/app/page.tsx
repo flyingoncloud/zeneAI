@@ -12,6 +12,7 @@ import { ChatInterface } from "@/components/features/chat/ChatInterface";
 import { EmotionalFirstAid } from "@/components/features/tools/EmotionalFirstAid";
 import { InnerSketch } from "@/components/features/tools/InnerSketch";
 import { InnerQuickTest } from "@/components/features/tools/InnerQuickTest";
+import { CognitiveScreen } from "@/components/features/tools/cognitive/CognitiveScreen";
 import { MoodTracker } from "@/components/features/tools/MoodTracker";
 
 import { useZenemeStore, type View } from "@/hooks/useZenemeStore";
@@ -88,7 +89,7 @@ function HomeContent() {
       setIsLoginRequiredOpen(false);
 
       if (postLoginTarget) {
-        if (['history', 'naming', 'test', 'mood', 'sketch', 'first-aid'].includes(postLoginTarget)) {
+        if (['history', 'naming', 'test', 'cognitive', 'mood', 'sketch', 'first-aid'].includes(postLoginTarget)) {
           setCurrentView(postLoginTarget as View);
         }
         setPostLoginTarget(null);
@@ -347,6 +348,8 @@ React.useEffect(() => {
 
       case "test":
         return <InnerQuickTest />;
+      case "cognitive":
+        return <CognitiveScreen onExit={() => setCurrentView("chat")} />;
 
       case "mood":
         return <MoodTracker />;

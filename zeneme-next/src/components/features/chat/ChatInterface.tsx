@@ -7,7 +7,7 @@ import { AnalysisProgress } from '../../AnalysisProgress';
 import { AnimatePresence, motion } from 'motion/react';
 import { ReportPage } from './ReportPage';
 import { ChatInput } from '../../ChatInput';
-import { Heart, PenTool, ClipboardList, Maximize2, X } from 'lucide-react';
+import { Brain, Heart, PenTool, ClipboardList, Maximize2, X } from 'lucide-react';
 import { Dialog, DialogContent } from '../../ui/dialog';
 import { generateConversationReport, getReportStatus, getInlineAssessmentProgress, getUserIdFromAuth, type InlineAssessmentProgress, fetchInlineQuestion, recordInlineAnswer, sendChatMessage } from '../../../lib/api';
 import { filterFunctionCallText } from '../../../utils/contentFilter';
@@ -76,6 +76,12 @@ const IconTest: React.FC<IconLikeProps> = ({ className, size = 24, strokeWidth =
     <path d="M9 12h3" />
     <path d="M14 16l1 1 2.5-2.5" />
   </svg>
+);
+
+// Same glyph the sidebar uses for 认知快测, thinned to 1.5 so it sits at the
+// same weight as the hand-drawn icons above rather than looking bolder.
+const IconCognitive: React.FC<IconLikeProps> = ({ strokeWidth = 1.5, ...rest }) => (
+  <Brain strokeWidth={strokeWidth} {...rest} />
 );
 
 
@@ -593,6 +599,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
     if (action === 'first-aid') setCurrentView('first-aid');
     else if (action === 'sketch') setCurrentView('sketch');
     else if (action === 'test') setCurrentView('test' as unknown as Parameters<typeof setCurrentView>[0]);
+    else if (action === 'cognitive') setCurrentView('cognitive');
   };
 
   const handleViewInlineReport = () => {
@@ -747,6 +754,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
             <QuickActionCard icon={IconFirstAid} label="情绪急救" onClick={() => handleQuickAction('first-aid')} delay={0.1} />
             <QuickActionCard icon={IconSketch} label="内视涂鸦" onClick={() => handleQuickAction('sketch')} delay={0.2} />
             <QuickActionCard icon={IconTest} label="内视快测" onClick={() => handleQuickAction('test')} delay={0.3} />
+            <QuickActionCard icon={IconCognitive} label="认知快测" onClick={() => handleQuickAction('cognitive')} delay={0.4} />
           </div>
         </div>
       ) : (

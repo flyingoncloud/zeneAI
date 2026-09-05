@@ -11,7 +11,10 @@ const SafeIcon = ({ icon: Icon, ...props }: any) => {
 export const TopBar: React.FC = () => {
   const { currentView, setCurrentView, t, addMessage, setPendingModuleCompletion, exitMessage, exitModuleToComplete, clearExitAction } = useZenemeStore();
 
-  if (currentView === 'chat' || currentView ==='breathing' || currentView === 'sketch' || currentView ==='breathingtraining' || currentView === 'naming' || currentView ==='mood' || currentView ==='history') return null;
+  // 'cognitive' draws its own header with an exit button and a countdown, so a
+  // second back button on top of it would let the user leave mid-test by
+  // accident, bypassing the confirmation.
+  if (currentView === 'chat' || currentView ==='breathing' || currentView === 'sketch' || currentView ==='breathingtraining' || currentView === 'naming' || currentView ==='mood' || currentView ==='history' || currentView === 'cognitive') return null;
   console.log('[TopBar] currentView =', currentView);
   const handleBackToChat = () => {
     if (exitMessage) {

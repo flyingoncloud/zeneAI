@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import * as Icons from '../ui/icons';
 import { Button } from '../ui/button';
 import { useZenemeStore, View } from '../../hooks/useZenemeStore';
-import { ClipboardList, ChevronDown } from 'lucide-react';
+import { ClipboardList, ChevronDown, Brain } from 'lucide-react';
 import { SidebarFooter } from './SidebarFooter';
 import Logo from '../../imports/Logo';
 import {
@@ -116,6 +116,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
     },
     { id: 'sketch', label: t.menu.sketch, icon: Icons.PenTool as unknown as SafeIconComponent },
     { id: 'test', label: t.menu.test, icon: ClipboardList as unknown as SafeIconComponent },
+    { id: 'cognitive', label: t.menu.cognitive, icon: Brain as unknown as SafeIconComponent },
   ];
 
   // C. Shortcuts (Fixed below Recent Chats)
@@ -519,7 +520,7 @@ export const Sidebar: React.FC = () => {
   if (isMobile) {
   return (
     <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
-      {!['test', 'report-detail'].includes(currentView) && (
+      {!['test', 'cognitive', 'report-detail'].includes(currentView) && (
         <SheetTrigger asChild>
           <Button
             variant="ghost"

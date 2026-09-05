@@ -62,6 +62,7 @@ export const translations = {
       firstAid: 'Emotional First Aid',
       sketch: 'Inner Sketch',
       test: 'Inner Quick Test',
+      cognitive: 'Cognitive Quick Screen',
       mood: 'Mood Tracker',
     },
     settings: {
@@ -432,6 +433,7 @@ export const translations = {
       firstAid: '情绪急救',
       sketch: '内视涂鸦',
       test: '内视快测',
+      cognitive: '认知快测',
       mood: '情绪追踪',
     },
     settings: {

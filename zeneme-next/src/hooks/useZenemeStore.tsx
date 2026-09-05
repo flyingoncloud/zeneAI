@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { translations, Language } from '@/utils/translations';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type View = 'chat' | 'sketch' | 'test' | 'mood' | 'first-aid' | 'history'| 'new-chat'|'breathing'|'naming'|'breathingtraining';
+export type View = 'chat' | 'sketch' | 'test' | 'mood' | 'first-aid' | 'history'| 'new-chat'|'breathing'|'naming'|'breathingtraining'|'cognitive';
 
 type ChatSession = {
   id: string;
