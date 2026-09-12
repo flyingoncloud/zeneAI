@@ -4,6 +4,18 @@ import React, { useState } from 'react';
 import type { ScreenItem } from '@/data/cognitiveScreen';
 import { ItemGlyph } from './ItemGlyph';
 
+/**
+ * Desktop column count per cell count, spelled out rather than interpolated:
+ * Tailwind scans source text for class names, so `md:grid-cols-${n}` would never
+ * be generated. The board is generic over cell count; today it is always 4.
+ */
+const CELL_COLUMNS: Record<number, string> = {
+  3: 'md:grid-cols-3',
+  4: 'md:grid-cols-4',
+  5: 'md:grid-cols-5',
+  6: 'md:grid-cols-6',
+};
+
 interface PlacementBoardProps {
   palette: ScreenItem[];
   /** One entry per grid cell; null means empty. */
@@ -24,6 +36,11 @@ interface PlacementBoardProps {
  * Tap-to-place is the primary interaction and drag-and-drop is a desktop
  * extra — HTML5 drag events never fire on touch, so a drag-only board would be
  * unusable on a phone for exactly the older users this screen is aimed at.
+ *
+ * Every item is captioned. What is being measured is whether you can get the
+ * item back later, not whether you can identify a line drawing under time
+ * pressure, so an item the user cannot name is pure noise — and with outline
+ * icons there is always one that reads as something else entirely.
  */
 export const PlacementBoard: React.FC<PlacementBoardProps> = ({
   palette,
@@ -35,6 +52,7 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
   const [hoverCell, setHoverCell] = useState<number | null>(null);
 
   const placedIds = new Set(cells.filter((id): id is string => id !== null));
+  const labelFor = (id: string) => palette.find((item) => item.id === id)?.label ?? id;
 
   const placeInto = (cellIndex: number, itemId: string) => {
     const next = cells.slice();
@@ -64,14 +82,21 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10">
+    <div className="max-w-5xl mx-auto space-y-8 md:space-y-10">
       {!readOnly && (
         <div>
-          <p className="text-xs text-slate-500 mb-4 text-center">可选项目</p>
+          {/* Named, not just positioned: the instruction refers to this heading
+              by name, so the two cannot drift apart and no one has to work out
+              which part of the screen "上面" or "下面" meant. */}
+          <p className="text-xs text-slate-500 mb-4 text-center">可选项目（从这里挑）</p>
           {/* The palette items carry no box of their own: the only boxes on
               screen are the cells to fill, so there is no ambiguity about
-              where an item is supposed to end up. */}
-          <div className="flex flex-wrap justify-center gap-3 md:gap-6">
+              where an item is supposed to end up.
+
+              A grid rather than a wrapping row, because a row of fixed-width
+              items leaves the leftover width empty; a grid spends it on the
+              pictures. Four across on a phone, eight on a desktop. */}
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-2 md:gap-3">
             {palette.map((item) => {
               const used = placedIds.has(item.id);
               return (
@@ -87,13 +112,18 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
                   onClick={() => handlePaletteTap(item.id)}
                   aria-label={item.label}
                   aria-pressed={used}
-                  className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center transition-all active:scale-95 ${
-                    used
-                      ? 'text-slate-700 opacity-40'
-                      : 'text-slate-100 hover:bg-white/5 hover:text-violet-200'
+                  className={`rounded-2xl py-2 flex flex-col items-center gap-1 transition-all active:scale-95 ${
+                    used ? 'text-slate-600 opacity-45' : 'text-slate-100 hover:bg-white/5'
                   }`}
                 >
-                  <ItemGlyph itemId={item.id} className="w-14 h-14 md:w-16 md:h-16" />
+                  <ItemGlyph
+                    itemId={item.id}
+                    muted={used}
+                    className="w-16 h-16 md:w-20 md:h-20"
+                  />
+                  <span className="text-xs md:text-sm leading-tight text-center">
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
@@ -107,7 +137,12 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
             按你想要的顺序放入格子（点格子可取回）
           </p>
         )}
-        <div className="flex flex-wrap justify-center gap-3 md:gap-5">
+        {/* Fluid rather than fixed-size cells, so the pictures inside grow with
+            the screen instead of staying phone-sized on a desktop. Two across on
+            a phone; one row on a desktop. */}
+        <div
+          className={`grid gap-3 md:gap-5 grid-cols-2 ${CELL_COLUMNS[cells.length] ?? 'md:grid-cols-4'} max-w-md md:max-w-3xl mx-auto`}
+        >
           {cells.map((itemId, index) => (
             <button
               key={index}
@@ -127,16 +162,16 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
               }}
               aria-label={
                 itemId
-                  ? `第 ${index + 1} 格：${palette.find((i) => i.id === itemId)?.label ?? itemId}`
+                  ? `第 ${index + 1} 格：${labelFor(itemId)}`
                   : `第 ${index + 1} 格：空`
               }
-              className={`relative w-24 h-24 md:w-32 md:h-32 rounded-2xl border-2 flex items-center justify-center transition-all ${
+              className={`relative aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${
                 readOnly
-                  ? 'border-amber-400/40 bg-slate-800/80 text-amber-100'
+                  ? 'border-amber-400/40 bg-slate-800/80'
                   : hoverCell === index
                     ? 'border-violet-400 bg-violet-500/15 border-solid'
                     : itemId
-                      ? 'border-solid border-violet-400/40 bg-slate-800/80 text-violet-100'
+                      ? 'border-solid border-violet-400/40 bg-slate-800/80'
                       : 'border-dashed border-white/20 bg-white/[0.02]'
               }`}
             >
@@ -147,7 +182,14 @@ export const PlacementBoard: React.FC<PlacementBoardProps> = ({
               >
                 {index + 1}
               </span>
-              {itemId && <ItemGlyph itemId={itemId} className="w-14 h-14 md:w-[4.5rem] md:h-[4.5rem]" />}
+              {itemId && (
+                <>
+                  <ItemGlyph itemId={itemId} className="w-20 h-20 md:w-28 md:h-28" />
+                  <span className="text-xs md:text-sm text-slate-300 leading-tight">
+                    {labelFor(itemId)}
+                  </span>
+                </>
+              )}
             </button>
           ))}
         </div>

@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { Info, RotateCcw } from 'lucide-react';
 import {
-  BAND_COPY,
+  BANDS,
   CELLS_PER_BLOCK,
+  EDUCATION_BONUS,
   FAMILY_LABELS,
-  WEIGHTS,
+  bandDefinition,
+  type BandDefinition,
   type ScreenResult,
 } from '@/data/cognitiveScreen';
 
@@ -17,18 +19,41 @@ interface ResultViewProps {
   onExit: () => void;
 }
 
-/** What each of the four selection domains is actually reading. */
-const DOMAIN_HINTS: Record<string, string> = {
-  orientation: '知道现在是什么季节、大概什么时候——定向力最先受影响，也最容易自己察觉。',
-  attention: '在一堆相似图形里把目标一个不漏地找出来，反映持续注意和视觉搜索。',
-  calculation: '同时记住两堆的数量再合起来算，考的是数感和心算时的信息保持。',
-  fluency: '「水果」这个类别在脑子里浮现得有多快，反映语义提取的效率。',
-};
+/**
+ * The report.
+ *
+ * Two things were wrong with the previous version and both are fixed here.
+ *
+ * A bare "74 / 100" tells the user nothing they can act on: they cannot tell
+ * whether it is a pass, where the line is, or which part of it went badly. So
+ * every band is on screen with its numbers, the current one marked, and the
+ * score is itemised into rows that add up to the total.
+ *
+ * And the framing was wrong at both ends — "未经效度验证的探索性指标" in a red
+ * warning box at the top reads as either alarming or meaningless, while the one
+ * thing a screen like this owes a low scorer, the words "go and get this
+ * checked, this is what it could be", was nowhere on the page. The caveat is
+ * still here, stated plainly and in proportion, and the referral is now in the
+ * band copy where a low scorer cannot miss it.
+ */
 
-const BAND_RING: Record<ScreenResult['band'], string> = {
-  green: 'text-emerald-400 border-emerald-400/40 bg-emerald-500/10',
-  amber: 'text-amber-300 border-amber-400/40 bg-amber-500/10',
-  orange: 'text-orange-300 border-orange-400/40 bg-orange-500/10',
+/** Tailwind can only see class names it can read, so these are written out. */
+const TONE: Record<BandDefinition['tone'], { hero: string; chip: string; bar: string }> = {
+  emerald: {
+    hero: 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10',
+    chip: 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200',
+    bar: 'bg-emerald-400',
+  },
+  amber: {
+    hero: 'text-amber-300 border-amber-400/40 bg-amber-500/10',
+    chip: 'border-amber-400/50 bg-amber-500/15 text-amber-200',
+    bar: 'bg-amber-400',
+  },
+  orange: {
+    hero: 'text-orange-300 border-orange-400/40 bg-orange-500/10',
+    chip: 'border-orange-400/50 bg-orange-500/15 text-orange-200',
+    bar: 'bg-orange-400',
+  },
 };
 
 /** Delays here are two selection tasks long, so most of them read in seconds. */
@@ -39,38 +64,16 @@ function formatDelay(seconds: number): string {
   return rest === 0 ? `${minutes} 分钟` : `${minutes} 分 ${rest} 秒`;
 }
 
-const MetricRow: React.FC<{
-  label: string;
-  hint: string;
-  hits: number;
-  total: number;
-  points: number;
-  /** Extra qualifier, e.g. how many wrong taps offset the right ones. */
-  note?: string;
-}> = ({ label, hint, hits, total, points, note }) => (
-  <div className="space-y-1.5">
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-sm text-slate-200">
-        {label}
-        {note && <span className="text-xs text-amber-300/70 ml-2">{note}</span>}
-      </span>
-      <span className="text-sm tabular-nums text-slate-400">
-        {hits}/{total}
-        <span className="text-slate-600"> · 满分 {points}</span>
-      </span>
-    </div>
-    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400"
-        style={{ width: `${total > 0 ? (hits / total) * 100 : 0}%` }}
-      />
-    </div>
-    <p className="text-xs text-slate-500">{hint}</p>
+const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 space-y-4">
+    <h3 className="text-sm font-semibold text-white">{title}</h3>
+    {children}
   </div>
 );
 
 export const ResultView: React.FC<ResultViewProps> = ({ result, onRetake, onExit }) => {
-  const copy = BAND_COPY[result.band];
+  const band = bandDefinition(result.band);
+  const tone = TONE[band.tone];
   const memoryCells = CELLS_PER_BLOCK * result.blocks.length;
 
   return (
@@ -80,94 +83,92 @@ export const ResultView: React.FC<ResultViewProps> = ({ result, onRetake, onExit
       className="h-full overflow-y-auto p-6"
     >
       <div className="max-w-xl mx-auto space-y-5">
-        <div
-          className={`rounded-2xl border p-8 text-center space-y-3 backdrop-blur-xl ${BAND_RING[result.band]}`}
-        >
-          <p className="text-xs uppercase tracking-widest opacity-70">认知快测指数</p>
+        <div className={`rounded-2xl border p-8 text-center space-y-3 backdrop-blur-xl ${tone.hero}`}>
+          <p className="text-xs tracking-wide opacity-70">自我认知参考指数 · 非医疗用途</p>
           <p className="text-5xl font-bold tabular-nums">
             {result.totalScore}
             <span className="text-2xl opacity-50"> / 100</span>
           </p>
-          <p className="text-base font-medium">{copy.title}</p>
+          <p className="text-base font-medium">{band.title}</p>
         </div>
 
-        <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-100/90 leading-relaxed">
-            这是一个<strong className="font-semibold">未经效度验证的探索性指标</strong>
-            ，不是诊断，也不能替代认知量表或医生的判断。它的题目是我们自己编写的，分数只适合和你自己以往的分数比较。
+        {/* The scale, with the thresholds spelled out. */}
+        <Card title="这个分数落在哪一档">
+          <div className="space-y-2">
+            {BANDS.map((definition) => {
+              const isCurrent = definition.band === result.band;
+              const chip = TONE[definition.tone].chip;
+              return (
+                <div
+                  key={definition.band}
+                  className={`rounded-xl border px-4 py-3 flex items-baseline gap-3 ${
+                    isCurrent ? chip : 'border-white/5 bg-white/[0.02] text-slate-400'
+                  }`}
+                >
+                  <span className="text-sm font-semibold tabular-nums w-[4.5rem] shrink-0">
+                    {definition.min}–{definition.max}
+                  </span>
+                  <span className="text-sm font-medium">{definition.name}</span>
+                  {isCurrent && (
+                    <span className="ml-auto text-xs font-semibold shrink-0">你在这里</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            这三条线是我们按各项的分值权重划的，不是来自大样本常模，所以它更适合和你自己以后的分数比，而不是和别人比。
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 space-y-5">
-          <h3 className="text-sm font-semibold text-white">分项表现</h3>
-
-          <MetricRow
-            label="顺序记忆"
-            hint="把正确的项目放回正确的位置——既考记忆，也考按顺序取出的能力。"
-            hits={result.orderHits}
-            total={memoryCells}
-            points={WEIGHTS.order}
-          />
-          <MetricRow
-            label="延迟识别"
-            hint="不论位置，认出自己当初选过的项目。这一项最接近临床上最看重的延迟回忆。"
-            hits={result.setHits}
-            total={memoryCells}
-            points={WEIGHTS.set}
-          />
-
-          {result.domains.map((domain) => (
-            <MetricRow
-              key={domain.domain}
-              label={domain.label}
-              hint={DOMAIN_HINTS[domain.domain] ?? ''}
-              hits={domain.hits}
-              total={domain.targets}
-              points={domain.points}
-              note={
-                domain.falsePositives > 0 ? `多选了 ${domain.falsePositives} 个` : undefined
-              }
-            />
-          ))}
-
-          <div className="pt-2 border-t border-white/5 grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <p className="text-slate-500">虚假识别</p>
-              <p className="text-slate-200 tabular-nums text-base">{result.falseRecognitions} 次</p>
-              <p className="text-slate-600 mt-1">选了从未出现过的项目</p>
-            </div>
-            <div>
-              <p className="text-slate-500">同组混淆</p>
-              <p className="text-slate-200 tabular-nums text-base">{result.intrusions} 次</p>
-              <p className="text-slate-600 mt-1">选了出现过但自己没放进格子的项目</p>
-            </div>
+        {/* Every point accounted for. */}
+        <Card title="分数是怎么算出来的">
+          <div className="space-y-5">
+            {result.lines.map((line) => (
+              <div key={line.key} className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-slate-200">
+                    {line.label}
+                    {line.note && (
+                      <span className="text-xs text-amber-300/70 ml-2">{line.note}</span>
+                    )}
+                  </span>
+                  <span className="text-sm tabular-nums text-slate-300 shrink-0">
+                    {line.earned}
+                    <span className="text-slate-600"> / {line.max} 分</span>
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-400"
+                    style={{ width: `${line.max > 0 ? (line.earned / line.max) * 100 : 0}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-400">{line.detail}</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{line.hint}</p>
+              </div>
+            ))}
           </div>
 
-          {result.educationBonusApplied && (
-            <p className="text-xs text-violet-300/80">已按受教育年数加 3 分。</p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-white">分组明细</h3>
-          {result.blocks.map((block) => (
-            <div key={block.family} className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="text-slate-300">{FAMILY_LABELS[block.family]}</span>
-              <span className="text-slate-400 tabular-nums text-xs">
-                顺序 {block.orderHits}/{CELLS_PER_BLOCK} · 识别 {block.setHits}/{CELLS_PER_BLOCK} ·
-                间隔 {formatDelay(block.delaySeconds)}
+          <div className="pt-3 border-t border-white/5 space-y-1">
+            {result.educationBonusApplied && (
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-violet-300/90">受教育年数校正</span>
+                <span className="tabular-nums text-violet-300/90">+{EDUCATION_BONUS} 分</span>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-semibold text-white">合计</span>
+              <span className="text-sm font-semibold tabular-nums text-white">
+                {result.totalScore} / 100 分
               </span>
             </div>
-          ))}
-          <p className="text-xs text-slate-500 leading-relaxed">
-            间隔越长而分数掉得越多，越值得留意；三组都一样低，则更可能是当时没记住，而不是后来忘了。
-          </p>
-        </div>
+          </div>
+        </Card>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 space-y-3">
-          <h3 className="text-sm font-semibold text-white">建议</h3>
-          <p className="text-sm text-slate-300 leading-relaxed">{copy.advice}</p>
+        <Card title="接下来建议怎么做">
+          <p className="text-sm text-slate-300 leading-relaxed">{band.meaning}</p>
+          <p className="text-sm text-slate-200 leading-relaxed">{band.action}</p>
           {result.flags.length > 0 && (
             <ul className="text-xs text-slate-500 space-y-1 pt-1">
               {result.flags.map((flag) => (
@@ -175,6 +176,53 @@ export const ResultView: React.FC<ResultViewProps> = ({ result, onRetake, onExit
               ))}
             </ul>
           )}
+        </Card>
+
+        <Card title="记忆部分的细节">
+          {result.blocks.map((block) => (
+            <div key={block.family} className="text-sm space-y-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-slate-300">{FAMILY_LABELS[block.family]}</span>
+                <span className="text-slate-400 tabular-nums text-xs">
+                  认出 {block.setHits}/{CELLS_PER_BLOCK} · 位置对 {block.orderHits} · 差一格{' '}
+                  {block.adjacentHits} · 间隔 {formatDelay(block.delaySeconds)}
+                </span>
+              </div>
+              {block.cuedCount > 0 && (
+                <p className="text-xs text-slate-500">
+                  有 {block.cuedCount} 项当时没想起来，提示后认出 {block.recognisedIds.length} 项。
+                </p>
+              )}
+            </div>
+          ))}
+
+          <div className="pt-2 border-t border-white/5 grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="text-slate-500">选了没出现过的</p>
+              <p className="text-slate-200 tabular-nums text-base">{result.falseRecognitions} 次</p>
+              <p className="text-slate-600 mt-1">更像是当时没记住</p>
+            </div>
+            <div>
+              <p className="text-slate-500">同组混淆</p>
+              <p className="text-slate-200 tabular-nums text-base">{result.intrusions} 次</p>
+              <p className="text-slate-600 mt-1">出现过、但自己当时没选的项目</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {memoryCells} 个项目里，间隔越长而掉得越多，越值得留意；两组都一样低，则更可能是当时没记住，而不是后来忘了。
+          </p>
+        </Card>
+
+        {/* Placed at the end, sized like a footnote rather than a warning: it is
+            a scope statement, not a hazard. */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex gap-3">
+          <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-400 leading-relaxed">
+            这份结果是一次自助小测的表现记录，题目由我们自己编写，不是 MoCA
+            或任何已发表量表的电子版，也没有做过效度验证。它不能用来诊断或排除任何疾病——只有医生的面诊和检查可以。
+            单次分数受睡眠、情绪、用药和当时的专注程度影响很大，看变化比看一次的数字有意义。
+          </p>
         </div>
 
         <div className="flex gap-3 pb-6">
