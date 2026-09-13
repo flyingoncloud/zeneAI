@@ -1,6 +1,15 @@
 #!/bin/bash
-# Production Deployment Script for www.zeneme.ai
-# Run this on your EC2 instance
+# First-time host setup for www.zeneme.ai. Run this on your EC2 instance.
+#
+# For routine code deploys use ./deploy.sh instead — it derives paths from its
+# own location, detects systemd vs pm2, health-checks, and rolls the frontend
+# build back if the deploy fails.
+#
+# NOTE: the steps below assume a Debian/Ubuntu host with the repo at ~/zeneAI,
+# an `ubuntu` user, nvm-installed node, and nginx's sites-available/sites-enabled
+# layout. On the Amazon Linux host (repo at /app/zeneAI, `ec2-user`, nginx
+# conf.d, yum) this script fails at Step 1 — see setup-nginx.sh for the
+# Amazon Linux nginx path.
 
 set -e  # Exit on error
 
