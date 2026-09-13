@@ -86,7 +86,7 @@ function QrContent() {
         <div className="rounded-2xl border border-white/10 bg-white p-6 text-center space-y-4 print:border-0 print:shadow-none">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-slate-900">认知小测</h1>
-            <p className="text-sm text-slate-500">扫码即测 · 无需登录 · 约 8–12 分钟</p>
+            <p className="text-sm text-slate-500">扫码即测 · 无需登录 · 约 10–15 分钟</p>
           </div>
 
           <div ref={canvasWrapRef} className="flex justify-center">

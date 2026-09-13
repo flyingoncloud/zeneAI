@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "认知小测 · ZeneMe",
-  description: "扫码即测：一组图片小题，看图点一点，约 8–12 分钟，无需登录。",
+  description: "扫码即测：一组图片小题，看图点一点，约 10–15 分钟，无需登录。",
 };
 
 export default function CognitiveLayout({

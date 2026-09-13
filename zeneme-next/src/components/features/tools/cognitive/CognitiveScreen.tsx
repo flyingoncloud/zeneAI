@@ -38,7 +38,7 @@ type Step =
   | { kind: 'selection'; task: number }
   | { kind: 'recall'; block: number }
   | { kind: 'cue'; block: number }
-  | { kind: 'falling' };
+  | { kind: 'falling'; round: number };
 
 function emptyCells(count: number): (string | null)[] {
   return Array.from({ length: count }, () => null);
@@ -246,11 +246,11 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
       { kind: 'recall', block },
       { kind: 'cue', block },
     ]);
-    // The game, then whatever selection tasks were not used as distractors.
+    // The game rounds, then whatever selection tasks were not used as distractors.
     const used = session.blocks.length * DISTRACTORS_PER_BLOCK;
     return [
       ...blockSteps,
-      { kind: 'falling' },
+      ...session.falling.map((_, round): Step => ({ kind: 'falling', round })),
       ...session.selections
         .slice(used)
         .map((_, n): Step => ({ kind: 'selection', task: used + n })),
@@ -270,7 +270,9 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
         case 'cue':
           return TIMING.recognition;
         case 'falling':
-          return TIMING.falling;
+          return session.falling[target.round].direction === 'backward'
+            ? TIMING.fallingBackward
+            : TIMING.falling;
         case 'selection':
           return session.selections[target.task].seconds;
       }
@@ -305,9 +307,13 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
   const [cueAnswers, setCueAnswers] = useState<Record<string, string>[]>(() =>
     session.blocks.map(() => ({})),
   );
-  const [fallingPicks, setFallingPicks] = useState<string[]>([]);
-  /** The game's clock only starts once the fruits have finished rolling. */
-  const [fallingArmed, setFallingArmed] = useState(false);
+  const [fallingPicks, setFallingPicks] = useState<string[][]>(() =>
+    session.falling.map(() => []),
+  );
+  /** Per round: the clock only starts once that round's fruits have finished rolling. */
+  const [fallingArmed, setFallingArmed] = useState<boolean[]>(() =>
+    session.falling.map(() => false),
+  );
   const [result, setResult] = useState<ScreenResult | null>(null);
 
   // Wall-clock marks for the encode -> recall interval, per block. Only the
@@ -397,7 +403,7 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
     if (phase !== 'task') return;
     // Watching the fruits roll is not something the user can hurry, so the
     // game's allowance covers the answer only.
-    if (step.kind === 'falling' && !fallingArmed) return;
+    if (step.kind === 'falling' && !fallingArmed[step.round]) return;
     const timer = setTimeout(() => {
       if (secondsLeft <= 0) advanceRef.current();
       else setSecondsLeft(secondsLeft - 1);
@@ -437,8 +443,8 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
     setSelectionAnswers(session.selections.map(() => []));
     setCueTrials(session.blocks.map(() => []));
     setCueAnswers(session.blocks.map(() => ({})));
-    setFallingPicks([]);
-    setFallingArmed(false);
+    setFallingPicks(session.falling.map(() => []));
+    setFallingArmed(session.falling.map(() => false));
     holdEndedAt.current = [];
     recallStartedAt.current = [];
     setResult(null);
@@ -458,8 +464,8 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
           <div className="space-y-2 text-center">
             <h2 className="text-2xl font-bold text-white">认知小测</h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              一组图片小题，看图、点一点就行，大约 8–12 分钟。
-              里面有记东西、找东西、数一数，也有一个水果滚楼梯的小游戏。
+              一组图片小题，看图、点一点就行，大约 10–15 分钟。
+              里面有记东西、找东西、数一数、看表情，也有两轮水果滚楼梯的小游戏。
             </p>
           </div>
 
@@ -711,27 +717,47 @@ export const CognitiveScreen: React.FC<CognitiveScreenProps> = ({ onExit }) => {
       }
 
       case 'falling': {
+        const round = session.falling[step.round];
+        const backward = round.direction === 'backward';
+        const armed = fallingArmed[step.round];
+        const picks = fallingPicks[step.round] ?? [];
         return (
           <TaskFrame
-            secondsLeft={fallingArmed ? secondsLeft : limitFor(step)}
+            secondsLeft={armed ? secondsLeft : limitFor(step)}
             totalSeconds={limitFor(step)}
-            stepLabel={`${stepNumber} · 小游戏`}
-            instruction="台阶上的水果会一样一样滚下来。记住是哪几样——顺序记得住更好，记不住也不影响。"
+            stepLabel={`${stepNumber} · 小游戏 ${step.round + 1}${backward ? ' · 倒着说' : ''}`}
+            instruction={
+              backward
+                ? '还是水果滚楼梯，这次反过来说：记住是哪几样，然后从最后滚下来的那样开始，倒着点回第一样。'
+                : '台阶上的水果会一样一样滚下来。记住是哪几样——顺序记得住更好，记不住也不影响。'
+            }
             onExit={exitRequest}
             onNext={advance}
             // One pick is enough to move on. Demanding all of them forced anyone
             // who remembered two to invent a third, and an invented pick costs
             // credit — the gate was manufacturing the failure it then scored.
-            nextEnabled={fallingPicks.length > 0}
+            nextEnabled={picks.length > 0}
             nextHint="选上 1 个就可以继续，不用凑满。"
           >
             <FallingFruit
-              round={session.falling}
-              picked={fallingPicks}
-              onChange={setFallingPicks}
-              onAnswerPhase={() => setFallingArmed(true)}
+              // Both rounds render the same component in the same slot, so
+              // without a key the second one inherits the first's `answer`
+              // phase and the fruits never roll.
+              key={step.round}
+              round={round}
+              picked={picks}
+              onChange={(next) =>
+                setFallingPicks((current) =>
+                  current.map((value, index) => (index === step.round ? next : value)),
+                )
+              }
+              onAnswerPhase={() =>
+                setFallingArmed((current) =>
+                  current.map((value, index) => (index === step.round ? true : value)),
+                )
+              }
             />
-            {fallingArmed && fallingPicks.length === 0 && (
+            {armed && picks.length === 0 && (
               <div className="max-w-3xl mx-auto mt-6 text-center">
                 <button
                   type="button"

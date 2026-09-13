@@ -1,18 +1,23 @@
 /**
  * 认知快测 — the "tap the ones that match" question family.
  *
- * Five variants share one interaction: show something, have the user tap either
+ * Every variant shares one interaction: show something, have the user tap either
  * the single best answer or every member of a category. So they share one
  * component (SelectionGrid) and one scoring rule, and differ only in the data
- * below — 定向力, 注意力（图形划消 + 数一数有几张脸）, 计算力（数感）and
- * 语言流畅性（类别识别）.
+ * below — 定向力, 注意力（图形划消 + 数一数有几张脸）, 计算力（数感）,
+ * 语言流畅性（类别识别）and 表情辨识（认表情 + 找笑脸）.
  *
  * These also double as the distraction interval between a memory block's encode
  * and recall screens, which is what the clinical guidance asks for: the delay
  * should be filled by the other tests rather than by dead time.
  */
 
-export type SelectionDomain = 'orientation' | 'attention' | 'calculation' | 'fluency';
+export type SelectionDomain =
+  | 'orientation'
+  | 'attention'
+  | 'calculation'
+  | 'fluency'
+  | 'expression';
 
 export interface SelectionCell {
   /** Unique within a task. A glyph may repeat across cells, an id may not. */
@@ -357,6 +362,162 @@ function faceCountTask(random: () => number): SelectionTask {
 }
 
 /* ------------------------------------------------------------------ *
+ * 领域 3b · 表情辨识（认表情 + 找笑脸）
+ * ------------------------------------------------------------------ */
+
+/**
+ * Two questions about faces, which is what Jim asked for after the face-counting
+ * one landed well — "增加一两题测人脸的玩玩".
+ *
+ * They are not decoration bolted on for fun. Reading a face is its own domain
+ * (social cognition), it is not covered by anything else in this screen, and
+ * losing it is an early and well-described sign in frontotemporal dementia and a
+ * later one in Alzheimer's. So it earns a domain of its own rather than being
+ * filed under 注意力, which is what it would have to be if the label had to be
+ * one of the four we already had.
+ *
+ * Where they sit apart from the rest: nothing here has to be remembered, counted
+ * or reasoned about, so they are the two lightest screens in the run. That is
+ * useful in its own right — they sit inside a memory block's delay, where a
+ * screen that also taxes memory would eat into what the block is measuring.
+ *
+ * Drawn rather than photographed, for the same reason the face-counting scene is:
+ * photographs of faces are licensed, and a photo set is a photo set of *someone*
+ * — one age, one ethnicity, one decade of hairstyles. A drawn face asks about the
+ * expression and nothing else.
+ */
+
+/**
+ * The expression vocabulary lives here rather than next to the drawings, for the
+ * same reason `FACE_GLYPHS` does: this file decides which stimuli a question
+ * needs, and ItemGlyph is asked to draw them. It imports `MOODS`, `MOOD_LOOKS`
+ * and `moodGlyph` from here, so both sides generate the same key set from one
+ * source and a key can never be asked for that has no drawing behind it.
+ */
+export type Mood = 'happy' | 'calm' | 'angry' | 'sad' | 'surprised';
+
+export const MOODS: Mood[] = ['happy', 'calm', 'angry', 'sad', 'surprised'];
+
+export const MOOD_LABELS: Record<Mood, string> = {
+  happy: '开心',
+  calm: '平静',
+  angry: '生气',
+  sad: '难过',
+  surprised: '吃惊',
+};
+
+/**
+ * How many different people each expression can be drawn on. Three is enough
+ * that no card in a question repeats a face, and it is what keeps 找笑脸 from
+ * being solvable by "the smiling ones are the ones with that haircut".
+ */
+export const MOOD_LOOKS = 3;
+
+/** `mood-<expression>-<look>`, e.g. `mood-angry-1`. */
+export function moodGlyph(mood: Mood, look: number): string {
+  return `mood-${mood}-${((look % MOOD_LOOKS) + MOOD_LOOKS) % MOOD_LOOKS}`;
+}
+
+const EXPRESSION_OPTIONS = 4;
+
+/** Which expression is asked about. 平静 is never the target — see below. */
+const ASKABLE_MOODS: Mood[] = ['happy', 'angry', 'sad', 'surprised'];
+
+/**
+ * Pick the face wearing one named expression.
+ *
+ * The target is drawn per session, and 平静 is excluded from being asked for: it
+ * is the absence of an expression, so "which one is calm" is answered by
+ * elimination and would measure the other three faces instead. It stays in as a
+ * distractor, where being featureless is exactly what makes it a fair one.
+ *
+ * Every option is a different person as well as a different expression. With one
+ * face wearing four expressions, the four cards differ only in the lines we drew,
+ * and the honest version of the question is "can you read this expression on a
+ * face you have not seen before".
+ */
+function expressionTask(random: () => number): SelectionTask {
+  const target = ASKABLE_MOODS[Math.floor(random() * ASKABLE_MOODS.length)];
+  const others = shuffled(
+    MOODS.filter((mood) => mood !== target),
+    random,
+  ).slice(0, EXPRESSION_OPTIONS - 1);
+  const looks = shuffled(
+    Array.from({ length: MOOD_LOOKS }, (_, index) => index),
+    random,
+  );
+
+  const options = shuffled([target, ...others], random).map((mood, index) => ({
+    id: `mood-${mood}`,
+    glyph: moodGlyph(mood, looks[index % looks.length]),
+    label: MOOD_LABELS[mood],
+  }));
+
+  return {
+    id: 'expression-name',
+    domain: 'expression',
+    domainLabel: '表情辨识',
+    instruction: `下面几个人的表情都不一样。请点选那个看起来在「${MOOD_LABELS[target]}」的人。`,
+    mode: 'single',
+    options,
+    // Captions off: the answer would be written on the cards.
+    correct: [`mood-${target}`],
+    columns: 4,
+    seconds: 45,
+  };
+}
+
+const SMILE_CELLS = 15;
+const SMILE_MIN = 4;
+const SMILE_MAX = 7;
+
+/**
+ * Tap every smiling face in a crowd.
+ *
+ * Same interaction as 图形划消, deliberately: it is visual search, and having one
+ * search task on shapes and one on faces is what separates "cannot sustain a
+ * scan" from "cannot read a face". Someone who clears the stars and misses half
+ * the smiles is telling us something the star grid on its own cannot.
+ *
+ * The non-smiling faces are the other four expressions rather than blanks, so the
+ * grid cannot be cleared by finding the faces that have a mouth drawn at all.
+ * 平静 is the near miss that matters — a straight mouth against a curved one is
+ * the discrimination, and it is why 开心 is drawn with squeezed-shut eyes too.
+ */
+function smileSearchTask(random: () => number): SelectionTask {
+  const smiles = SMILE_MIN + Math.floor(random() * (SMILE_MAX - SMILE_MIN + 1));
+  const otherMoods = MOODS.filter((mood) => mood !== 'happy');
+
+  const cells: SelectionCell[] = [
+    ...Array.from({ length: smiles }, (_, i) => ({
+      id: `smile-${i}`,
+      glyph: moodGlyph('happy', i),
+      label: '在笑的人',
+    })),
+    ...Array.from({ length: SMILE_CELLS - smiles }, (_, i) => {
+      const mood = otherMoods[i % otherMoods.length];
+      return {
+        id: `other-${i}`,
+        glyph: moodGlyph(mood, i),
+        label: `没有在笑的人（${MOOD_LABELS[mood]}）`,
+      };
+    }),
+  ];
+
+  return {
+    id: 'expression-smiles',
+    domain: 'expression',
+    domainLabel: '表情辨识',
+    instruction: '下面这些人的表情不一样。请把所有「在笑」的人都点出来，不要漏掉，也不要点错。',
+    mode: 'multi',
+    options: shuffled(cells, random),
+    correct: cells.filter((cell) => cell.id.startsWith('smile-')).map((cell) => cell.id),
+    columns: 5,
+    seconds: 60,
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * 领域 4 · 计算力（数感）
  * ------------------------------------------------------------------ */
 
@@ -490,18 +651,29 @@ function fluencyTask(random: () => number): SelectionTask {
  * ------------------------------------------------------------------ */
 
 /**
- * Six tasks in administration order. The first four sit inside the two memory
- * blocks, two apiece, paired so that a block's delay is filled by two different
- * domains rather than two of a kind; the last two run after the game.
+ * Eight tasks in administration order. The first six sit inside the two memory
+ * blocks, three apiece, ordered so that a block's delay is filled by three
+ * different domains rather than three of a kind; the last two run after the
+ * games.
+ *
+ * The two face questions are split across the run rather than kept together.
+ * Three face screens in a row would let a user settle into one way of looking,
+ * and the whole point of putting 认表情 next to 图形划消 is that they ask for
+ * different kinds of attention.
  */
 export function buildSelectionTasks(random: () => number, now: Date): SelectionTask[] {
   return [
+    // Block 1's delay: 定向力, 注意力, 表情辨识.
     seasonTask(now),
     cancellationTask(random),
+    expressionTask(random),
+    // Block 2's delay: 计算力, 语言流畅性, 定向力.
     countingTask(random),
     fluencyTask(random),
     daypartTask(now),
+    // After the games.
     faceCountTask(random),
+    smileSearchTask(random),
   ];
 }
 
@@ -555,4 +727,8 @@ export const DOMAIN_LABELS: Record<SelectionDomain, string> = {
   attention: '注意力',
   calculation: '计算力',
   fluency: '语言流畅性',
+  // 社会认知 is what the literature calls it; nobody reading their own result
+  // knows what that means, and the report has to be readable by the person who
+  // took the test.
+  expression: '表情辨识',
 };

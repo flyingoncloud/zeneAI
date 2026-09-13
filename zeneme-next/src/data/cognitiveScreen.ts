@@ -1,9 +1,9 @@
 /**
  * 认知快测 — item bank, task construction and scoring.
  *
- * A run is: two memory blocks (place items in a grid, hold, do two other tasks,
- * put them back, then a cued-recall rescue), one light game, and two more
- * selection tasks. The stimuli are entirely our own: MoCA's items are
+ * A run is: two memory blocks (place items in a grid, hold, do three other tasks,
+ * put them back, then a cued-recall rescue), two rounds of one light game, and
+ * two more selection tasks. The stimuli are entirely our own: MoCA's items are
  * copyrighted and its publisher restricts electronic administration, so nothing
  * from the published test is reproduced. See docs/MoCA式认知筛查题目设计.md in
  * the zeneEdu repo for the clinical rationale behind the domain weights and the
@@ -119,7 +119,14 @@ const ANIMALS: ScreenItem[] = [
   { id: 'octopus', family: 'animal', label: '章鱼' },
 ];
 
-/** The game's stimuli. Drawn filled and in colour — see ItemGlyph. */
+/**
+ * The game's stimuli. Drawn filled and in colour — see ItemGlyph.
+ *
+ * Twelve, because the game now runs two rounds and they take six fruits each out
+ * of one shuffle: with the eight this started as, the second round would have had
+ * to re-use four of the first round's fruits, and a second round that looks like
+ * the first screen again is the one thing that would waste it.
+ */
 const FOODS: ScreenItem[] = [
   { id: 'apple', family: 'food', label: '苹果' },
   { id: 'banana', family: 'food', label: '香蕉' },
@@ -129,6 +136,10 @@ const FOODS: ScreenItem[] = [
   { id: 'pear', family: 'food', label: '梨' },
   { id: 'watermelon', family: 'food', label: '西瓜' },
   { id: 'strawberry', family: 'food', label: '草莓' },
+  { id: 'peach', family: 'food', label: '桃子' },
+  { id: 'pineapple', family: 'food', label: '菠萝' },
+  { id: 'lemon', family: 'food', label: '柠檬' },
+  { id: 'kiwi', family: 'food', label: '猕猴桃' },
 ];
 
 export const ITEM_BANK: Record<ItemFamily, ScreenItem[]> = {
@@ -273,28 +284,64 @@ export const FALLING_ON_STAIRS = 6;
 export const FALLING_COUNT = 3;
 
 /**
+ * Which way round the answer is given.
+ *
+ * `forward` is the original: name the three in the order they rolled. `backward`
+ * asks for the same three from the last one to the first, and it is the second
+ * round the team asked for after the first one landed — "感觉比较刺激有挑战…是否
+ * 多一题这样的类型".
+ *
+ * It is also the version that is worth adding rather than just a second helping.
+ * Forward is maintenance: hold a sequence and play it back. Backward is
+ * manipulation — the sequence has to be held *and* reversed, which is working
+ * memory rather than short-term storage, and it is the same forward/backward pair
+ * every pen-and-paper digit span has had for a century. So the extra round buys a
+ * second construct, not a second measurement of the first.
+ */
+export type FallingDirection = 'forward' | 'backward';
+
+/**
  * Six fruits sit on a staircase and three of them roll down, one at a time;
- * afterwards the user picks which three fell, in the order they fell.
+ * afterwards the user picks which three fell, in the order the round asks for.
  *
  * The point is that it measures the same thing a word list does — hold a short
  * sequence over a few seconds and reproduce it — while looking like a game and
  * asking nothing of reasoning. Real objects, in motion, in colour.
  */
 export interface FallingRound {
-  /** The 7 fruits on the stairs, top step first. */
+  direction: FallingDirection;
+  /** The 6 fruits on the stairs, top step first. */
   stair: ScreenItem[];
-  /** The 4 that roll down, in falling order. */
+  /** The 3 that roll down, in falling order — always the order they fell in. */
   fell: string[];
 }
 
-function buildFallingRound(random: () => number): FallingRound {
-  const stair = shuffled(ITEM_BANK.food, random).slice(0, FALLING_ON_STAIRS);
-  return {
-    stair,
-    fell: shuffled(stair, random)
-      .slice(0, FALLING_COUNT)
-      .map((item) => item.id),
-  };
+/** Forward first, then backward. Two rounds, in the order they are played. */
+const FALLING_DIRECTIONS: FallingDirection[] = ['forward', 'backward'];
+
+/**
+ * The rounds are cut from one shuffle of the family, six fruits each, so no fruit
+ * appears in both. Sharing fruits across rounds would put the first round's
+ * answer among the second round's options, and an intrusion from the earlier
+ * round would be scored as if the user had misremembered this one.
+ */
+function buildFallingRounds(random: () => number): FallingRound[] {
+  const pool = shuffled(ITEM_BANK.food, random);
+  return FALLING_DIRECTIONS.map((direction, index) => {
+    const stair = pool.slice(index * FALLING_ON_STAIRS, (index + 1) * FALLING_ON_STAIRS);
+    return {
+      direction,
+      stair,
+      fell: shuffled(stair, random)
+        .slice(0, FALLING_COUNT)
+        .map((item) => item.id),
+    };
+  });
+}
+
+/** The order the user is asked to tap, which is the falling order reversed for `backward`. */
+export function expectedFallingOrder(round: FallingRound): string[] {
+  return round.direction === 'forward' ? round.fell : [...round.fell].reverse();
 }
 
 export interface FallingScore {
@@ -320,8 +367,9 @@ const FALLING_SET_SHARE = 0.7;
 
 export function scoreFalling(round: FallingRound, picked: string[]): FallingScore {
   const fell = new Set(round.fell);
+  const expected = expectedFallingOrder(round);
   const setHits = picked.filter((id) => fell.has(id)).length;
-  const orderHits = picked.filter((id, index) => round.fell[index] === id).length;
+  const orderHits = picked.filter((id, index) => expected[index] === id).length;
   const falsePicks = picked.length - setHits;
 
   const setCredit = Math.max(0, setHits - falsePicks) / FALLING_COUNT;
@@ -350,24 +398,32 @@ export const TIMING = {
   recognition: 45,
   /** Answer phase only; the fruits rolling down are not on the clock. */
   falling: 60,
+  /** Reversing a sequence takes longer than playing it back, so the clock is longer. */
+  fallingBackward: 75,
 } as const;
 
 /** Selection tasks placed between a block's hold screen and its recall screen. */
-export const DISTRACTORS_PER_BLOCK = 2;
+export const DISTRACTORS_PER_BLOCK = 3;
 
 /**
- * Two blocks, not three. The game covers the third one's ground with a fifth of
+ * Two blocks, not three. The games cover the third one's ground with a fifth of
  * the tedium, and 15 minutes of grids was the single most common way to abandon
- * the run halfway.
+ * the run halfway. This is also why the extra questions added since went in as
+ * more tasks inside the two blocks rather than as a third block: a task inside a
+ * block's delay costs its own screen and nothing else, while a block costs six.
  */
 const MEMORY_FAMILIES: ItemFamily[] = ['object', 'animal'];
 
 export interface ScreenSession {
   seed: number;
   blocks: MemoryBlock[];
-  /** Administration order; the first `2 × blocks.length` sit inside the blocks. */
+  /**
+   * Administration order; the first `DISTRACTORS_PER_BLOCK × blocks.length` sit
+   * inside the blocks.
+   */
   selections: SelectionTask[];
-  falling: FallingRound;
+  /** Forward then backward, played back to back after the memory blocks. */
+  falling: FallingRound[];
 }
 
 /**
@@ -379,7 +435,7 @@ export function buildSession(seed: number, now: Date): ScreenSession {
   const random = makeRandom(seed);
   const blocks = MEMORY_FAMILIES.map((family) => buildBlock(family, random));
   const selections = buildSelectionTasks(random, now);
-  return { seed, blocks, selections, falling: buildFallingRound(random) };
+  return { seed, blocks, selections, falling: buildFallingRounds(random) };
 }
 
 /* ------------------------------------------------------------------ *
@@ -402,16 +458,31 @@ export const WEIGHTS = {
   order: 15,
   /** Items recovered from a three-choice cue after a failed free recall. */
   recognition: 5,
-  /** 滚下来的水果. */
-  falling: 15,
+  /** 滚下来的水果, round 1: name the three in the order they rolled. */
+  falling: 8,
+  /**
+   * 滚下来的水果, round 2: the same three, last one first. It carries all but one
+   * of the points the single round used to, because between the two of them they
+   * measure what one of them did — the split is a split, not a top-up.
+   */
+  fallingBackward: 7,
   /** 2 items: current season and part of the day. */
   orientation: 10,
   /** 2 items: 图形划消 and 数一数有几张脸. */
-  attention: 15,
+  attention: 12,
   /** 1 item: 数感. */
-  calculation: 8,
+  calculation: 6,
   /** 1 item: pick every fruit out of 20 mixed images. */
-  fluency: 7,
+  fluency: 6,
+  /**
+   * 2 items: 认表情 and 找笑脸. The six points come off 注意力 (-3), 计算力 (-2)
+   * and 语言流畅性 (-1) rather than off memory, which stays where it was: delayed
+   * recall is still the highest-value signal in the run and reading a face is not
+   * a reason to weigh it less. The three it does come off were the most generously
+   * weighted per item — 计算力 in particular was carrying 8 points on one trivial
+   * sum.
+   */
+  expression: 6,
 } as const;
 
 /** Half or less of a domain earned is worth calling out on the report. */
@@ -501,7 +572,8 @@ export interface ScreenResult {
   educationBonusApplied: boolean;
   blocks: BlockScore[];
   domains: DomainResult[];
-  falling: FallingScore;
+  /** One per round, in the order they were played. */
+  falling: FallingScore[];
   lines: ScoreLine[];
   /** Why the band ended up where it did, in the order the rules fired. */
   flags: string[];
@@ -529,7 +601,13 @@ function scoreBlock(response: BlockResponse, encodePalette: ScreenItem[]): Block
 
 /** Averages each domain's tasks. */
 function aggregateDomains(scores: SelectionScore[]): DomainResult[] {
-  const order: SelectionDomain[] = ['orientation', 'attention', 'calculation', 'fluency'];
+  const order: SelectionDomain[] = [
+    'orientation',
+    'attention',
+    'calculation',
+    'fluency',
+    'expression',
+  ];
 
   return order.map((domain) => {
     const own = scores.filter((score) => score.domain === domain);
@@ -555,13 +633,15 @@ const DOMAIN_HINTS: Record<SelectionDomain, string> = {
   attention: '在一堆相似的东西里把目标一个不漏地找出来。',
   calculation: '同时记住两边的数量再合起来算。',
   fluency: '「水果」这个类别在脑子里浮现得有多快。',
+  expression: '看一眼就知道对面的人是什么心情——这一项和记性是两回事，可以单独变化。',
 };
 
 export function scoreSession(
   session: ScreenSession,
   responses: BlockResponse[],
   selectionAnswers: string[][],
-  fallingPicks: string[],
+  /** One entry per game round, in play order. */
+  fallingPicks: string[][],
   demographics: Demographics,
 ): ScreenResult {
   const blocks = responses.map((response, index) =>
@@ -579,7 +659,9 @@ export function scoreSession(
   const domains = aggregateDomains(
     session.selections.map((task, index) => scoreSelection(task, selectionAnswers[index] ?? [])),
   );
-  const falling = scoreFalling(session.falling, fallingPicks);
+  const falling = session.falling.map((round, index) =>
+    scoreFalling(round, fallingPicks[index] ?? []),
+  );
 
   const cells = CELLS_PER_BLOCK * session.blocks.length;
   // Adjacent placements earn half a cell each.
@@ -618,15 +700,21 @@ export function scoreSession(
       max: WEIGHTS.recognition,
       note: cuedCount === 0 ? '全部自己回忆出来了，直接给满分' : undefined,
     },
-    {
-      key: 'falling',
-      label: '滚下来的水果',
-      detail: `认出 ${falling.setHits}/${FALLING_COUNT}，顺序对 ${falling.orderHits}`,
-      hint: '看着几样东西依次滚下来，然后按顺序说出是哪几样——短时记忆加顺序保持。',
-      earned: points(falling.credit, WEIGHTS.falling),
-      max: WEIGHTS.falling,
-      note: falling.falsePicks > 0 ? `多选了 ${falling.falsePicks} 个` : undefined,
-    },
+    ...session.falling.map((round, index) => {
+      const score = falling[index];
+      const backward = round.direction === 'backward';
+      return {
+        key: `falling-${round.direction}`,
+        label: backward ? '滚下来的水果（倒着说）' : '滚下来的水果',
+        detail: `认出 ${score.setHits}/${FALLING_COUNT}，顺序对 ${score.orderHits}`,
+        hint: backward
+          ? '同样几样东西滚下来，这次要从最后一样倒着说回来。倒着说要先把顺序在脑子里翻过来，比顺着说多一层工作。'
+          : '看着几样东西依次滚下来，然后按顺序说出是哪几样——短时记忆加顺序保持。',
+        earned: points(score.credit, backward ? WEIGHTS.fallingBackward : WEIGHTS.falling),
+        max: backward ? WEIGHTS.fallingBackward : WEIGHTS.falling,
+        note: score.falsePicks > 0 ? `多选了 ${score.falsePicks} 个` : undefined,
+      };
+    }),
     ...domains.map((domain) => ({
       key: domain.domain,
       label: domain.label,
@@ -664,6 +752,29 @@ export function scoreSession(
   domains
     .filter((domain) => domain.credit <= WEAK_DOMAIN_CREDIT)
     .forEach((domain) => flags.push(`${domain.label}这一项得分偏低`));
+
+  // The pattern the backward round was added to see: the sequence is held but
+  // cannot be turned around. Worth naming, because it is the more benign of the
+  // two readings and the total on its own does not distinguish them.
+  //
+  // Read off the order hits, not the round's overall credit. Most of a round's
+  // credit is for naming the right three fruits, which someone who ignored the
+  // reversal still earns — a credit comparison would only fire when the set
+  // itself was lost, which is the opposite pattern. Note also that reversing
+  // three items leaves the middle one where it was, so a run that gives the
+  // fruits back in the order they fell still scores one order hit; the
+  // threshold is set below that.
+  const [forwardRound, backwardRound] = falling;
+  if (
+    forwardRound &&
+    backwardRound &&
+    forwardRound.setHits >= FALLING_COUNT - 1 &&
+    forwardRound.orderHits >= FALLING_COUNT - 1 &&
+    backwardRound.setHits >= FALLING_COUNT - 1 &&
+    backwardRound.orderHits <= 1
+  ) {
+    flags.push('水果顺着说没问题、倒着说明显吃力——更像一时转不过来，而不是没记住');
+  }
 
   // Free recall low but the cue rescues it: retrieval, not storage. Worth saying
   // out loud, because it is the more reassuring of the two patterns.

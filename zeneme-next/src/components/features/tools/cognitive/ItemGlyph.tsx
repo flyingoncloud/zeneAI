@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MOODS, MOOD_LOOKS, moodGlyph, type Mood } from '@/data/selectionTasks';
 import {
   Armchair,
   Backpack,
@@ -45,7 +46,6 @@ import {
   Ruler,
   Sailboat,
   Scissors,
-  Shell,
   Shirt,
   ShoppingBasket,
   Shrimp,
@@ -74,8 +74,8 @@ import {
  * Four tiers, and which tier an item lands in is a deliberate choice rather
  * than an accident of what lucide ships:
  *
- * 1. `FOOD_ART` / `FACE_ART` — hand-drawn, filled, multi-colour. Used wherever
- *    the item has to read as a real thing at a glance.
+ * 1. `FOOD_ART` / `FACE_ART` / `MOOD_ART` — hand-drawn, filled, multi-colour.
+ *    Used wherever the item has to read as a real thing at a glance.
  * 2. `OUTLINE_ART` — hand-drawn, but to lucide's conventions, for items lucide
  *    does not ship at all. Deliberately indistinguishable from tier 3.
  * 3. `LUCIDE_GLYPHS` + `GLYPH_COLOR` — outlines, but each in the colour the
@@ -242,6 +242,79 @@ const FOOD_ART: Record<string, React.ReactNode> = {
       <path d="M9.8 13.4h4.4v4.3c0 1.2-1 2.1-2.2 2.1s-2.2-.9-2.2-2.1v-4.3Z" fill="#fef3c7" />
     </>
   ),
+  /**
+   * The four that took the fruit family from 8 to 12. The game runs two rounds
+   * off disjoint halves of the family, so 12 is the number that lets the second
+   * round show six fruits the first one did not — without that, both rounds draw
+   * from the same eight and the second reads as the first screen again.
+   *
+   * Each was picked for a silhouette and a hue nothing else in the family has:
+   * the cleft and blush of 桃子, the crown and crosshatch of 菠萝, the ellipse
+   * and nubs of 柠檬, the cut face of 猕猴桃. A 蓝莓 was the obvious twelfth and
+   * was dropped for the opposite reason — a cluster of small purple circles is
+   * 葡萄 at a glance, and a fruit the user confuses with another fruit is a
+   * scoring error the drawing caused.
+   */
+  peach: (
+    <>
+      <path d="M12.3 7.6c.9-1.5 2.6-2.2 4-1.8.2 1.5-.7 3.1-2.2 3.6-.8.3-1.6 0-1.9-.5-.2-.4-.2-.9.1-1.3Z" fill="#22c55e" />
+      <path d="M12 8.2c4 0 7 2.7 7 6.2 0 3.3-3.1 6-7 6s-7-2.7-7-6c0-3.5 3-6.2 7-6.2Z" fill="#fb923c" />
+      {/* Highlight down the near cheek, not a blush laid over half the fruit — a
+          filled half turned the peach into two flat colours meeting at a hard
+          vertical line, which read as a cut fruit rather than a whole one. */}
+      <path
+        d="M9.2 9.2C7 10.4 5.8 12.3 5.8 14.4c0 1.7.8 3.2 2.2 4.3"
+        stroke="#fdba74"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Off centre and short of both ends: a full-height line down the middle
+          divides the fruit in two and reads as a cut. */}
+      <path d="M10.6 9.4c-1 2.2-1 7.6.2 9.8" stroke="#c2410c" strokeWidth=".8" strokeLinecap="round" fill="none" />
+    </>
+  ),
+  pineapple: (
+    <>
+      <g stroke="#16a34a" strokeWidth="1.6" strokeLinecap="round" fill="none">
+        <path d="M12 8.6V3.4M12 8.6 8.8 4.8M12 8.6l3.2-3.8M12 8.6 8 6.8M12 8.6l4-1.8" />
+      </g>
+      <path d="M12 8.6c3.2 0 5.5 2.3 5.5 5.5 0 3.7-2.5 6.5-5.5 6.5s-5.5-2.8-5.5-6.5c0-3.2 2.3-5.5 5.5-5.5Z" fill="#eab308" />
+      <g stroke="#854d0e" strokeWidth=".9" strokeLinecap="round" fill="none">
+        <path d="M7.4 12.2 12 16.4l4.6-4.2M7.6 16.2 12 20.2l4.4-4M12 10.2l3.6 3.4M12 10.2l-3.6 3.4" />
+      </g>
+    </>
+  ),
+  lemon: (
+    <>
+      {/* The two tips are filled in the body colour and overlap the ellipse, so
+          they merge into points. Drawn as separate strokes they stood off the
+          fruit and read as handles screwed into an orange. */}
+      <g fill="#fde047">
+        <ellipse cx="12" cy="13.4" rx="7" ry="5.6" />
+        <path d="M2.9 13.4c1-1.5 2.1-2.3 3.3-2.5v5c-1.2-.2-2.3-1-3.3-2.5Z" />
+        <path d="M21.1 13.4c-1-1.5-2.1-2.3-3.3-2.5v5c1.2-.2 2.3-1 3.3-2.5Z" />
+      </g>
+      <ellipse cx="9.6" cy="11.2" rx="2.4" ry="1.2" fill="#fef9c3" transform="rotate(-16 9.6 11.2)" />
+      <path d="M12.4 8c.4-1.3 1.5-2 2.8-1.9" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>
+  ),
+  kiwi: (
+    <>
+      <circle cx="12" cy="12.6" r="8.2" fill="#7c5c34" />
+      <circle cx="12" cy="12.6" r="6.6" fill="#84cc16" />
+      <circle cx="12" cy="12.6" r="2" fill="#fef9c3" />
+      <g fill="#1c1917">
+        <circle cx="12" cy="8.6" r=".6" />
+        <circle cx="15.4" cy="10.4" r=".6" />
+        <circle cx="16" cy="14" r=".6" />
+        <circle cx="13.4" cy="16.2" r=".6" />
+        <circle cx="10" cy="16" r=".6" />
+        <circle cx="8.2" cy="13" r=".6" />
+        <circle cx="9.2" cy="9.8" r=".6" />
+      </g>
+    </>
+  ),
 };
 
 /* ------------------------------------------------------------------ *
@@ -334,6 +407,155 @@ const FACE_ART: Record<string, React.ReactNode> = {
 };
 
 /* ------------------------------------------------------------------ *
+ * Tier 1 · expressions (表情辨识)
+ * ------------------------------------------------------------------ */
+
+/**
+ * The five expressions the 表情 questions use.
+ *
+ * Built by combining a look (skin and hair) with a set of features (brows, eyes,
+ * mouth) rather than drawn one by one, because the questions need the same
+ * expression on different faces and the same face with different expressions.
+ * Writing out that grid by hand would be 25 near-identical drawings that drift
+ * apart as they are edited, and the moment two of them drift the item stops
+ * measuring the expression and starts measuring the drawing.
+ *
+ * The pairs that have to survive a 44px card were chosen against each other:
+ * 开心 and 平静 differ at the mouth *and* the eyes (arcs versus dots), and
+ * 生气 and 难过 differ by which way the brows slope plus the tear. A single cue
+ * would be too easy to lose at that size.
+ *
+ * Which expressions exist and what they are called is decided in selectionTasks
+ * — that file writes the questions, this one draws what they ask for.
+ */
+
+/**
+ * Skin and hair, so two faces wearing one expression are not one drawing twice.
+ *
+ * Every cap starts and ends on the face circle and follows its arc over the
+ * crown (`A8.2 8.2` — the same radius). Drawn as a free curve instead, the hair
+ * leaves a crescent of scalp above it and reads as a headband, which is what the
+ * first version did.
+ */
+const MOOD_LOOK_ART: { skin: string; hair: React.ReactNode }[] = [
+  {
+    skin: '#fbbf7d',
+    hair: (
+      <path
+        d="M4.3 9.2A8.2 8.2 0 0 1 19.7 9.2C17.4 8.1 14.8 7.6 12 7.6S6.6 8.1 4.3 9.2Z"
+        fill="#3f3f46"
+      />
+    ),
+  },
+  {
+    skin: '#f5c9a4',
+    hair: (
+      <>
+        {/* Long hair: the strands run down outside the cheeks rather than
+            sitting on them, where two brown blobs level with the eyes looked
+            like headphones. */}
+        <path d="M4.1 9.6C2.6 12.6 2.9 16.4 4.6 19.4 6 18.6 6.4 15.4 5.9 11.6Z" fill="#7c2d12" />
+        <path d="M19.9 9.6C21.4 12.6 21.1 16.4 19.4 19.4 18 18.6 17.6 15.4 18.1 11.6Z" fill="#7c2d12" />
+        <path
+          d="M4.1 9.6A8.2 8.2 0 0 1 19.9 9.6C17.5 8.2 14.8 7.4 12 7.4S6.5 8.2 4.1 9.6Z"
+          fill="#7c2d12"
+        />
+      </>
+    ),
+  },
+  {
+    skin: '#e8b48c',
+    hair: (
+      <path
+        d="M4.3 9.2A8.2 8.2 0 0 1 19.7 9.2C18.6 7.3 16 6.5 12.6 7.1 10.3 7.5 8.7 8.5 7.9 10 7.1 8.9 5.8 8.6 4.3 9.2Z"
+        fill="#1c1917"
+      />
+    ),
+  },
+];
+
+const MOOD_FEATURES: Record<Mood, React.ReactNode> = {
+  happy: (
+    <>
+      {/* Squeezed-shut eyes and a wide arc. Two cues, so the card still reads at
+          thumbnail size where the mouth alone would not. */}
+      <path
+        d="M8.2 11.6c.5-.9 1.6-.9 2.1 0M13.7 11.6c.5-.9 1.6-.9 2.1 0"
+        stroke="#44403c"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path d="M8.4 14.4c1.9 2.4 5.3 2.4 7.2 0" stroke="#44403c" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>
+  ),
+  calm: (
+    <>
+      <g fill="#44403c">
+        <circle cx="9.3" cy="11.8" r="1" />
+        <circle cx="14.7" cy="11.8" r="1" />
+      </g>
+      <path d="M10 15.6h4" stroke="#44403c" strokeWidth="1.4" strokeLinecap="round" />
+    </>
+  ),
+  angry: (
+    <>
+      {/* Brows down towards the nose — the direction is the whole difference
+          from 难过, which slopes them the other way. */}
+      <path d="M7.8 9.8 10.6 11M16.2 9.8 13.4 11" stroke="#44403c" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      <g fill="#44403c">
+        <circle cx="9.3" cy="12.6" r="1" />
+        <circle cx="14.7" cy="12.6" r="1" />
+      </g>
+      <path d="M9.2 16.8c1.7-1.7 4-1.7 5.6 0" stroke="#44403c" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>
+  ),
+  sad: (
+    <>
+      <path d="M7.8 11.2 10.6 9.9M16.2 11.2 13.4 9.9" stroke="#44403c" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      <g fill="#44403c">
+        <circle cx="9.3" cy="12.6" r="1" />
+        <circle cx="14.7" cy="12.6" r="1" />
+      </g>
+      <path d="M9.6 17c1.5-1.4 3.3-1.4 4.8 0" stroke="#44403c" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <path d="M9.3 14c.8 1 1.1 1.7 1.1 2.2 0 .6-.5 1-1.1 1s-1.1-.4-1.1-1c0-.5.3-1.2 1.1-2.2Z" fill="#38bdf8" />
+    </>
+  ),
+  surprised: (
+    <>
+      <path d="M7.6 9.4c.7-.8 1.9-.8 2.6 0M13.8 9.4c.7-.8 1.9-.8 2.6 0" stroke="#44403c" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+      <g fill="#44403c">
+        <circle cx="9.3" cy="12.2" r="1.4" />
+        <circle cx="14.7" cy="12.2" r="1.4" />
+      </g>
+      <ellipse cx="12" cy="16.4" rx="1.7" ry="2.1" fill="#44403c" />
+    </>
+  ),
+};
+
+/**
+ * Keyed off `MOOD_LOOKS` rather than off the array above, so every key
+ * `moodGlyph` can produce has a drawing behind it whichever side of the pair
+ * someone edits next — a missing key renders as an empty square, which on a
+ * 找笑脸 grid is a cell the user cannot answer.
+ */
+const MOOD_ART: Record<string, React.ReactNode> = Object.fromEntries(
+  MOODS.flatMap((mood) =>
+    Array.from({ length: MOOD_LOOKS }, (_, index) => {
+      const look = MOOD_LOOK_ART[index % MOOD_LOOK_ART.length];
+      return [
+        moodGlyph(mood, index),
+        <>
+          <circle cx="12" cy="12" r="8.2" fill={look.skin} />
+          {look.hair}
+          {MOOD_FEATURES[mood]}
+        </>,
+      ];
+    }),
+  ),
+);
+
+/* ------------------------------------------------------------------ *
  * Tier 2a · hand-drawn outlines
  * ------------------------------------------------------------------ */
 
@@ -355,6 +577,28 @@ const FACE_ART: Record<string, React.ReactNode> = {
  * that says more about the drawings than about the person looking at them.
  */
 const OUTLINE_ART: Record<string, React.ReactNode> = {
+  /**
+   * A scallop, drawn by hand because lucide's `Shell` is a spiral nautilus and
+   * nobody reads it as 贝壳 — it was the one item testers named wrongly every
+   * time. A scallop is what the word means to a Chinese reader, and it is also
+   * the easier silhouette: a hinge at the bottom, ridges fanning out of it, and
+   * a ruffled edge along the top. The ridges do more of the work than the
+   * ruffle; without them the outline is just a wide oval.
+   *
+   * The taper is what makes it a fan rather than a bowl: the sides have to meet
+   * at a point at the hinge. A first attempt kept the outline nearly as wide at
+   * the bottom as at the top, and with the ruffle along the upper edge the whole
+   * thing read as a basket.
+   */
+  shell: (
+    <>
+      <path d="M12 20.4C7.9 19.2 4.2 15.3 3 10.4q1.5-2.4 3 0q1.5-2.4 3 0q1.5-2.4 3 0q1.5-2.4 3 0q1.5-2.4 3 0q1.5-2.4 3 0C19.8 15.3 16.1 19.2 12 20.4Z" />
+      <path d="M12 20.4 6 10.4M12 20.4 9 10.4M12 20.4V10.4M12 20.4l3-10M12 20.4l6-10" />
+      {/* The hinge. A scallop's two little ears are the detail that stops the
+          fan from reading as a leaf. */}
+      <path d="M9.9 20.6q2.1.9 4.2 0" />
+    </>
+  ),
   butterfly: (
     <>
       <path d="M12 7.4v9.8" />
@@ -478,7 +722,6 @@ const LUCIDE_GLYPHS: Record<string, LucideIcon> = {
   snail: Snail,
   turtle: Turtle,
   beetle: Bug,
-  shell: Shell,
   shrimp: Shrimp,
   worm: Worm,
   // lucide has no cow; Beef is the closest bovine outline it ships.
@@ -604,7 +847,7 @@ const GLYPH_COLOR: Record<string, string> = {
  * Component
  * ------------------------------------------------------------------ */
 
-const ART: Record<string, React.ReactNode> = { ...FOOD_ART, ...FACE_ART };
+const ART: Record<string, React.ReactNode> = { ...FOOD_ART, ...FACE_ART, ...MOOD_ART };
 
 interface ItemGlyphProps {
   itemId: string;

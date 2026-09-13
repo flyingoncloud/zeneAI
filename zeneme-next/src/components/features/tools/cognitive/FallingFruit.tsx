@@ -31,6 +31,13 @@ interface FallingFruitProps {
  * The cover is load-bearing, not decoration. If the fruits that never fall stay
  * on screen, the cheapest way to answer is to memorise those and answer by
  * elimination — a different and easier task than the one we mean to set.
+ *
+ * A `backward` round is the same screen asked the other way round: last fruit
+ * first. Which way it will be is said before the fruits roll and again while they
+ * are rolling, never only afterwards. Springing the reversal at the end would
+ * turn it into a trick — the user would have watched with the wrong intention,
+ * and what the item is for is whether a sequence can be *reversed*, not whether
+ * the instruction was read carefully.
  */
 
 const STEPS = FALLING_ON_STAIRS;
@@ -87,8 +94,9 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
   onAnswerPhase,
 }) => {
   const [phase, setPhase] = useState<Phase>('preview');
-  /** How many of the four have started rolling. */
+  /** How many of the three have started rolling. */
   const [rolled, setRolled] = useState(0);
+  const backward = round.direction === 'backward';
 
   const stairIndex = useMemo(() => {
     const map = new Map<string, number>();
@@ -195,7 +203,8 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
         )}
 
         <p className="text-xs text-slate-500 text-center leading-relaxed">
-          记得几样就点几样，按滚下来的先后顺序点（点一下可取消）。
+          记得几样就点几样，{backward ? '从最后滚下来的那样倒着点' : '按滚下来的先后顺序点'}
+          （点一下可取消）。
           <br className="md:hidden" />
           顺序拿不准也没关系——认出是哪几样就有分。
         </p>
@@ -278,6 +287,13 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
           <p className="text-sm text-slate-300">
             台阶上有 {STEPS} 样水果。看清楚它们分别是什么，等一下有 {FALLING_COUNT} 样会滚下来。
           </p>
+          {backward && (
+            // Said before the round starts, not after: see the note at the top.
+            <p className="text-sm font-semibold text-amber-200">
+              这一轮反过来——等下要请你从<span className="underline underline-offset-4">最后</span>
+              滚下来的那样开始，倒着说回第一样。
+            </p>
+          )}
           <button
             type="button"
             onClick={() => setPhase('watch')}
@@ -288,7 +304,8 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
         </div>
       ) : (
         <p className="text-sm text-violet-200 text-center">
-          看着它们滚下来——记住是哪 {FALLING_COUNT} 样（顺序记得住更好）（
+          看着它们滚下来——记住是哪 {FALLING_COUNT} 样
+          {backward ? '（等下要倒着说）' : '（顺序记得住更好）'}（
           {Math.min(rolled, round.fell.length)}/{round.fell.length}）
         </p>
       )}
