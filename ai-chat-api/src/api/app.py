@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, Bac
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Optional, Dict, Any
@@ -92,6 +93,26 @@ def root():
             "4 psychology support modules"
         ]
     }
+
+
+@app.get("/health")
+def health(db: Session = Depends(get_db)):
+    """
+    Liveness *and* readiness, for deploy.sh to gate a restart on.
+
+    It pings the database rather than just returning 200: startup() raises if
+    init_db() fails, so a process that is listening but cannot reach Postgres is
+    a state this app is never supposed to be in, and a check that cannot see it
+    would wave through exactly the deploy that needs stopping.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        logger.error(f"Health check failed to reach the database: {e}")
+        # 503, not 500: the app is fine, a dependency is not, and the caller
+        # should retry rather than treat this as a bug in the request.
+        raise HTTPException(status_code=503, detail="database unavailable")
+    return {"status": "ok", "version": app.version}
 
 
 @app.post("/conversations/", response_model=api_models.ConversationResponse)

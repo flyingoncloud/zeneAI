@@ -34,6 +34,14 @@ REPO_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 FRONTEND_DIR="$REPO_ROOT/zeneme-next"
 BACKEND_DIR="$REPO_ROOT/ai-chat-api"
 
+# The interpreter to install into. This has to be the same one the supervisor
+# runs the app with, and a bare `python` is not: under conda it resolves to
+# whichever env happens to be active in the deploying shell. From `base` that
+# meant pip building the whole pinned stack from source for a Python the service
+# never runs, which looks like a hang and then fails. Check with
+# `pm2 describe zeneai-backend | grep interpreter`.
+BACKEND_PYTHON="${BACKEND_PYTHON:-python}"
+
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 # Hit a real page rather than /: a route that renders without a session proves
@@ -175,7 +183,13 @@ if $DO_BACKEND; then
   [ -f .env ] || die ".env not found in $BACKEND_DIR (copy from .env.production.example)"
 
   if [ -f requirements.txt ]; then
-    python -m pip install -r requirements.txt --quiet
+    command -v "$BACKEND_PYTHON" >/dev/null ||
+      die "BACKEND_PYTHON ($BACKEND_PYTHON) not found."
+    # Named, because installing into the wrong interpreter is otherwise silent:
+    # pip succeeds, the service restarts on its own untouched env, and the
+    # deploy reports success having shipped nothing.
+    ok "Using $(command -v "$BACKEND_PYTHON") ($("$BACKEND_PYTHON" -V 2>&1))"
+    "$BACKEND_PYTHON" -m pip install -r requirements.txt --quiet
     ok "Python dependencies installed"
   fi
 
