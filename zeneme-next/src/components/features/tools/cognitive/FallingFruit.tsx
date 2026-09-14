@@ -50,16 +50,39 @@ const STEP_GAP = 15;
 const STEP_X = (index: number) => 9 + index * STEP_GAP;
 const STEP_Y = (index: number) => 9 + index * STEP_GAP;
 
-/** Seconds the fruits are visible before the cover drops. */
-const PREVIEW_MS = 6000;
 /**
- * Time from one fruit starting its roll to the next one starting. Slow enough to
- * name each fruit before the next arrives — at 1.5s testers were still working
- * out what they had seen when the next one appeared, which measures naming speed
- * rather than memory.
+ * Floor on how long the fruits are visible before the cover drops. Six fruits at
+ * a second each was the whole budget at 6s, and this stretch auto-advances
+ * whether or not the user has finished looking, so it has to be generous; anyone
+ * who is done presses 看好了，开始.
  */
-const ROLL_INTERVAL_MS = 1900;
-const ROLL_SECONDS_PER_STEP = 0.3;
+const PREVIEW_MS = 9000;
+/**
+ * Time from one fruit starting its roll to the next one starting. It has to cover
+ * the roll itself *plus* a pause with the fruit sitting still, because the roll
+ * is when the fruit is hardest to read and the pause is when it is actually
+ * identified. 1.5s, then 1.9s, both came back as too fast to recognise and
+ * remember — the item then measures naming speed rather than memory.
+ */
+const ROLL_INTERVAL_MS = 3200;
+const ROLL_SECONDS_PER_STEP = 0.34;
+/**
+ * Where a fruit comes to rest, in the same 0–100 space as the stairs: just off
+ * the bottom step, far enough inside the frame that a w-32 glyph is not clipped
+ * on either a square phone frame or a 4:3 desktop one.
+ */
+const LAND_X = 86;
+const LAND_Y = 86;
+
+/** Keyframes for a fruit leaving step `from`: one per step down, then the floor. */
+const rollPath = (from: number) => {
+  const hops = STEPS - from;
+  return {
+    tops: [...Array.from({ length: hops }, (_, n) => `${STEP_Y(from + n)}%`), `${LAND_Y}%`],
+    lefts: [...Array.from({ length: hops }, (_, n) => `${STEP_X(from + n)}%`), `${LAND_X}%`],
+    seconds: Math.max(0.9, hops * ROLL_SECONDS_PER_STEP),
+  };
+};
 
 type Phase = 'preview' | 'watch' | 'answer';
 
@@ -213,6 +236,14 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
   }
 
   const covered = phase === 'watch';
+  /**
+   * Only the fruit rolling right now is on screen, and it stays where it lands
+   * until the next one starts — the still fruit is what gets recognised, the
+   * rolling one is mostly a blur. Earlier fruits are cleared rather than left in
+   * a pile: a pile is the answer, on screen, no memory required.
+   */
+  const rolling = covered && rolled > 0 ? round.fell[rolled - 1] : undefined;
+  const path = rolling === undefined ? undefined : rollPath(stairIndex.get(rolling) ?? 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -250,36 +281,25 @@ export const FallingFruit: React.FC<FallingFruitProps> = ({
           />
         )}
 
-        {/* Rolling fruits are drawn above the cover, one at a time. */}
-        {covered &&
-          round.fell.slice(0, rolled).map((id, order) => {
-            const from = stairIndex.get(id) ?? 0;
-            const hops = STEPS - from;
-            const tops = [
-              ...Array.from({ length: hops }, (_, n) => `${STEP_Y(from + n)}%`),
-              '104%',
-            ];
-            const lefts = [
-              ...Array.from({ length: hops }, (_, n) => `${STEP_X(from + n)}%`),
-              '92%',
-            ];
-            return (
-              <motion.span
-                // `order` is in the key so a retake of the same fruit re-mounts
-                // and replays instead of sitting where the last roll left it.
-                key={`${id}-${order}`}
-                className="absolute z-10"
-                style={{ translateX: '-50%', translateY: '-50%' }}
-                initial={{ top: tops[0], left: lefts[0], rotate: 0, opacity: 1 }}
-                animate={{ top: tops, left: lefts, rotate: 720, opacity: [1, 1, 1, 0] }}
-                transition={{ duration: Math.max(0.9, hops * ROLL_SECONDS_PER_STEP), ease: 'easeIn' }}
-              >
-                {/* The roller is the thing the user has to identify, and it is
-                    alone on screen, so it is drawn larger than on the stairs. */}
-                <ItemGlyph itemId={id} className="w-20 h-20 md:w-32 md:h-32" />
-              </motion.span>
-            );
-          })}
+        {/* The rolling fruit, drawn above the cover. */}
+        {rolling !== undefined && path && (
+          <motion.span
+            // The id is the key, so each fruit mounts fresh and replays its roll
+            // instead of inheriting where the previous one came to rest.
+            key={rolling}
+            className="absolute z-10"
+            style={{ translateX: '-50%', translateY: '-50%' }}
+            initial={{ top: path.tops[0], left: path.lefts[0], rotate: 0 }}
+            // A single turn, not two: the fruit is the only thing on screen to
+            // identify, and spinning it twice on the way down makes it a blur.
+            animate={{ top: path.tops, left: path.lefts, rotate: 360 }}
+            transition={{ duration: path.seconds, ease: 'easeIn' }}
+          >
+            {/* The roller is the thing the user has to identify, and it is alone
+                on screen, so it is drawn larger than on the stairs. */}
+            <ItemGlyph itemId={rolling} className="w-20 h-20 md:w-32 md:h-32" />
+          </motion.span>
+        )}
       </div>
 
       {phase === 'preview' ? (

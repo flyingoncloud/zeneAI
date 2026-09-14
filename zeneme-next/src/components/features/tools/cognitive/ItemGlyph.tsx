@@ -7,12 +7,10 @@ import {
   Backpack,
   Bike,
   Bird,
-  Brush,
   Bug,
   Bus,
   Car,
   Cat,
-  Beef,
   CookingPot,
   DoorOpen,
   Dog,
@@ -27,7 +25,6 @@ import {
   Hammer,
   HardHat,
   Headphones,
-  Highlighter,
   Key,
   Leaf,
   Lightbulb,
@@ -40,14 +37,12 @@ import {
   Pencil,
   Plane,
   Rabbit,
-  Radio,
   Rat,
   Refrigerator,
   Ruler,
   Sailboat,
   Scissors,
   Shirt,
-  ShoppingBasket,
   Shrimp,
   Snail,
   Snowflake,
@@ -55,13 +50,10 @@ import {
   Sun,
   Sunrise,
   Sunset,
-  Table,
   TrainFront,
   Truck,
   Turtle,
   Umbrella,
-  Utensils,
-  UtensilsCrossed,
   Watch,
   Worm,
   Wrench,
@@ -119,6 +111,21 @@ const NEUTRAL_SHAPES: Record<string, React.ReactNode> = {
  * fruit" cannot be solved by picking the filled cards. It turns the near misses
  * into real ones, which is what the category item is supposed to test.
  */
+/**
+ * 玉米 kernels — a staggered brick, light on a darker cob. Generated rather than
+ * written out because the rows alternate 2 and 3 and the x positions have to stay
+ * inside the cob ellipse at each y; by hand that is twenty numbers to keep in
+ * step whenever the cob changes shape.
+ */
+const CORN_KERNELS = [6.2, 8.1, 10, 11.9, 13.8, 15.7, 17.5, 19.2].flatMap((cy, row) => {
+  // Room either side of centre at this height: the cob's half-width less the
+  // kernel radius. The rows narrow towards both tips, so the widest row has to
+  // drop back to two kernels near the bottom or they poke out of the cob.
+  const room = 4.9 * Math.sqrt(1 - ((cy - 12) / 8.4) ** 2) - 0.85;
+  const xs = row % 2 === 1 && room >= 2.2 ? [9.8, 12, 14.2] : [10.9, 13.1];
+  return xs.map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="0.85" fill="#fde047" />);
+});
+
 const FOOD_ART: Record<string, React.ReactNode> = {
   apple: (
     <>
@@ -215,21 +222,35 @@ const FOOD_ART: Record<string, React.ReactNode> = {
       </g>
     </>
   ),
+  /**
+   * 胡萝卜 tapers to a point at the *bottom*, and the taper is the whole
+   * silhouette. Drawn as an equilateral triangle lying on its side, as this was,
+   * it reads as a media play button — a tester asked what the picture was, which
+   * on a recognition test scores as a memory error the drawing caused.
+   */
   carrot: (
     <>
-      <path d="M11.4 8.4 7.6 20.3c-.2.6.4 1.1.9.8l10.2-6.4c.7-.4.6-1.5-.2-1.8l-6.1-4.5Z" fill="#f97316" />
       <g stroke="#16a34a" strokeWidth="1.7" strokeLinecap="round">
-        <path d="M12.6 7.6 15 4.6M12.6 7.6 11 4M12.6 7.6 16.6 6.6" />
+        <path d="M12 8.6V3.8M12 8.6 8.7 5.2M12 8.6l3.3-3" />
+      </g>
+      <path d="M9.2 8.8c1.9-.8 3.7-.8 5.6 0l-2.3 12.1c-.1.6-.9.6-1 0Z" fill="#f97316" />
+      <g stroke="#c2410c" strokeWidth=".8" strokeLinecap="round" opacity=".75">
+        <path d="M10.1 11.2l1.5.6M13.6 13.4l-1.4.6M10.9 15.8l1.3.5" />
       </g>
     </>
   ),
+  /**
+   * 玉米 is kernels. Three long vertical stripes down a yellow oval — what this
+   * was — read as a striped melon, and it was the second drawing a tester had to
+   * ask about. A staggered brick of light kernels on a darker cob is the cue that
+   * survives being 44px wide; the husk leaves are secondary.
+   */
   corn: (
     <>
-      <path d="M12 4.4c3 0 5 3.2 5 7.5s-2 8.1-5 8.1-5-3.8-5-8.1S9 4.4 12 4.4Z" fill="#facc15" />
-      <g stroke="#a16207" strokeWidth="1" strokeLinecap="round">
-        <path d="M12 6v13M9.6 7.6v10M14.4 7.6v10" />
-      </g>
-      <path d="M7.2 11.4c-2 .6-3.4 2.6-3.4 4.9 2.2 0 4.1-1.3 4.9-3.2" fill="#22c55e" />
+      <path d="M8.6 12.6C5.6 13.6 3.8 16.4 3.9 20.2 7.4 19.6 9.6 17.2 10 13.8Z" fill="#22c55e" />
+      <path d="M15.4 14.4c2.4.9 3.9 2.9 4 5.8-2.7-.5-4.5-2-5.2-4.4Z" fill="#16a34a" />
+      <ellipse cx="12" cy="12" rx="4.9" ry="8.4" fill="#eab308" />
+      {CORN_KERNELS}
     </>
   ),
   mushroom: (
@@ -453,9 +474,11 @@ const MOOD_LOOK_ART: { skin: string; hair: React.ReactNode }[] = [
       <>
         {/* Long hair: the strands run down outside the cheeks rather than
             sitting on them, where two brown blobs level with the eyes looked
-            like headphones. */}
-        <path d="M4.1 9.6C2.6 12.6 2.9 16.4 4.6 19.4 6 18.6 6.4 15.4 5.9 11.6Z" fill="#7c2d12" />
-        <path d="M19.9 9.6C21.4 12.6 21.1 16.4 19.4 19.4 18 18.6 17.6 15.4 18.1 11.6Z" fill="#7c2d12" />
+            like headphones. Each strand's inner edge closes on a chord *inside*
+            the face — closed level with the cap's ends instead, the face bulges
+            past it and a wedge of bare skin shows through at the temple. */}
+        <path d="M4.1 9.6C2.6 12.6 2.9 16.4 4.6 19.4 6.2 18.6 6.8 15.2 6.3 10.6Z" fill="#7c2d12" />
+        <path d="M19.9 9.6C21.4 12.6 21.1 16.4 19.4 19.4 17.8 18.6 17.2 15.2 17.7 10.6Z" fill="#7c2d12" />
         <path
           d="M4.1 9.6A8.2 8.2 0 0 1 19.9 9.6C17.5 8.2 14.8 7.4 12 7.4S6.5 8.2 4.1 9.6Z"
           fill="#7c2d12"
@@ -577,6 +600,100 @@ const MOOD_ART: Record<string, React.ReactNode> = Object.fromEntries(
  * that says more about the drawings than about the person looking at them.
  */
 const OUTLINE_ART: Record<string, React.ReactNode> = {
+  /* --- 日常物品 lucide draws as something else -------------------------- *
+   *
+   * These eight were on lucide icons whose names match the item but whose
+   * drawings do not: `Utensils` is a fork *and* knife, `UtensilsCrossed` the same
+   * pair crossed, `Table` a spreadsheet, `ShoppingBasket` a supermarket basket,
+   * `Brush` a paintbrush, `Radio` three signal arcs, `Beef` a cut of meat,
+   * `Highlighter` an abstract nib. Two testers stopped to ask what a picture was,
+   * and on a recognition test an unidentifiable stimulus is scored as the user's
+   * memory error rather than ours — so each is drawn here instead.
+   */
+  // 勺子 and 叉子 are a pair in the same family, so they get the same handle: a
+  // single stroke. Drawn as a tapered outline instead, the handle read as a hollow
+  // tube and the spoon came out looking like a hand mirror.
+  spoon: (
+    <>
+      <ellipse cx="12" cy="7" rx="3.4" ry="4.4" />
+      <path d="M12 11.4v9.2" />
+    </>
+  ),
+  fork: (
+    <>
+      <path d="M8.5 3.4v6.2M15.5 3.4v6.2" />
+      <path d="M8.5 9.6c0 1.9 1.6 3.4 3.5 3.4s3.5-1.5 3.5-3.4" />
+      {/* The middle tine runs straight on into the handle, which is what makes
+          three prongs read as a fork rather than two. */}
+      <path d="M12 3.4v17.2" />
+    </>
+  ),
+  table: (
+    <>
+      <rect x="2.6" y="6.4" width="18.8" height="2.6" rx="0.6" />
+      <path d="M6 9v9M18 9v9" />
+    </>
+  ),
+  bucket: (
+    <>
+      {/* Tapered, so it reads as a pail rather than a bin. */}
+      <path d="M5 9.2h14l-1.5 10.2c-.1 1-.9 1.6-1.8 1.6H8.3c-.9 0-1.7-.6-1.8-1.6Z" />
+      <path d="M8 9.2V8a4 4 0 0 1 8 0v1.2" />
+    </>
+  ),
+  broom: (
+    <>
+      <path d="M12 3v9" />
+      <path d="M8.4 12h7.2l1.8 8.6H6.6Z" />
+      {/* The band, and the bristles it holds. The flare alone is a lampshade. */}
+      <path d="M9.4 15.4h5.2" />
+      <path d="M8.6 20.6 9.9 15.6M12 20.6v-5M15.4 20.6 14.1 15.6" />
+    </>
+  ),
+  radio: (
+    <>
+      <path d="M16.8 4.6 9.6 8.2" />
+      <rect x="2.8" y="8.2" width="18.4" height="11" rx="2" />
+      <circle cx="8.4" cy="13.7" r="3" />
+      <path d="M14.6 11.4h3.8M14.6 14h3.8M14.6 16.6h3.8" />
+    </>
+  ),
+  /**
+   * 牛, front on. The horns carry it: without them a head this shape sits right
+   * next to 猪 in the same palette, and the pair would show up as false
+   * recognition between two items that are meant to be distinct.
+   */
+  cow: (
+    <>
+      {/* Flat forehead, so the horns rise from two corners rather than from a
+          curve — round-headed with curled horns, it came out looking like a
+          monkey. */}
+      <path d="M7 10.2h10v3.6c0 2.9-2.2 5.2-5 5.2s-5-2.3-5-5.2Z" />
+      <path d="M7 10.2C5.2 9.6 4 8.2 3.7 6.4M17 10.2c1.8-.6 3-2 3.3-3.8" />
+      {/* Ears out sideways and pointed. Drawn hanging down the cheeks they read as
+          a monkey's, which is the same mistake the horns made. */}
+      <path d="M7 11.4 3.9 12.6 7 14M17 11.4l3.1 1.2L17 14" />
+      <ellipse cx="12" cy="16.2" rx="3.2" ry="2.2" />
+      <path d="M10.9 15.9h.01M13.1 15.9h.01" />
+      <path d="M9.6 12.4h.01M14.4 12.4h.01" />
+    </>
+  ),
+  /**
+   * 荧光笔 — drawn upright with a chisel tip and the broad stroke it leaves, so it
+   * cannot be mistaken for 铅笔, which is a thin diagonal with a point and sits in
+   * the same distractor set.
+   */
+  highlighter: (
+    <>
+      {/* Held at an angle, with the broad nib flat on the page and the stroke it
+          just laid down underneath. Drawn upright it read as a stapler. */}
+      <path d="M18.2 3.6 20.4 5.8 11.6 14.6 9.4 12.4Z" />
+      <path d="M9.4 12.4 11.6 14.6 9 17.2H6.4Z" />
+      <path d="M15.6 6.2 17.8 8.4" />
+      <path d="M5.4 20.4h11.2" />
+    </>
+  ),
+
   /**
    * A scallop, drawn by hand because lucide's `Shell` is a spiral nautilus and
    * nobody reads it as 贝壳 — it was the one item testers named wrongly every
@@ -681,16 +798,11 @@ const OUTLINE_ART: Record<string, React.ReactNode> = {
 const LUCIDE_GLYPHS: Record<string, LucideIcon> = {
   // 日常物品
   chair: Armchair,
-  spoon: Utensils,
   key: Key,
   truck: Truck,
   candle: Flame,
-  fork: UtensilsCrossed,
   bulb: Lightbulb,
-  table: Table,
   coat: Shirt,
-  bucket: ShoppingBasket,
-  broom: Brush,
   car: Car,
   door: DoorOpen,
   glasses: Glasses,
@@ -707,7 +819,6 @@ const LUCIDE_GLYPHS: Record<string, LucideIcon> = {
   helmet: HardHat,
   guitar: Guitar,
   drum: Drum,
-  radio: Radio,
   headphones: Headphones,
 
   // 动物
@@ -724,8 +835,6 @@ const LUCIDE_GLYPHS: Record<string, LucideIcon> = {
   beetle: Bug,
   shrimp: Shrimp,
   worm: Worm,
-  // lucide has no cow; Beef is the closest bovine outline it ships.
-  cow: Beef,
 
   // 定向力
   'season-spring': Flower2,
@@ -743,7 +852,6 @@ const LUCIDE_GLYPHS: Record<string, LucideIcon> = {
   eraser: Eraser,
   scissors: Scissors,
   paperclip: Paperclip,
-  highlighter: Highlighter,
   notebook: NotebookPen,
   bus: Bus,
   bike: Bike,
@@ -807,7 +915,10 @@ const GLYPH_COLOR: Record<string, string> = {
   shell: '#f472b6',
   shrimp: '#fb7185',
   worm: '#a3e635',
-  cow: '#f8fafc',
+  // A warm grey rather than the near-white it was: 熊猫 and 蜘蛛 are already cool
+  // near-whites in this family, and a third one had nothing but its silhouette to
+  // tell it apart from them.
+  cow: '#a8a29e',
   butterfly: '#facc15',
   frog: '#4ade80',
   pig: '#fca5a5',
