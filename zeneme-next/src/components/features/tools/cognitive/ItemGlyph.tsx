@@ -112,18 +112,37 @@ const NEUTRAL_SHAPES: Record<string, React.ReactNode> = {
  * into real ones, which is what the category item is supposed to test.
  */
 /**
- * 玉米 kernels — a staggered brick, light on a darker cob. Generated rather than
- * written out because the rows alternate 2 and 3 and the x positions have to stay
- * inside the cob ellipse at each y; by hand that is twenty numbers to keep in
- * step whenever the cob changes shape.
+ * 玉米 kernels — a staggered brick of light kernels on a darker cob. Generated
+ * rather than written out: rows alternate 3 and 2, every row has to fit inside the
+ * cob at its own height, and by hand that is thirty numbers to keep in step
+ * whenever the cob changes shape.
+ *
+ * The cob is deliberately a dark gold. Drawn in #eab308 with #fde047 kernels the
+ * two were a shade apart, and at 44px the texture disappeared into a plain yellow
+ * egg.
  */
-const CORN_KERNELS = [6.2, 8.1, 10, 11.9, 13.8, 15.7, 17.5, 19.2].flatMap((cy, row) => {
-  // Room either side of centre at this height: the cob's half-width less the
-  // kernel radius. The rows narrow towards both tips, so the widest row has to
-  // drop back to two kernels near the bottom or they poke out of the cob.
-  const room = 4.9 * Math.sqrt(1 - ((cy - 12) / 8.4) ** 2) - 0.85;
-  const xs = row % 2 === 1 && room >= 2.2 ? [9.8, 12, 14.2] : [10.9, 13.1];
-  return xs.map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="0.85" fill="#fde047" />);
+const CORN_CX = 12;
+const CORN_CY = 11.8;
+const CORN_RX = 4.8;
+const CORN_RY = 7.9;
+const KERNEL_R = 0.82;
+
+const CORN_KERNELS = [5.6, 7.4, 9.2, 11, 12.8, 14.6, 16.4, 18].flatMap((cy, row) => {
+  // Room either side of centre at this height, less the kernel radius, so no
+  // kernel pokes out of the cob as the rows narrow towards the tips.
+  const room = CORN_RX * Math.sqrt(1 - ((cy - CORN_CY) / CORN_RY) ** 2) - KERNEL_R;
+  const offsets = row % 2 === 0 ? [-2.1, 0, 2.1] : [-1.05, 1.05];
+  return offsets
+    .filter((offset) => Math.abs(offset) <= room)
+    .map((offset) => (
+      <circle
+        key={`${offset}-${cy}`}
+        cx={CORN_CX + offset}
+        cy={cy}
+        r={KERNEL_R}
+        fill="#fde047"
+      />
+    ));
 });
 
 const FOOD_ART: Record<string, React.ReactNode> = {
@@ -247,9 +266,12 @@ const FOOD_ART: Record<string, React.ReactNode> = {
    */
   corn: (
     <>
-      <path d="M8.6 12.6C5.6 13.6 3.8 16.4 3.9 20.2 7.4 19.6 9.6 17.2 10 13.8Z" fill="#22c55e" />
-      <path d="M15.4 14.4c2.4.9 3.9 2.9 4 5.8-2.7-.5-4.5-2-5.2-4.4Z" fill="#16a34a" />
-      <ellipse cx="12" cy="12" rx="4.9" ry="8.4" fill="#eab308" />
+      {/* The husk sweeps *up* the sides of the cob, and the two leaves are
+          different lengths. Drawn as a matched pair angling down and outward from
+          the base, they read as fins and the whole thing came back as a rocket. */}
+      <path d="M11 19.6C6.4 17.6 3.7 13 3.6 7.2c3.8 2.4 6.1 6.9 6.3 12.4Z" fill="#22c55e" />
+      <path d="M13.2 19.8c3.5-2 5.3-5.5 5.4-10.4-2.9 2-4.6 5.7-4.8 10.1Z" fill="#16a34a" />
+      <ellipse cx={CORN_CX} cy={CORN_CY} rx={CORN_RX} ry={CORN_RY} fill="#ca8a04" />
       {CORN_KERNELS}
     </>
   ),
