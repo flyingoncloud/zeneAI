@@ -7,7 +7,11 @@ email-validator==2.1.0
 
 # Database
 sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
+# 2.9.10 is the first release with cp313 wheels. On 2.9.9 the deploy host's
+# Python 3.13 finds no wheel, falls back to the source tarball, and the build
+# dies on a missing pg_config — psycopg2-binary exists precisely so that no
+# Postgres toolchain is needed on the host.
+psycopg2-binary==2.9.10
 
 # AI/ML
 openai==1.12.0
