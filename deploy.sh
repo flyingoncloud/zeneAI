@@ -40,7 +40,28 @@ BACKEND_DIR="$REPO_ROOT/ai-chat-api"
 # meant pip building the whole pinned stack from source for a Python the service
 # never runs, which looks like a hang and then fails. Check with
 # `pm2 describe zeneai-backend | grep interpreter`.
-BACKEND_PYTHON="${BACKEND_PYTHON:-python}"
+#
+# So the env is named and resolved here rather than left to the shell. `conda
+# activate` is not usable from a non-interactive script without sourcing conda's
+# profile hook, and requiring the operator to activate first is a step that gets
+# forgotten — this way `./deploy.sh --backend` does the right thing from base.
+BACKEND_CONDA_ENV="${BACKEND_CONDA_ENV:-ai-chat-api}"
+
+resolve_backend_python() {
+  local conda_base
+  if command -v conda >/dev/null 2>&1; then
+    conda_base="$(conda info --base 2>/dev/null || true)"
+    if [ -n "$conda_base" ] && [ -x "$conda_base/envs/$BACKEND_CONDA_ENV/bin/python" ]; then
+      echo "$conda_base/envs/$BACKEND_CONDA_ENV/bin/python"
+      return
+    fi
+  fi
+  # No conda, or no such env: fall back and let the named-interpreter line below
+  # show the operator what they actually got.
+  echo python
+}
+
+BACKEND_PYTHON="${BACKEND_PYTHON:-$(resolve_backend_python)}"
 
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
