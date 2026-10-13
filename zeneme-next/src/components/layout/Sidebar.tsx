@@ -56,8 +56,11 @@ const SafeIcon: React.FC<SafeIconProps> = ({ icon: Icon, size = 24, className })
 type MenuId = View | "new-chat" | "sandtray";
 
 type ChildItem = {
-  id: View; // breathing / naming etc.
+  id: string; // a View (breathing / naming) OR a sandbox key (sandtray-3d, ...)
   label: string;
+  // When set, the child navigates to this route (a sandbox) instead of switching
+  // the SPA view. Lets the 沙盘 parent list multiple sandboxes as pages.
+  href?: string;
 };
 
 type MenuItem =
@@ -110,6 +113,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
   const [isFirstAidExpanded, setIsFirstAidExpanded] = useState<boolean>(isSubView);
   const firstAidExpanded = isSubView || isFirstAidExpanded;
 
+  // 沙盘 is a parent menu listing sandbox experiences (currently one, more to come).
+  // Its children navigate to routes, so there is no currentView to keep it open —
+  // just a local toggle.
+  const [isSandtrayExpanded, setIsSandtrayExpanded] = useState<boolean>(false);
+
+  // Which parent is currently expanded, keyed by menu id.
+  const isExpanded = (id: MenuId) =>
+    id === "first-aid" ? firstAidExpanded : id === "sandtray" ? isSandtrayExpanded : false;
+
   // A. Core Features (Fixed Top)
   const CORE_ITEMS: MenuItem[] = [
     {
@@ -125,7 +137,16 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
     { id: 'sketch', label: t.menu.sketch, icon: Icons.PenTool as unknown as SafeIconComponent },
     { id: 'test', label: t.menu.test, icon: ClipboardList as unknown as SafeIconComponent },
     { id: 'cognitive', label: t.menu.cognitive, icon: Brain as unknown as SafeIconComponent },
-    { id: 'sandtray', label: t.menu.sandtray, icon: Boxes as unknown as SafeIconComponent, href: SANDTRAY_URL },
+    {
+      id: 'sandtray',
+      label: t.menu.sandtray,
+      icon: Boxes as unknown as SafeIconComponent,
+      hasChildren: true,
+      // Add more sandboxes here as new { id, label, href } entries.
+      children: [
+        { id: 'sandtray-3d', label: '生涯探索', href: SANDTRAY_URL },
+      ],
+    },
   ];
 
   // C. Shortcuts (Fixed below Recent Chats)
@@ -137,13 +158,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
 
   const handleMenuClick = (item: MenuItem) => {
     if (hasChildren(item)) {
-      // Toggle expansion only; do not navigate
-      setIsFirstAidExpanded(prev => !prev);
+      // Toggle expansion only; do not navigate.
+      if (item.id === 'sandtray') setIsSandtrayExpanded(prev => !prev);
+      else setIsFirstAidExpanded(prev => !prev);
       return;
     }
 
     if (item.href) {
-      // Different app (zene-sandtray); leave this SPA entirely.
+      // Leaf item that points at a route (e.g. a sandbox); hard-navigate so the
+      // sandtray section mounts cleanly with its own layout/providers.
       window.location.assign(item.href);
       if (isMobile && onClose) onClose();
       return;
@@ -249,7 +272,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
                       </div>
 
                       {hasChildren(item) && (
-                        <div className={`transition-transform duration-200 ${firstAidExpanded ? 'rotate-180' : ''}`}>
+                        <div className={`transition-transform duration-200 ${isExpanded(item.id) ? 'rotate-180' : ''}`}>
                           <ChevronDown size={14} className={isActive ? "text-violet-300" : "text-slate-500"} />
                         </div>
                       )}
@@ -258,7 +281,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
                     {/* Sub-menu */}
                     {hasChildren(item) && (
                       <AnimatePresence>
-                        {firstAidExpanded && (
+                        {isExpanded(item.id) && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
@@ -274,7 +297,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
                                     key={child.id}
                                     variant="ghost"
                                     onClick={() => {
-                                      setCurrentView(child.id as View);
+                                      if (child.href) window.location.assign(child.href);
+                                      else setCurrentView(child.id as View);
                                       if (isMobile && onClose) onClose();
                                     }}
                                     className={`w-full justify-start h-9 pl-12 pr-4 text-sm font-normal transition-colors ${
