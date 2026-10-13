@@ -35,3 +35,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# zene-sandtray local file-store (records/snapshots/usage) — runtime data, never commit
+/var/

@@ -1,5 +1,7 @@
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @import "tailwindcss";
+/* animation utilities used by zene-sandtray dialogs/drawers (data-[state] slides) */
+@import "tw-animate-css";
 @font-face {
   font-family: 'Mangsi';
   src: url('/fonts/mangsi.ttf') format('truetype');
@@ -5818,4 +5820,168 @@ html {
   to {
     height: 0;
   }
+}
+
+/* =====================================================================
+ * zene-sandtray — integrated styles.
+ * Scoped to .sandtray-root so the sandtray palette (light, green brand)
+ * applies only under /sandtray/* and never retypes the host's dark theme.
+ * ===================================================================== */
+
+/* Custom color tokens sandtray utilities need (bg-surface, text-brand, tag-*).
+ * Values resolve from the vars defined in .sandtray-root below. */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-pale: var(--brand-pale);
+  --color-surface: var(--surface);
+  --color-ink-muted: var(--ink-muted);
+  --color-purple: var(--purple);
+  --color-purple-bg: var(--purple-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-tag-ok: var(--tag-ok);
+  --color-tag-ok-bg: var(--tag-ok-bg);
+  --color-tag-warn: var(--tag-warn);
+  --color-tag-warn-bg: var(--tag-warn-bg);
+  --color-tag-count: var(--tag-count);
+  --color-tag-count-bg: var(--tag-count-bg);
+  --color-tag-mute-bg: var(--tag-mute-bg);
+}
+
+/* Palette: overrides the shadcn vars + sandtray-specific vars, scoped to the
+ * sandtray subtree. bg-primary / text-foreground / etc. retheme automatically
+ * because the host's compiled utilities reference these vars directly. */
+.sandtray-root {
+  --card: oklch(1 0 0);
+  --card-foreground: #282b3d;
+  --popover: oklch(1 0 0);
+  --popover-foreground: #282b3d;
+  --primary: #31ab44;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f6f6;
+  --secondary-foreground: #282b3d;
+  --muted: #f6f6f6;
+  --muted-foreground: #666666;
+  --accent: #f5f7f9;
+  --accent-foreground: #282b3d;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #e2e2e2;
+  --input: #e2e2e2;
+  --ring: #31ab44;
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #282b3d;
+
+  --brand: #31ab44;
+  --brand-dark: #218233;
+  --brand-deep: #14854f;
+  --brand-soft: #b7e9bd;
+  --brand-pale: #daffb8;
+  --purple: #6346ff;
+  --purple-bg: #f5f3ff;
+  --warn: #ff812f;
+  --warn-bg: #fff1e8;
+  --ink-muted: #999999;
+  --surface: #f6f6f6;
+  --tag-ok-bg: #ebffed;
+  --tag-ok: #31ab44;
+  --tag-warn-bg: #fff1e8;
+  --tag-warn: #ff812f;
+  --tag-count-bg: #f5f3ff;
+  --tag-count: #6346ff;
+  --tag-mute-bg: #f7f7f7;
+  --grad-soft: linear-gradient(90deg, #daffb8 0%, #b7e9bd 100%);
+}
+
+@utility grad-soft {
+  background-image: var(--grad-soft);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 正在播放的曲目旁边那三根跳动的小柱子 */
+@keyframes eq-bounce {
+  0%, 100% { height: 5px; }
+  50% { height: 15px; }
+}
+.eq-bar {
+  height: 5px;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+/* 沙盘里的滑条：手机上原生 range 的滑块只有 12px 左右，难以按住。 */
+.sand-range {
+  appearance: none;
+  background: transparent;
+  height: 22px;
+  cursor: pointer;
+}
+.sand-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand) 22%, #e6ece8);
+}
+.sand-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand) 22%, #e6ece8);
+}
+.sand-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--color-brand);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+.sand-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--color-brand);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes sprite-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+.sprite-float { animation: sprite-float 3.6s ease-in-out infinite; }
+@keyframes sprite-float-sm {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-1.5px) rotate(2deg); }
+}
+.sprite-float-sm { animation: sprite-float-sm 3s ease-in-out infinite; }
+
+@keyframes done-nudge {
+  0% { box-shadow: 0 0 0 0 rgba(33, 130, 51, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(33, 130, 51, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(33, 130, 51, 0); }
+}
+.done-nudge { animation: done-nudge 1.6s ease-out 2; }
+@keyframes hint-nudge { 0%, 100% { transform: translateX(0); opacity: .55 } 50% { transform: translateX(6px); opacity: 1 } }
+@keyframes hint-nudge-down { 0%, 100% { transform: translateY(0); opacity: .55 } 50% { transform: translateY(5px); opacity: 1 } }
+.hint-nudge { animation: hint-nudge 2.4s ease-in-out infinite; }
+.hint-nudge-down { animation: hint-nudge-down 2.4s ease-in-out infinite; }
+
+@keyframes breathe {
+  0%, 100% { scale: 0.94; }
+  50% { scale: 1.04; }
+}
+.breathe { animation: breathe 8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar { animation: none; height: 10px; }
+  .sprite-float, .sprite-float-sm, .breathe, .done-nudge, .hint-nudge, .hint-nudge-down { animation: none; }
 }

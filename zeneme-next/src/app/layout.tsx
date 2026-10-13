@@ -13,8 +13,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning on <html>: next-themes (used by the /sandtray section)
+  // sets class/color-scheme on the document root client-side; without this it logs a
+  // hydration mismatch on every load. Standard next-themes guidance.
   return (
-    <html lang="zh">
+    <html lang="zh" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

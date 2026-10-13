@@ -11,7 +11,7 @@ import { MediaLibrary } from './MediaLibrary';
 import { AdminSettings } from './AdminSettings';
 import { TemplatePicker } from './TemplatePicker';
 
-const NAV_ITEMS: { id: AdminView; label: string; icon: React.ElementType }[] = [
+const NAV_ITEMS: { id: AdminView; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
   { id: 'questions', label: '题库管理', icon: ClipboardList },
   { id: 'templates', label: '模板库', icon: Layers },
   { id: 'media', label: '媒体库', icon: ImageIcon },

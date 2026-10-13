@@ -1,0 +1,11 @@
+沙子音效素材来源
+
+Fantozzi's Footsteps (Grass/Sand & Stone)
+https://opengameart.org/content/fantozzis-footsteps-grasssand-stone
+原始录音出自 Freesound 的 Fantozzi 音频包。
+
+License: CC0 1.0 Universal (Public Domain Dedication)
+公共领域，可商用、可修改、无需署名。
+
+sand-1..6.ogg 即该包里的 6 个沙地脚步（Fantozzi-SandL1..3 / SandR1..3），未做修改。
+播放时在代码里实时切成颗粒（src/lib/audio/sfx.ts），不直接整段播放。

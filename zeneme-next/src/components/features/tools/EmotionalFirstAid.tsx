@@ -22,7 +22,7 @@ const SafeIcon = ({ icon: Icon, size = 24, className }: SafeIconProps) => {
       />
     );
   }
-  const IconComp = Icon as React.ElementType;
+  const IconComp = Icon as React.ComponentType<{ size?: number; className?: string }>;
   return <IconComp size={size} className={className} />;
 };
 

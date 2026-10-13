@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import * as Icons from '../ui/icons';
 import { Button } from '../ui/button';
 import { useZenemeStore, View } from '../../hooks/useZenemeStore';
-import { ClipboardList, ChevronDown, Brain } from 'lucide-react';
+import { ClipboardList, ChevronDown, Brain, Boxes } from 'lucide-react';
 import { SidebarFooter } from './SidebarFooter';
 import Logo from '../../imports/Logo';
 import {
@@ -53,7 +53,7 @@ const SafeIcon: React.FC<SafeIconProps> = ({ icon: Icon, size = 24, className })
   return <Icon size={size} className={className} />;
 };
 
-type MenuId = View | "new-chat";
+type MenuId = View | "new-chat" | "sandtray";
 
 type ChildItem = {
   id: View; // breathing / naming etc.
@@ -74,7 +74,15 @@ type MenuItem =
       icon: SafeIconComponent;
       hasChildren?: false;
       children?: never;
+      // External navigation (a different app, e.g. zene-sandtray behind nginx).
+      // When set, clicking does a full-page navigation instead of a view switch.
+      href?: string;
     };
+
+// zene-sandtray deploys as its own Next app, reachable on the same origin via
+// nginx (default) or at an absolute URL in other setups. A hard navigation is
+// correct here: the target route lives in a different app, not this router.
+const SANDTRAY_URL = process.env.NEXT_PUBLIC_SANDTRAY_URL || "/sandtray/start";
 
 const hasChildren = (item: MenuItem): item is Extract<MenuItem, { hasChildren: true }> =>
   item.hasChildren === true;
@@ -117,6 +125,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
     { id: 'sketch', label: t.menu.sketch, icon: Icons.PenTool as unknown as SafeIconComponent },
     { id: 'test', label: t.menu.test, icon: ClipboardList as unknown as SafeIconComponent },
     { id: 'cognitive', label: t.menu.cognitive, icon: Brain as unknown as SafeIconComponent },
+    { id: 'sandtray', label: t.menu.sandtray, icon: Boxes as unknown as SafeIconComponent, href: SANDTRAY_URL },
   ];
 
   // C. Shortcuts (Fixed below Recent Chats)
@@ -130,6 +139,13 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
     if (hasChildren(item)) {
       // Toggle expansion only; do not navigate
       setIsFirstAidExpanded(prev => !prev);
+      return;
+    }
+
+    if (item.href) {
+      // Different app (zene-sandtray); leave this SPA entirely.
+      window.location.assign(item.href);
+      if (isMobile && onClose) onClose();
       return;
     }
 

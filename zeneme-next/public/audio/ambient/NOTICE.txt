@@ -1,0 +1,18 @@
+背景音乐素材来源
+
+客户（Jim）2026-09-14 从 Pixabay 选定 4 首，对应原清单里的 1 / 3 / 4 / 5：
+
+mindfulness.mp3    Mindfulness Relaxation & Meditation Music
+                   https://pixabay.com/music/ambient-mindfulness-relaxation-amp-meditation-music-22174/
+calm-ambient.mp3   Calm Ambient（6:49）
+                   https://pixabay.com/music/meditationspiritual-calm-ambient-491577/
+ambient-calm.mp3   Ambient Calm（8:20）
+                   https://pixabay.com/music/ambient-ambient-calm-491578/
+soft-air-drift.mp3 Ambient Background Soft Air Drift（3:09）
+                   https://pixabay.com/music/ambient-ambient-background-soft-air-drift-575882/
+
+License: Pixabay Content License
+可商用、免署名，嵌入产品内使用没有问题；不可再作为音频文件对外分发或转售。
+文件自行托管在本目录，不从 Pixabay 热链。
+
+曲目在界面上的名字与默认曲目配置在 src/content/audio.ts。
