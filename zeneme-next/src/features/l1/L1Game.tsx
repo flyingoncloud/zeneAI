@@ -1,0 +1,772 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {LevelHeading} from "../shared/LevelHeading";
+import { woodAtGap, ropeAtGap, repairMaterialsReady } from "./geometry";
+import { Sprite } from "./Sprite";
+import { Scene, asset, assetNames } from "./Scene";
+import {
+  initialState,
+  promptFor,
+  choiceLabels,
+  type Action,
+  type L1State,
+  type Subject,
+} from "./model";
+import { type Positions } from "./save";
+import { SESSION_KEY, PENDING_KEY, readSession, readPending, readDraft, hasJourneyProgress, createSession, restartJourney, resumeSession, prepare, submit, getReceipts, RejectedAction, type Session, type Receipt } from "./api";
+
+export function L1Game() {
+  const sessionRef = useRef<Session | null>(null);
+  const requestLock = useRef(false);
+  const [syncing, setSyncing] = useState(false);
+  const [pendingSync, setPendingSync] = useState(false);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [syncError, setSyncError] = useState("");
+  const [effect, setEffect] = useState<"oar" | "repair" | "rope" | null>(null);
+  useEffect(() => {
+    if (!effect) return;
+    const timer = setTimeout(() => setEffect(null), 1200);
+    return () => clearTimeout(timer);
+  }, [effect]);
+  const [state, setState] = useState(initialState);
+  const stateRef = useRef(state);
+  const [positions, setPositions] = useState<Positions>({});
+  const positionsRef = useRef<Positions>({});
+  const [selected, setSelected] = useState<Subject | null>(null);
+  const [started, setStarted] = useState(false);
+  const [hasSave, setHasSave] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [assetError, setAssetError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [saveStatus, setSaveStatus] = useState("连接服务器后开始保存进度");
+  const [message, setMessage] = useState(
+    "河水静静流淌。",
+  );
+  const [modal, setModal] = useState<"help" | "restart" | "trace" | null>(null);
+  const [externalChange, setExternalChange] = useState(false);
+  const [portrait, setPortrait] = useState(false);
+  const [motion, setMotion] = useState(true);
+  const [strokeBusy, setStrokeBusy] = useState(false);
+  const strokeLock = useRef(false);
+  const strokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const rotationDialog = useRef<HTMLDialogElement>(null);
+  const promptHeading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = readSession();
+      sessionRef.current = saved;
+      setHasSave(hasJourneyProgress(saved, null));
+      const pending = readPending();
+      setHasSave(hasJourneyProgress(saved, pending));
+      setPendingSync(!!pending);
+    } catch { setSyncError("浏览器存储无法读取，请检查站点存储权限。"); }
+    const changed = (e: StorageEvent) => {
+      if (e.key === SESSION_KEY || e.key === PENDING_KEY) setExternalChange(true);
+    };
+    window.addEventListener("storage", changed);
+    return () => {
+      window.removeEventListener("storage", changed);
+      if (strokeTimer.current) clearTimeout(strokeTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setAssetError(false);
+    setLoaded(false);
+    Promise.all(
+      assetNames.map(
+        (name) =>
+          new Promise<void>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = asset(name);
+          }),
+      ),
+    )
+      .then(() => {
+        if (active) setLoaded(true);
+      })
+      .catch(() => {
+        if (active) setAssetError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadAttempt]);
+
+  useEffect(() => {
+    const query = window.matchMedia(
+      "(pointer: coarse) and (orientation: portrait) and (max-width: 900px)",
+    );
+    const update = () => setPortrait(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (portrait) rotationDialog.current?.showModal();
+    else rotationDialog.current?.close();
+  }, [portrait]);
+  useEffect(() => {
+    if (modal === "trace" && sessionRef.current) {
+      let active = true;
+      getReceipts(sessionRef.current).then((rows) => { if (active) setReceipts(rows); }).catch(() => { if (active) setSyncError("无法刷新服务器记录，请重试同步"); });
+      return () => { active = false; };
+    }
+  }, [modal]);
+  useEffect(() => {
+    if (modal) dialog.current?.showModal();
+    else dialog.current?.close();
+  }, [modal]);
+  useEffect(() => {
+    if (selected) promptHeading.current?.focus({ preventScroll: true });
+  }, [selected, state.scene]);
+
+  function save(_next: L1State, nextPositions: Positions) {
+    // Cosmetic draft only: server state is never restored from this storage.
+    try {
+      if (sessionRef.current) localStorage.setItem(`emotional:l1:draft:${sessionRef.current.id}`, JSON.stringify(nextPositions));
+      setSaveStatus("关卡进度已由服务器保存；道具摆放保存在本机");
+    } catch { setSaveStatus("道具摆放未能保存，关卡进度仍在服务器"); }
+  }
+  function applySession(session: Session) {
+    sessionRef.current = session;
+    stateRef.current = session.state;
+    setState(session.state);
+    setHasSave(hasJourneyProgress(session, readPending()));
+    setSaveStatus(`服务器已保存 · 版本 ${session.version}`);
+  }
+  async function continueGame() {
+    if (requestLock.current || externalChange) return;
+    requestLock.current = true; setSyncing(true); setSyncError("");
+    try {
+      let session = sessionRef.current;
+      if (!session) throw new Error("当前浏览器没有服务器会话");
+      session = await resumeSession(session);
+      applySession(session);
+      const draft = readDraft(session);
+      positionsRef.current = draft; setPositions(draft);
+      const pending = readPending();
+      if (pending) {
+        const result = await submit(session, pending);
+        session = result.session; applySession(session);
+        positionsRef.current = session.positions; setPositions(session.positions);
+      }
+      setPendingSync(false);
+      setReceipts(await getReceipts(session));
+      setSelected(null); setStarted(true); setMessage(hasSave ? "进度已恢复。" : "河水静静流淌。");
+    } catch (error) {
+      if (error instanceof RejectedAction) {
+        applySession(error.session); setSelected(null); setReceipts((r) => [...r, error.receipt]);
+        setPendingSync(false); setStarted(true);
+      }
+      setSyncError(error instanceof Error ? error.message : "连接失败，请重试");
+    } finally { requestLock.current = false; setSyncing(false); }
+  }
+  async function act(action: Action) {
+    if (
+      requestLock.current || pendingSync ||
+      !started ||
+      !loaded ||
+      portrait ||
+      modal ||
+      externalChange ||
+      strokeLock.current ||
+      effect
+    )
+      return;
+    if (stateRef.current.events.length >= 1000) {
+      setMessage("记录已满，请重新开始。");
+      return;
+    }
+    const session = sessionRef.current;
+    if (!session) return;
+    requestLock.current = true; setSyncing(true); setSyncError("");
+    const before = stateRef.current;
+    let next: L1State;
+    try {
+      const pending = prepare(session, action, positionsRef.current);
+      setPendingSync(true);
+      const result = await submit(session, pending);
+      setReceipts((r) => [...r, result.receipt]);
+      applySession(result.session); next = result.session.state;
+      setPendingSync(false);
+    } catch (error) {
+      if (error instanceof RejectedAction) {
+        applySession(error.session);
+        positionsRef.current = error.session.positions; setPositions(error.session.positions);
+        setReceipts((r) => [...r, error.receipt]); setPendingSync(false);
+      }
+      setSyncError(error instanceof Error ? error.message : "连接失败，请重试同步");
+      return;
+    } finally { requestLock.current = false; setSyncing(false); }
+    if (!before.oar && next.oar) setEffect("oar");
+    if (!before.repaired && next.repaired) setEffect("repair");
+    if (before.ropeClicks < 5 && next.ropeClicks === 5) setEffect("rope");
+    if (action.type === "paddle") {
+      strokeLock.current = true;
+      setStrokeBusy(true);
+      strokeTimer.current = setTimeout(() => {
+        strokeLock.current = false;
+        setStrokeBusy(false);
+      }, 450);
+      setMessage(
+        next.scene === "shore"
+          ? "你已抵达对岸。"
+          : "小船缓缓向前。",
+      );
+    } else if (!action.yes) {
+      setMessage("暂不行动，继续探索。" );
+      setSelected(null);
+    } else {
+      setMessage(
+        action.choice === "enter" ? "第一幕已结束。" : `${choiceLabels[action.choice]}。`,
+      );
+      if (action.choice === "inspect-bridge") setSelected("bridge");
+      else if (action.choice === "place-wood") setSelected("planks");
+      else if (action.choice === "search") {
+        setSelected(next.oar ? "boat" : "bush");
+        setMessage(next.oar ? "船桨落在了小船上。" : "草叶轻轻晃动。" );
+      }
+      else if (action.choice === "take-rope") {
+        setSelected(null);
+        setMessage(next.ropeClicks === 5 ? "绳子跃出，落在岸边。" : "草叶轻轻晃动。" );
+      }
+      else if (action.choice === "repair") setSelected("bridge");
+      else if (action.choice === "greet") setSelected("person");
+      else if (action.choice === "greet-woman") setSelected("woman");
+      else if (action.choice === "light-lamp") setSelected("lamp");
+      else if (
+        action.choice !== "collect-wood" &&
+        action.choice !== "take-lamp" &&
+        action.choice !== "board"
+      )
+        setSelected(null);
+    }
+    if (before.scene !== next.scene) setSelected(null);
+  }
+  async function move(next: Positions) {
+    if (
+      requestLock.current || pendingSync || effect ||
+      !started ||
+      !loaded ||
+      portrait ||
+      modal ||
+      externalChange ||
+      state.scene === "complete"
+    )
+      return;
+    positionsRef.current = next;
+    setPositions(next);
+    save(stateRef.current, next);
+    if (next.planks && woodAtGap(next.planks) && !stateRef.current.woodPlaced &&
+        !stateRef.current.repaired && stateRef.current.scene === "river") {
+      await act({ type: "choose", choice: "place-wood", yes: true });
+      if (!stateRef.current.woodPlaced) return;
+    }
+    if (
+      repairMaterialsReady(next) &&
+      stateRef.current.ropeClicks === 5 &&
+      !stateRef.current.repaired &&
+      stateRef.current.scene === "river"
+    ) {
+      if (!stateRef.current.wood)
+        await act({ type: "choose", choice: "collect-wood", yes: true });
+      if (stateRef.current.wood) await act({ type: "choose", choice: "repair", yes: true });
+    }
+  }
+  function resetPositions() {
+    if (externalChange) return;
+    positionsRef.current = {};
+    setPositions({});
+    save(stateRef.current, {});
+    setModal(null);
+  }
+  async function fresh() {
+    if (externalChange || requestLock.current) return;
+    requestLock.current = true; setSyncing(true); setSyncError("");
+    let session: Session;
+    try { session = await restartJourney(); }
+    catch (error) { setSyncError(error instanceof Error ? error.message : "无法创建服务器会话"); return; }
+    finally { requestLock.current = false; setSyncing(false); }
+    applySession(session); setReceipts([]); setPendingSync(false); setHasSave(false);
+    if (strokeTimer.current) clearTimeout(strokeTimer.current);
+    strokeLock.current = false;
+    setStrokeBusy(false);
+    const next = initialState();
+    stateRef.current = next;
+    positionsRef.current = {};
+    setState(next);
+    setPositions({});
+    setSelected(null);
+    setModal(null);
+    setExternalChange(false);
+    setStarted(true);
+    setMessage("河水静静流淌。");
+    save(next, {});
+  }
+  const restartFromExit = useRef(false);
+  useEffect(() => {
+    if (!loaded || restartFromExit.current || new URLSearchParams(window.location.search).get("restart") !== "1") return;
+    restartFromExit.current = true;
+    window.history.replaceState(null, "", "/escape-room");
+    void fresh();
+  }, [loaded, fresh]);
+  const blocked =
+    syncing || pendingSync || strokeBusy ||
+    !started ||
+    !loaded ||
+    portrait ||
+    !!modal ||
+    externalChange ||
+    state.scene === "complete" ||
+    !!effect;
+  const prompt = selected ? promptFor(state, selected) : null;
+  if (
+    prompt &&
+    !state.repaired &&
+    selected &&
+    !(selected === "rope" && state.ropeClicks < 5) &&
+    ["bridge", "planks", "rope"].includes(selected)
+  ) {
+    const woodReady = positions.planks && woodAtGap(positions.planks);
+    const ropeReady = positions.rope && ropeAtGap(positions.rope);
+    if (woodReady && state.woodPlaced && !ropeReady)
+      prompt.body = "木板就位，还缺绳子。";
+    else if (ropeReady && !woodReady)
+      prompt.body = "绳子就位，还缺木板。";
+  }
+  async function select(subject: Subject) {
+    if (blocked) return;
+    if (subject === "rope-bush") {
+      setSelected(null);
+      // Reconcile wood placed in a saved cosmetic draft before this event existed.
+      const wood = positionsRef.current.planks;
+      if (wood && woodAtGap(wood) && !stateRef.current.woodPlaced && !stateRef.current.repaired) {
+        await act({ type: "choose", choice: "place-wood", yes: true });
+        if (!stateRef.current.woodPlaced) return;
+      }
+      if ((stateRef.current.bridgeInspected || stateRef.current.woodPlaced) && stateRef.current.ropeClicks < 5 && !stateRef.current.repaired)
+        void act({ type: "choose", choice: "take-rope", yes: true });
+      else setMessage("草叶轻轻晃动。" );
+      return;
+    }
+    setSelected(subject);
+    if (subject === "bridge" && !state.bridgeInspected && !state.repaired)
+      void act({ type: "choose", choice: "inspect-bridge", yes: true });
+    if (subject === "bush" && !state.oar)
+      act({ type: "choose", choice: "search", yes: true });
+  }
+  const anchor: Record<Subject, [number, number]> = {
+    bridge: [33, 65],
+    water: [51, 64],
+    boat: [71 - state.strokes * 2, 57 - state.strokes * 1.4],
+    ring: [82, 65],
+    bush: [88, 53],
+    "rope-bush": [90, 42],
+    planks: [83, 81],
+    rope: state.ropeClicks < 5 ? [83.4, 51.6] : [71.5, 83],
+    person: [62.6, 60.5],
+    woman: [15.8, 58],
+    lamp: state.lampTaken ? [91, 81] : [13, 83],
+    door: [43, 49],
+  };
+  const activeSubject = selected;
+  const baseAnchor = anchor[activeSubject || "bridge"];
+  const delta = activeSubject && !(activeSubject === "rope" && state.ropeClicks < 5) ? positions[activeSubject] : undefined;
+  const bubbleX = Math.max(
+    20,
+    Math.min(80, baseAnchor[0] + (delta?.x || 0) * 100),
+  );
+  const bubbleY = Math.max(
+    38,
+    Math.min(83, baseAnchor[1] + (delta?.y || 0) * 100),
+  );
+
+  return (
+    <main className={`game ${!motion ? "still" : ""}`}>
+      <section className="stageWrap" aria-label="第一幕游戏舞台">
+        <Scene
+          state={state}
+          selected={selected}
+          positions={positions}
+          onSelect={select}
+          onMove={move}
+          effect={effect}
+          disabled={blocked}
+        />
+        <LevelHeading className="sceneHeading" ready={started&&loaded&&!portrait}>
+          <h1>分离之河</h1>
+        </LevelHeading>
+        {!started && (
+          <div className="welcome">
+            <div>
+              <span className="eyebrow">一段关于选择的旅程</span>
+              <h2>光在河的另一边</h2>
+              <p>
+                寻找自己的过河方式。
+              </p>
+              {loaded ? (
+                <div className="welcomeActions">
+                  <button
+                    className="primary gameYes"
+                    disabled={syncing || externalChange}
+                    onClick={() => sessionRef.current ? continueGame() : fresh()}
+                  >
+                    {hasSave ? "继续上次旅程" : "开始探索"}{" "}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                  {hasSave && (
+                    <button
+                      className="quiet"
+                      onClick={() => setModal("restart")}
+                    >
+                      重新开始
+                    </button>
+                  )}
+                </div>
+              ) : assetError ? (
+                <>
+                  <p role="alert">素材加载失败，请重试。</p>
+                  <button onClick={() => setLoadAttempt((n) => n + 1)}>
+                    重新加载
+                  </button>
+                </>
+              ) : (
+                <p role="status">正在准备河岸与道具…</p>
+              )}
+              <small>第一幕 · 分离之河</small>
+            </div>
+          </div>
+        )}
+        {started && !loaded && (
+          <div className="welcome">
+            <div role="alert">
+              <h2>正在准备场景</h2>
+              <p>{assetError ? "素材加载失败，请重试。" : "加载中…"}</p>
+              {assetError && (
+                <button onClick={() => setLoadAttempt((n) => n + 1)}>
+                  重新加载
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {started && state.scene === "complete" && (
+          <div className="welcome completion">
+            <div>
+              <span className="eyebrow">第一幕 · 已走过</span>
+              <h2>你来到了门前</h2>
+              <p>选择已留在旅程里。</p>
+              <dl>
+                <div>
+                  <dt>过河方式</dt>
+                  <dd>
+                    {
+                      {
+                        bridge: "修桥步行",
+                        swim: "直接游泳",
+                        ring: "使用救生圈",
+                        boat: "划船",
+                      }[state.route!]
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt>随身物品</dt>
+                  <dd>
+                    {state.lampTaken
+                      ? state.lampLit
+                        ? "亮着的灯"
+                        : "未点亮的灯"
+                      : "没有带灯"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="nextNotice">第二幕，新的房间。</p>
+              <Link className="primary l2Entry" href="/escape-room/l2">进入第二幕</Link>
+              <button className="primary gameYes" onClick={() => setModal("restart")}>
+                再探索一次
+              </button>
+              <button className="quiet" onClick={() => setModal("trace")}>
+                查看本次选择
+              </button>
+            </div>
+          </div>
+        )}
+        {started && prompt && (
+          <div
+            className="sceneBubble"
+            style={{ left: `${bubbleX}%`, top: `${bubbleY}%` }}
+            inert={blocked}
+          >
+            <div className="prompt" data-game-prompt aria-live="polite">
+              {prompt ? (
+                <>
+                  <div className="promptTitle">
+                    <h2 ref={promptHeading} tabIndex={-1}>
+                      {prompt.title}
+                    </h2>
+                    <button
+                      className="closePrompt"
+                      aria-label="关闭提示，继续探索"
+                      onClick={() => setSelected(null)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {prompt.body && <p>{prompt.body}</p>}
+                  <div className="decisions">
+                    {prompt.choice && (
+                      <>
+                        <button
+                          onClick={() =>
+                            act({
+                              type: "choose",
+                              choice: prompt.choice!,
+                              yes: false,
+                            })
+                          }
+                        >
+                          否
+                        </button>
+                        <button
+                          className="primary gameYes"
+                          onClick={() =>
+                            act({
+                              type: "choose",
+                              choice: prompt.choice!,
+                              yes: true,
+                            })
+                          }
+                        >
+                          是
+                        </button>
+                      </>
+                    )}
+                    {prompt.action === "paddle" && (
+                      <button
+                        className="primary gameYes"
+                        disabled={strokeBusy}
+                        onClick={() => act({ type: "paddle" })}
+                      >
+                        {strokeBusy ? "正在划桨…" : "划桨一次"}{" "}
+                        <span>{state.strokes} / 5</span>
+                      </button>
+                    )}
+                    {prompt.next && (
+                      <button
+                        className="primary gameYes"
+                        onClick={() => setSelected(prompt.next!)}
+                      >
+                        {prompt.yes}
+                      </button>
+                    )}
+                    {selected === "lamp" &&
+                      !state.lampTaken &&
+                      !state.lampLit && (
+                        <section
+                          className="lampLightChoice"
+                          aria-label="是否点亮灯"
+                        >
+                          <h3>要点亮灯吗？</h3>
+                          <div className="decisions">
+                            <button
+                              onClick={() =>
+                                act({
+                                  type: "choose",
+                                  choice: "light-lamp",
+                                  yes: false,
+                                })
+                              }
+                            >
+                              否
+                            </button>
+                            <button
+                              className="primary gameYes"
+                              onClick={() =>
+                                act({
+                                  type: "choose",
+                                  choice: "light-lamp",
+                                  yes: true,
+                                })
+                              }
+                            >
+                              是
+                            </button>
+                          </div>
+                        </section>
+                      )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="eyebrow">沿着自己的节奏</span>
+                  <h2>
+                    {state.scene === "river"
+                      ? "你想怎样到达对岸？"
+                      : "岸边，有人和一盏灯"}
+                  </h2>
+                  <p>{message}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {started && !prompt && (
+          <p className="sceneStatus" role="status">
+            {effect === "repair"
+              ? "木板铺合，木桥修好了。"
+              : effect === "oar"
+                ? "船桨落在了小船上。"
+                : message}
+          </p>
+        )}
+        {started && state.scene === "shore" && (
+          <aside className="shoreInventory" aria-label="物品栏">
+            <span>物品</span>
+            {state.lampTaken ? (
+              <button
+                aria-label={
+                  state.lampLit ? "物品栏：亮着的灯" : "物品栏：未点亮的灯"
+                }
+                onClick={() => setSelected("lamp")}
+                disabled={blocked}
+              >
+                <svg viewBox="327 1307 114 184" aria-hidden="true">
+                  <Sprite id={state.lampLit ? "lamp-on" : "lamp-off"} />
+                </svg>
+              </button>
+            ) : (
+              <div className="emptySlot" aria-label="物品栏为空" />
+            )}
+          </aside>
+        )}
+      </section>
+      <button
+        className="gameMenu"
+        onClick={() => setModal("help")}
+        aria-label="打开游戏菜单"
+      >
+        ☰
+      </button>
+      {(syncing || syncError || pendingSync) && (
+        <section className="syncStatus" role="status">
+          <p>{syncing ? "正在等待服务器校验…" : syncError || "有尚未确认的事件"}</p>
+          {!syncing && <button onClick={continueGame} disabled={externalChange || syncing}>重试同步 / 载入服务器进度</button>}
+        </section>
+      )}
+      {externalChange && (
+        <section className="conflict" role="alert">
+          <p>另一标签页更新了这段旅程。为避免覆盖进度，请重新载入。</p>
+          <button onClick={() => location.reload()}>载入最新进度</button>
+        </section>
+      )}
+      <dialog
+        ref={dialog}
+        onCancel={() => setModal(null)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setModal(null);
+        }}
+      >
+        <button
+          className="dialogClose"
+          onClick={() => setModal(null)}
+          aria-label="关闭"
+        >
+          ×
+        </button>
+        {modal === "help" && (
+          <>
+            <span className="eyebrow">慢慢探索，无需赶路</span>
+            <h2>操作说明</h2>
+            <p>点击物件，查看详情。</p>
+            <p>关闭提示不代表选择。</p>
+            <p>可拖动物件调整位置。</p>
+            <p>方向键可微调位置。</p>
+            <div className="decisions">
+              <button onClick={() => setMotion((v) => !v)}>
+                {motion ? "减少场景动效" : "开启场景动效"}
+              </button>
+              <button
+                disabled={!started || externalChange || syncing || pendingSync}
+                onClick={resetPositions}
+              >
+                恢复道具位置
+              </button>
+              <button
+                disabled={externalChange || syncing}
+                onClick={() => setModal("restart")}
+              >
+                重新开始旅程
+              </button>
+            </div>
+            <p role="status">{saveStatus}</p>
+            <div className="decisions">
+              <button
+                disabled={!started || externalChange || syncing || pendingSync}
+                onClick={() => {
+                  save(stateRef.current, positionsRef.current);
+                  setStarted(false);
+                  setModal(null);
+                }}
+              >
+                保存并返回
+              </button>
+              <button onClick={() => setModal("trace")}>开发预览记录</button>
+            </div>
+            <small>
+              关卡进度以服务器回执为准；尚不计算正式人格分数。
+            </small>
+          </>
+        )}
+        {modal === "restart" && (
+          <>
+            <h2>重新开始整个旅程？</h2>
+            <p>将清空本次旅程全部四幕的进度、选择和家具摆放，从第一幕重新开始。</p>
+            <div className="decisions">
+              <button onClick={() => setModal(null)}>保留当前旅程</button>
+              <button className="primary gameYes" disabled={syncing} onClick={fresh}>
+                确认重新开始
+              </button>
+            </div>
+          </>
+        )}
+        {modal === "trace" && (
+          <>
+            <span className="eyebrow">REVIEW · 服务器校验记录</span>
+            <h2>这次旅程的选择</h2>
+            <p>
+              每条记录包含服务器校验结果；只有接受的动作才推进关卡。尚不计算正式分数。
+              会话：{sessionRef.current?.id} · 规则：{sessionRef.current?.rules_version}
+            </p>
+            <ol className="trace">
+              {receipts.map((e, i) => (
+                <li key={`${e.action_id}-${i}`}>
+                  <span>{e.action.type === "paddle" ? "划桨一次" : choiceLabels[e.action.choice]}{e.action.type === "choose" ? (e.action.yes ? " · 是" : " · 否") : ""}<br /><small>{e.action_id}</small></span>
+                  <b>{e.accepted ? "服务器已接受" : "服务器已拒绝"} · v{e.version}<br />{e.code}{e.duplicate ? " · 重试去重" : ""}</b>
+                </li>
+              ))}
+            </ol>
+            {!receipts.length && <p>还没有执行任何选择。</p>}
+          </>
+        )}
+      </dialog>
+      <dialog
+        className="rotation"
+        ref={rotationDialog}
+        onCancel={(e) => e.preventDefault()}
+      >
+        <span aria-hidden="true">↻</span>
+        <h2>换一个方向，继续旅程</h2>
+        <p>为了保证用户体验请翻转手机为横屏</p>
+      </dialog>
+    </main>
+  );
+}

@@ -33,3 +33,4 @@ twilio==8.11.1
 
 # Email Service (SendGrid)
 sendgrid==6.11.0
+alembic==1.16.4

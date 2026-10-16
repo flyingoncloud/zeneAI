@@ -74,3 +74,7 @@ out/
 ### Reports and demos ###
 **/chinese_demo_reports/
 **/demos/reports/
+
+### Vendored sandboxes (synced via sync-*.sh, not committed) ###
+zene-sandtray/
+temp/

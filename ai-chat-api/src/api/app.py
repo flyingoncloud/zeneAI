@@ -49,6 +49,25 @@ app.include_router(psychology_report_router)
 # Include auth routes
 app.include_router(auth_router)
 
+# ---------------------------------------------------------------------------
+# Emotional Escape Room (情感密室) — vendored FastAPI app mounted as a sub-app.
+# Routes live under /api/escape/api/v1/*. It owns its own tables (game_*,
+# score_*, l2/l3/l4_*) in the shared Postgres; run its Alembic migrations once
+# (see src/escape/alembic.ini). A mounted sub-app does not get its lifespan run
+# by the parent, so its engine + scoring policy are initialized eagerly here
+# (create_engine is lazy, published_policy only reads a bundled file).
+try:
+    from src.escape.main import app as escape_app
+    from src.escape.db import make_engine as _escape_make_engine
+    from src.escape.score_policy import published_policy as _escape_published_policy
+
+    _escape_published_policy()
+    escape_app.state.engine = _escape_make_engine()
+    app.mount("/api/escape", escape_app)
+    logger.info("✓ Mounted Emotional Escape Room API at /api/escape")
+except Exception as _escape_exc:  # keep the main API up even if escape wiring fails
+    logger.error("Failed to mount Emotional Escape Room API: %s", _escape_exc, exc_info=True)
+
 # Mount static files for uploads
 uploads_dir = Path("uploads")
 uploads_dir.mkdir(parents=True, exist_ok=True)

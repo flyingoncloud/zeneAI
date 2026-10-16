@@ -1,0 +1,58 @@
+import os
+from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, JSON, ForeignKey
+
+metadata = MetaData()
+sessions = Table("game_sessions", metadata,
+    Column("id", String(36), primary_key=True), Column("token_hash", String(64), nullable=False),
+    Column("rules_version", String(40), nullable=False), Column("version", Integer, nullable=False),
+    Column("state", JSON, nullable=False), Column("positions", JSON, nullable=False))
+events = Table("game_events", metadata,
+    Column("session_id", String(36), ForeignKey("game_sessions.id"), primary_key=True),
+    Column("action_id", String(36), primary_key=True), Column("request", JSON, nullable=False),
+    Column("result", JSON, nullable=False), Column("received_at", String(40), nullable=False))
+
+def make_engine():
+    url = os.environ.get("DATABASE_URL")
+    if not url: raise RuntimeError("DATABASE_URL is required; see apps/api/.env.example")
+    return create_engine(url, pool_pre_ping=True)
+
+score_evaluations = Table("score_evaluations", metadata,
+    Column("session_id", String(36), ForeignKey("game_sessions.id"), primary_key=True),
+    Column("evaluation_id", String(36), nullable=False, unique=True),
+    Column("policy", JSON, nullable=False), Column("policy_hash", String(64), nullable=False),
+    Column("created_at", String(40), nullable=False))
+score_ledger = Table("score_ledger", metadata,
+    Column("session_id", String(36), ForeignKey("score_evaluations.session_id"), primary_key=True),
+    Column("group_id", String(64), primary_key=True), Column("level", String(2), nullable=False),
+    Column("entry", JSON, nullable=False))
+score_actions = Table("score_actions", metadata,
+    Column("session_id", String(36), ForeignKey("score_evaluations.session_id"), primary_key=True),
+    Column("level", String(2), primary_key=True), Column("action_id", String(36), primary_key=True),
+    Column("receipt", JSON, nullable=False), Column("created_at", String(40), nullable=False))
+
+l2_runs = Table("l2_runs", metadata,
+    Column("session_id", String(36), ForeignKey("game_sessions.id"), primary_key=True),
+    Column("rules_version", String(40), nullable=False), Column("version", Integer, nullable=False),
+    Column("state", JSON, nullable=False), Column("time_anchor", String(40), nullable=True))
+l2_events = Table("l2_events", metadata,
+    Column("session_id", String(36), ForeignKey("l2_runs.session_id"), primary_key=True),
+    Column("action_id", String(36), primary_key=True), Column("request", JSON, nullable=False),
+    Column("result", JSON, nullable=False), Column("received_at", String(40), nullable=False))
+
+l3_runs = Table("l3_runs", metadata,
+    Column("session_id", String(36), ForeignKey("l2_runs.session_id"), primary_key=True),
+    Column("rules_version", String(40), nullable=False), Column("version", Integer, nullable=False),
+    Column("state", JSON, nullable=False))
+l3_events = Table("l3_events", metadata,
+    Column("session_id", String(36), ForeignKey("l3_runs.session_id"), primary_key=True),
+    Column("action_id", String(36), primary_key=True), Column("request", JSON, nullable=False),
+    Column("result", JSON, nullable=False), Column("received_at", String(40), nullable=False))
+
+l4_runs = Table("l4_runs", metadata,
+    Column("session_id", String(36), ForeignKey("l3_runs.session_id"), primary_key=True),
+    Column("rules_version", String(40), nullable=False), Column("version", Integer, nullable=False),
+    Column("state", JSON, nullable=False))
+l4_events = Table("l4_events", metadata,
+    Column("session_id", String(36), ForeignKey("l4_runs.session_id"), primary_key=True),
+    Column("action_id", String(36), primary_key=True), Column("request", JSON, nullable=False),
+    Column("result", JSON, nullable=False), Column("received_at", String(40), nullable=False))

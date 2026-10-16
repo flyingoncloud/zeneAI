@@ -86,6 +86,8 @@ type MenuItem =
 // nginx (default) or at an absolute URL in other setups. A hard navigation is
 // correct here: the target route lives in a different app, not this router.
 const SANDTRAY_URL = process.env.NEXT_PUBLIC_SANDTRAY_URL || "/sandtray/start";
+// 情感密室 (Emotional Escape Room) — integrated under /escape-room.
+const ESCAPE_ROOM_URL = process.env.NEXT_PUBLIC_ESCAPE_ROOM_URL || "/escape-room";
 
 const hasChildren = (item: MenuItem): item is Extract<MenuItem, { hasChildren: true }> =>
   item.hasChildren === true;
@@ -145,6 +147,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
       // Add more sandboxes here as new { id, label, href } entries.
       children: [
         { id: 'sandtray-3d', label: '生涯探索', href: SANDTRAY_URL },
+        { id: 'escape-room', label: '情感密室', href: ESCAPE_ROOM_URL },
       ],
     },
   ];
