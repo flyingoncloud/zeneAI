@@ -214,6 +214,17 @@ if $DO_BACKEND; then
     ok "Python dependencies installed"
   fi
 
+  # Apply 情感密室 (escape-room) DB migrations before restarting, so new code
+  # never starts against an old schema. Idempotent: a no-op when already at
+  # head, applies only new revisions otherwise. alembic's env.py load_dotenv()s
+  # the cwd ($BACKEND_DIR) for DATABASE_URL; -c points at the sub-app config.
+  ESCAPE_ALEMBIC="$BACKEND_DIR/src/escape/alembic.ini"
+  if [ -f "$ESCAPE_ALEMBIC" ]; then
+    "$BACKEND_PYTHON" -m alembic -c "$ESCAPE_ALEMBIC" upgrade head ||
+      die "Escape-room DB migration failed; backend not restarted (schema left intact)."
+    ok "Escape-room migrations applied (alembic upgrade head)"
+  fi
+
   read -r kind name <<<"$BACKEND_SUPERVISOR"
   restart_service "$kind" "$name"
   ok "Backend restarted"

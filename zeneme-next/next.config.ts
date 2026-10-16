@@ -19,6 +19,14 @@ const nextConfig: NextConfig = {
         source: '/uploads/:path*',
         destination: 'http://localhost:8000/uploads/:path*',
       },
+      // 情感密室 backend is a sub-app mounted at /api/escape on the FastAPI
+      // server. In production nginx proxies /api/* to :8000 so the browser
+      // never reaches Next for these; this rewrite only takes effect in local
+      // dev (direct hit to :3000), matching that behaviour.
+      {
+        source: '/api/escape/:path*',
+        destination: 'http://localhost:8000/api/escape/:path*',
+      },
     ];
   },
 };
