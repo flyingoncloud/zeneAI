@@ -276,9 +276,9 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
       }
       headerClassName="bg-white"
 
-      className="flex flex-col overflow-hidden lg:flex-row"
+      className="flex flex-col overflow-hidden md:flex-row"
     >
-      <div className="relative mx-3 min-h-0 flex-1 overflow-hidden rounded-2xl bg-white lg:my-4 lg:ml-4 lg:mr-4">
+      <div className="relative mx-3 min-h-0 flex-1 overflow-hidden rounded-2xl bg-white md:my-4 md:ml-4 md:mr-4">
         <SandtrayStage
           activeFigureId={activeFigure}
           captureRef={captureRef}
@@ -293,8 +293,8 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
           <p className="pointer-events-none absolute inset-x-0 bottom-5 flex items-center justify-center gap-2 px-8 text-center text-sm text-[#5b5f58]">
             {copy.sandtray.empty}
             {/* 箭头指向沙具库：宽屏在右，窄屏在下 */}
-            <span aria-hidden className="hint-nudge hidden text-base text-brand-dark lg:inline">→</span>
-            <span aria-hidden className="hint-nudge-down text-base text-brand-dark lg:hidden">↓</span>
+            <span aria-hidden className="hint-nudge hidden text-base text-brand-dark md:inline">→</span>
+            <span aria-hidden className="hint-nudge-down text-base text-brand-dark md:hidden">↓</span>
           </p>
         )}
 
@@ -356,11 +356,11 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
 
       </div>
 
-      <aside className="flex shrink-0 flex-col lg:w-[340px] lg:overflow-y-auto lg:bg-white">
+      <aside className="flex shrink-0 flex-col md:w-[340px] md:overflow-y-auto md:bg-white">
       <FigureControls />
 
       {/* 底部留出安全区，避免沙具卡片被 home 指示条遮挡 */}
-      <div className="shrink-0 bg-surface px-3 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:bg-white lg:pb-8">
+      <div className="shrink-0 bg-surface px-3 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:bg-white md:pb-8">
         <div className="no-scrollbar mb-1 flex gap-6 overflow-x-auto px-2">
           {copy.sandtray.categories.map((c, i) => (
             <button
@@ -371,7 +371,7 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
                 setCategoryIndex(i)
               }}
               className={cn(
-                "min-h-11 shrink-0 px-1 text-base lg:min-h-0",
+                "min-h-11 shrink-0 px-1 text-base md:min-h-0",
                 i === categoryIndex ? "font-semibold text-brand" : "text-[#4c4c4c]",
               )}
             >
@@ -384,12 +384,12 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
               type="button"
               aria-pressed={showNames}
               onClick={() => setShowNames((v) => !v)}
-              className="min-h-9 px-1 text-xs text-ink-muted lg:min-h-0 lg:py-1"
+              className="min-h-9 px-1 text-xs text-ink-muted md:min-h-0 md:py-1"
             >
               {showNames ? copy.sandtray.hideNames : copy.sandtray.showNames}
             </button>
         </div>
-        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-3 lg:gap-2.5 lg:overflow-visible">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-3 md:gap-2.5 md:overflow-visible">
           {list.map((f) => {
             const active = activeFigure === f.id
             const thumb = f.thumb
@@ -403,14 +403,14 @@ export function SandtrayEditor({ initial }: { initial?: SandtrayRecord | null })
                 onClick={(e) => { if (e.detail === 0) setActiveFigure(active ? null : f.id) }}
                 className={cn(
                   // touch-pan-x：横滑滚动列表，竖向拖入沙盘不被滚动手势拦截
-                  "flex w-20 shrink-0 touch-pan-x select-none flex-col items-center overflow-hidden rounded-xl border lg:h-auto lg:w-full",
-                  showNames ? "h-25 lg:pb-1.5" : "h-20",
-                  active ? "border-brand bg-brand" : "border-transparent bg-white lg:border-border",
+                  "flex w-20 shrink-0 touch-pan-x select-none flex-col items-center overflow-hidden rounded-xl border md:h-auto md:w-full",
+                  showNames ? "h-25 md:pb-1.5" : "h-20",
+                  active ? "border-brand bg-brand" : "border-transparent bg-white md:border-border",
                 )}
               >
-                <span className={cn("flex size-20 items-center justify-center bg-[#f1f3f2] lg:aspect-square lg:size-auto lg:w-full", showNames ? "rounded-t-xl" : "rounded-xl")}>
+                <span className={cn("flex size-20 items-center justify-center bg-[#f1f3f2] md:aspect-square md:size-auto md:w-full", showNames ? "rounded-t-xl" : "rounded-xl")}>
                   {thumb ? (
-                    <Image src={thumb} alt="" width={160} height={160} unoptimized draggable={false} className="max-h-17 w-auto object-contain lg:max-h-none lg:size-full lg:p-1.5" />
+                    <Image src={thumb} alt="" width={160} height={160} unoptimized draggable={false} className="max-h-17 w-auto object-contain md:max-h-none md:size-full md:p-1.5" />
                   ) : (
                     <span className="text-lg font-semibold text-[#b9c2bb]">{figureName(f, lang).slice(0, 1)}</span>
                   )}

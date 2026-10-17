@@ -41,18 +41,18 @@ export function FigureControls() {
           <button
             type="button"
             onClick={() => remove(selectedId)}
-            className="flex min-h-11 items-center gap-1 px-1 text-sm text-ink-muted lg:min-h-0 lg:text-xs"
+            className="flex min-h-11 items-center gap-1 px-1 text-sm text-ink-muted md:min-h-0 md:text-xs"
           >
             <IconTrash className="w-3.5" />
             删除
           </button>
-          <button type="button" onClick={() => select(null)} className="min-h-11 px-2 text-sm font-semibold text-brand-dark lg:min-h-0 lg:text-xs">
+          <button type="button" onClick={() => select(null)} className="min-h-11 px-2 text-sm font-semibold text-brand-dark md:min-h-0 md:text-xs">
             完成
           </button>
         </div>
       </div>
 
-      <label className="mb-1 flex items-center gap-3 text-sm text-ink-muted lg:text-xs">
+      <label className="mb-1 flex items-center gap-3 text-sm text-ink-muted md:text-xs">
         <span className="w-8 shrink-0">{copy.ui.size}</span>
         <input
           type="range"
@@ -68,7 +68,7 @@ export function FigureControls() {
         <span className="w-9 shrink-0 text-right">{Math.round(figure.scale * 100)}%</span>
       </label>
 
-      <label className="flex items-center gap-3 text-sm text-ink-muted lg:text-xs">
+      <label className="flex items-center gap-3 text-sm text-ink-muted md:text-xs">
         <span className="w-8 shrink-0">{copy.ui.angle}</span>
         <input
           type="range"
@@ -84,7 +84,7 @@ export function FigureControls() {
         <span className="w-9 shrink-0 text-right">{deg}°</span>
       </label>
 
-      <label className="mt-1 flex items-center gap-3 text-sm text-ink-muted lg:text-xs">
+      <label className="mt-1 flex items-center gap-3 text-sm text-ink-muted md:text-xs">
         <span className="w-8 shrink-0">{copy.ui.height}</span>
         <input
           type="range"
