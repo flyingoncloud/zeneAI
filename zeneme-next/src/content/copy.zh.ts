@@ -81,6 +81,7 @@ export const zh = {
   // 工具栏、背景音乐控件与 aria-label；曲目名在 src/content/audio.ts
   ui: {
     back: "返回",
+    home: "首页",
     signIn: "登录",
     signOut: "退出",
     loading: "加载中…",

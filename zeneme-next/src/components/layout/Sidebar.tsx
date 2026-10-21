@@ -125,6 +125,16 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
   // A. Core Features (Fixed Top)
   const CORE_ITEMS: MenuItem[] = [
     {
+      id: 'sandtray',
+      label: t.menu.sandtray,
+      icon: Boxes as unknown as SafeIconComponent,
+      hasChildren: true,
+      // Add more sandboxes here as new { id, label, href } entries.
+      children: [
+        { id: 'sandtray-3d', label: '生涯探索', href: SANDTRAY_URL },
+      ],
+    },
+    {
       id: 'first-aid',
       label: t.menu.firstAid,
       icon: Icons.Heart as unknown as SafeIconComponent,
@@ -137,16 +147,6 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isCollapsed, onClose, i
     { id: 'sketch', label: t.menu.sketch, icon: Icons.PenTool as unknown as SafeIconComponent },
     { id: 'test', label: t.menu.test, icon: ClipboardList as unknown as SafeIconComponent },
     { id: 'cognitive', label: t.menu.cognitive, icon: Brain as unknown as SafeIconComponent },
-    {
-      id: 'sandtray',
-      label: t.menu.sandtray,
-      icon: Boxes as unknown as SafeIconComponent,
-      hasChildren: true,
-      // Add more sandboxes here as new { id, label, href } entries.
-      children: [
-        { id: 'sandtray-3d', label: '生涯探索', href: SANDTRAY_URL },
-      ],
-    },
   ];
 
   // C. Shortcuts (Fixed below Recent Chats)

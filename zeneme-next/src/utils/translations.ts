@@ -436,7 +436,7 @@ export const translations = {
       test: '内视快测',
       cognitive: '认知快测',
       mood: '情绪追踪',
-      sandtray: '沙盘',
+      sandtray: '沙盘游戏',
     },
     settings: {
       title: '账户设置',

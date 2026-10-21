@@ -134,7 +134,7 @@ export const figures: FigureMeta[] = [
     "size": 2.6,
     "glb": "/figures/models/m_52e5b29b5fe8.glb",
     "thumb": "/figures/thumbs/m_52e5b29b5fe8.webp",
-    "maxWidth": 5,
+    "maxWidth": 5.0,
     "ver": 4
   },
   {
@@ -201,7 +201,7 @@ export const figures: FigureMeta[] = [
       "Scrutiny of detail",
       "Seeking truth"
     ],
-    "size": 1,
+    "size": 1.0,
     "glb": "/figures/models/m_49e5b29b5fe5t.glb",
     "thumb": "/figures/thumbs/m_49e5b29b5fe5t.webp",
     "ver": 2
@@ -226,7 +226,7 @@ export const figures: FigureMeta[] = [
     "size": 2.9,
     "glb": "/figures/models/m_49e5b29b5fe5b.glb",
     "thumb": "/figures/thumbs/m_49e5b29b5fe5b.webp",
-    "ver": 2
+    "ver": 3
   },
   {
     "id": "m_49e5b29b5fe8",
@@ -314,7 +314,7 @@ export const figures: FigureMeta[] = [
     "size": 1.5,
     "glb": "/figures/models/m_41e5b29b5fe5t.glb",
     "thumb": "/figures/thumbs/m_41e5b29b5fe5t.webp",
-    "ver": 2
+    "ver": 3
   },
   {
     "id": "m_41e5b29b5fe5b",
@@ -337,7 +337,7 @@ export const figures: FigureMeta[] = [
     "glb": "/figures/models/m_41e5b29b5fe5b.glb",
     "thumb": "/figures/thumbs/m_41e5b29b5fe5b.webp",
     "maxWidth": 4.5,
-    "ver": 2
+    "ver": 3
   },
   {
     "id": "m_41e5b29b5fe8",
@@ -359,7 +359,7 @@ export const figures: FigureMeta[] = [
     "size": 2.4,
     "glb": "/figures/models/m_41e5b29b5fe8.glb",
     "thumb": "/figures/thumbs/m_41e5b29b5fe8.webp",
-    "maxWidth": 5,
+    "maxWidth": 5.0,
     "ver": 2
   },
   {
@@ -496,7 +496,6 @@ export const figures: FigureMeta[] = [
   },
   {
     "id": "m_45e5b29b5fe5",
-    "yaw0": -35,
     "name": "狮子",
     "category": "动物",
     "symbolism": [
@@ -515,6 +514,7 @@ export const figures: FigureMeta[] = [
     "size": 1.5,
     "glb": "/figures/models/m_45e5b29b5fe5.glb",
     "thumb": "/figures/thumbs/m_45e5b29b5fe5.webp",
+    "yaw0": -35,
     "ver": 2
   },
   {
@@ -674,6 +674,29 @@ export const figures: FigureMeta[] = [
     "ver": 2
   },
   {
+    "id": "m_43e5b29b5fe8",
+    "name": "梯田",
+    "category": "自然",
+    "symbolism": [
+      "秩序化的自然",
+      "耕耘",
+      "循序渐进",
+      "人为规划"
+    ],
+    "nameEn": "Terraced Fields",
+    "symbolismEn": [
+      "Ordered nature",
+      "Cultivation",
+      "Step by step",
+      "Human planning"
+    ],
+    "size": 1.4,
+    "glb": "/figures/models/m_43e5b29b5fe8.glb",
+    "thumb": "/figures/thumbs/m_43e5b29b5fe8.webp",
+    "maxWidth": 5.0,
+    "ver": 3
+  },
+  {
     "id": "upm_mu5vzjb11rm",
     "name": "公寓楼",
     "category": "建筑",
@@ -715,8 +738,61 @@ export const figures: FigureMeta[] = [
     "size": 1.4,
     "glb": "/figures/models/upm_mu5vzk9w522.glb",
     "thumb": "/figures/thumbs/upm_mu5vzk9w522.webp",
-    "maxWidth": 4,
+    "maxWidth": 4.0,
     "ver": 1
+  },
+  {
+    "id": "upm_mu5vzkoy6i9",
+    "name": "围墙",
+    "category": "建筑",
+    "symbolism": [
+      "边界",
+      "防御",
+      "隔离",
+      "自我保护"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mu5vzkoy6i9.glb",
+    "thumb": "/figures/thumbs/upm_mu5vzkoy6i9.webp",
+    "maxWidth": 4.0,
+    "ver": 3
+  },
+  {
+    "id": "upm_mu5vzl3p2kk",
+    "name": "大刀",
+    "category": "工具",
+    "symbolism": [
+      "攻击性",
+      "力量",
+      "切割",
+      "决断"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mu5vzl3p2kk.glb",
+    "thumb": "/figures/thumbs/upm_mu5vzl3p2kk.webp",
+    "ver": 2
+  },
+  {
+    "id": "upm_mu5vzlk36jl",
+    "name": "小木屋",
+    "category": "建筑",
+    "symbolism": [
+      "退隐",
+      "独处",
+      "自然中的家",
+      "安全感"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.0,
+    "glb": "/figures/models/upm_mu5vzlk36jl.glb",
+    "thumb": "/figures/thumbs/upm_mu5vzlk36jl.webp",
+    "maxWidth": 2.8,
+    "ver": 3
   },
   {
     "id": "upm_mu5vzm0x1xb",
@@ -784,8 +860,25 @@ export const figures: FigureMeta[] = [
     "size": 1.2,
     "glb": "/figures/models/upm_mu5vzmv174q.glb",
     "thumb": "/figures/thumbs/upm_mu5vzmv174q.webp",
-    "maxWidth": 2,
+    "maxWidth": 2.0,
     "ver": 2
+  },
+  {
+    "id": "upm_mu5vznq74bm",
+    "name": "栅栏",
+    "category": "建筑",
+    "symbolism": [
+      "界限",
+      "区隔",
+      "有限的保护"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mu5vznq74bm.glb",
+    "thumb": "/figures/thumbs/upm_mu5vznq74bm.webp",
+    "maxWidth": 3.0,
+    "ver": 3
   },
   {
     "id": "upm_mu5vzo5qvt",
@@ -807,7 +900,23 @@ export const figures: FigureMeta[] = [
     "size": 1.8,
     "glb": "/figures/models/upm_mu5vzo5qvt.glb",
     "thumb": "/figures/thumbs/upm_mu5vzo5qvt.webp",
-    "maxWidth": 4,
+    "maxWidth": 4.0,
+    "ver": 2
+  },
+  {
+    "id": "upm_mu5vzoke1kj",
+    "name": "步枪",
+    "category": "工具",
+    "symbolism": [
+      "攻击与防卫",
+      "威胁",
+      "掌控"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mu5vzoke1kj.glb",
+    "thumb": "/figures/thumbs/upm_mu5vzoke1kj.webp",
     "ver": 2
   },
   {
@@ -876,6 +985,23 @@ export const figures: FigureMeta[] = [
     "ver": 2
   },
   {
+    "id": "upm_mu5vzqat6gj",
+    "name": "火车",
+    "category": "工具",
+    "symbolism": [
+      "既定轨道",
+      "集体前行",
+      "人生阶段"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mu5vzqat6gj.glb",
+    "thumb": "/figures/thumbs/upm_mu5vzqat6gj.webp",
+    "maxWidth": 4.0,
+    "ver": 2
+  },
+  {
     "id": "upm_mu5vzqqc2cq",
     "name": "炮",
     "category": "工具",
@@ -918,7 +1044,6 @@ export const figures: FigureMeta[] = [
   },
   {
     "id": "upm_mu5vzrl148z",
-    "yaw0": -35,
     "name": "狐狸",
     "category": "动物",
     "symbolism": [
@@ -937,6 +1062,7 @@ export const figures: FigureMeta[] = [
     "size": 1.0,
     "glb": "/figures/models/upm_mu5vzrl148z.glb",
     "thumb": "/figures/thumbs/upm_mu5vzrl148z.webp",
+    "yaw0": -35,
     "ver": 2
   },
   {
@@ -999,12 +1125,11 @@ export const figures: FigureMeta[] = [
     "size": 1.4,
     "glb": "/figures/models/upm_mu5vzsvwss.glb",
     "thumb": "/figures/thumbs/upm_mu5vzsvwss.webp",
-    "maxWidth": 4,
+    "maxWidth": 4.0,
     "ver": 2
   },
   {
     "id": "upm_mu5yhir26te",
-    "yaw0": 70,
     "name": "鱼儿",
     "category": "动物",
     "symbolism": [
@@ -1023,6 +1148,24 @@ export const figures: FigureMeta[] = [
     "size": 0.6,
     "glb": "/figures/models/upm_mu5yhir26te.glb",
     "thumb": "/figures/thumbs/upm_mu5yhir26te.webp",
+    "yaw0": 70,
+    "ver": 2
+  },
+  {
+    "id": "upm_mu5yhj8zpj",
+    "name": "魔鬼",
+    "category": "人物",
+    "symbolism": [
+      "阴影面",
+      "内在冲突",
+      "恐惧",
+      "被压抑的攻击性"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mu5yhj8zpj.glb",
+    "thumb": "/figures/thumbs/upm_mu5yhj8zpj.webp",
     "ver": 2
   },
   {
@@ -1067,6 +1210,24 @@ export const figures: FigureMeta[] = [
     "size": 1.8,
     "glb": "/figures/models/upm_mu5zzupa21w.glb",
     "thumb": "/figures/thumbs/upm_mu5zzupa21w.webp",
+    "ver": 2
+  },
+  {
+    "id": "upm_mu606nlyfj",
+    "name": "草坪",
+    "category": "自然",
+    "symbolism": [
+      "生机",
+      "生长",
+      "安稳的地面",
+      "自然"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.4,
+    "glb": "/figures/models/upm_mu606nlyfj.glb",
+    "thumb": "/figures/thumbs/upm_mu606nlyfj.webp",
+    "maxWidth": 4.0,
     "ver": 2
   },
   {
@@ -1238,6 +1399,24 @@ export const figures: FigureMeta[] = [
     "ver": 1
   },
   {
+    "id": "upm_muprjsz95wh",
+    "name": "苹果树",
+    "category": "自然",
+    "symbolism": [
+      "成长",
+      "收获",
+      "丰盛",
+      "滋养",
+      "成果"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_muprjsz95wh.glb",
+    "thumb": "/figures/thumbs/upm_muprjsz95wh.webp",
+    "ver": 4
+  },
+  {
     "id": "upm_muprjtph2kb",
     "name": "郁金香",
     "category": "自然",
@@ -1307,6 +1486,1358 @@ export const figures: FigureMeta[] = [
     "size": 1.4,
     "glb": "/figures/models/upm_muprwzic2uu.glb",
     "thumb": "/figures/thumbs/upm_muprwzic2uu.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_muz17t0961s",
+    "name": "铁链",
+    "category": "工具",
+    "symbolism": [
+      "束缚",
+      "限制",
+      "牵连",
+      "牢固",
+      "压力"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.6,
+    "glb": "/figures/models/upm_muz17t0961s.glb",
+    "thumb": "/figures/thumbs/upm_muz17t0961s.webp",
+    "maxWidth": 1.6,
+    "ver": 2
+  },
+  {
+    "id": "upm_muz17ufz181",
+    "name": "羊",
+    "category": "动物",
+    "symbolism": [
+      "温顺",
+      "群体",
+      "顺从",
+      "善良",
+      "依赖"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_muz17ufz181.glb",
+    "thumb": "/figures/thumbs/upm_muz17ufz181.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_muz17vl53im",
+    "name": "猪",
+    "category": "动物",
+    "symbolism": [
+      "富足",
+      "满足",
+      "安逸",
+      "憨厚",
+      "懒散"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.9,
+    "glb": "/figures/models/upm_muz17vl53im.glb",
+    "thumb": "/figures/thumbs/upm_muz17vl53im.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_muz17wjs31l",
+    "name": "自行车",
+    "category": "工具",
+    "symbolism": [
+      "自由",
+      "平衡",
+      "前进",
+      "独立",
+      "自我驱动"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.1,
+    "glb": "/figures/models/upm_muz17wjs31l.glb",
+    "thumb": "/figures/thumbs/upm_muz17wjs31l.webp",
+    "maxWidth": 1.8,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pppb96vh",
+    "name": "长城",
+    "category": "建筑",
+    "symbolism": [
+      "防御与边界",
+      "坚韧",
+      "历史积淀",
+      "民族认同"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 3.0,
+    "glb": "/figures/models/upm_mv3pppb96vh.glb",
+    "thumb": "/figures/thumbs/upm_mv3pppb96vh.webp",
+    "maxWidth": 5.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppqe75cf",
+    "name": "人民大会堂",
+    "category": "建筑",
+    "symbolism": [
+      "集体与制度",
+      "庄重",
+      "公共权威",
+      "国家认同"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3ppqe75cf.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppqe75cf.webp",
+    "maxWidth": 4.5,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pprhk5tz",
+    "name": "美国国会大厦",
+    "category": "建筑",
+    "symbolism": [
+      "制度与规则",
+      "权力",
+      "公共事务",
+      "西方文化印象"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.6,
+    "glb": "/figures/models/upm_mv3pprhk5tz.glb",
+    "thumb": "/figures/thumbs/upm_mv3pprhk5tz.webp",
+    "maxWidth": 3.6,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppshv65g",
+    "name": "华盛顿纪念碑",
+    "category": "建筑",
+    "symbolism": [
+      "纪念",
+      "理想与信念",
+      "向上",
+      "国家象征"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 3.8,
+    "glb": "/figures/models/upm_mv3ppshv65g.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppshv65g.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pptt1x8",
+    "name": "英国国会大厦",
+    "category": "建筑",
+    "symbolism": [
+      "传统与秩序",
+      "规则",
+      "历史感",
+      "英式文化印象"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.6,
+    "glb": "/figures/models/upm_mv3pptt1x8.glb",
+    "thumb": "/figures/thumbs/upm_mv3pptt1x8.webp",
+    "maxWidth": 3.6,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppuwu41y",
+    "name": "伦敦塔",
+    "category": "建筑",
+    "symbolism": [
+      "历史与防御",
+      "守护",
+      "厚重",
+      "异国体验"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3ppuwu41y.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppuwu41y.webp",
+    "maxWidth": 3.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppw2g272",
+    "name": "悉尼市政厅",
+    "category": "建筑",
+    "symbolism": [
+      "城市生活",
+      "公共秩序",
+      "社区",
+      "澳洲印象"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.6,
+    "glb": "/figures/models/upm_mv3ppw2g272.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppw2g272.webp",
+    "maxWidth": 3.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppx192yy",
+    "name": "悉尼港湾大桥",
+    "category": "建筑",
+    "symbolism": [
+      "连接",
+      "跨越",
+      "通往新生活",
+      "澳洲印象"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.2,
+    "glb": "/figures/models/upm_mv3ppx192yy.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppx192yy.webp",
+    "maxWidth": 5.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppybx6a7",
+    "name": "吉隆坡双子塔",
+    "category": "建筑",
+    "symbolism": [
+      "并肩与伙伴",
+      "现代化",
+      "高度与野心",
+      "对称平衡"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 4.2,
+    "glb": "/figures/models/upm_mv3ppybx6a7.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppybx6a7.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3ppzf6x5",
+    "name": "新加坡滨海湾金沙酒店",
+    "category": "建筑",
+    "symbolism": [
+      "繁华",
+      "向往",
+      "现代都市",
+      "成功的想象"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3ppzf6x5.glb",
+    "thumb": "/figures/thumbs/upm_mv3ppzf6x5.webp",
+    "maxWidth": 3.4,
+    "ver": 2
+  },
+  {
+    "id": "upm_mv3pq0qq6p4",
+    "name": "四合院",
+    "category": "建筑",
+    "symbolism": [
+      "家族",
+      "传统家庭",
+      "围合的安全感",
+      "团聚"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pq0qq6p4.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq0qq6p4.webp",
+    "maxWidth": 4.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq1o910w",
+    "name": "机场",
+    "category": "建筑",
+    "symbolism": [
+      "出发与离别",
+      "转变",
+      "远方",
+      "人生新阶段"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.0,
+    "glb": "/figures/models/upm_mv3pq1o910w.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq1o910w.webp",
+    "maxWidth": 5.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq2j62ir",
+    "name": "咖啡店",
+    "category": "建筑",
+    "symbolism": [
+      "休憩",
+      "社交",
+      "日常生活",
+      "独处与陪伴"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3pq2j62ir.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq2j62ir.webp",
+    "maxWidth": 3.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq3dik2",
+    "name": "奶茶店",
+    "category": "建筑",
+    "symbolism": [
+      "年轻生活",
+      "小确幸",
+      "社交",
+      "自我犒赏"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3pq3dik2.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq3dik2.webp",
+    "maxWidth": 3.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq4gf2oh",
+    "name": "大熊猫",
+    "category": "动物",
+    "symbolism": [
+      "温和",
+      "珍贵",
+      "被呵护",
+      "中国符号"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.3,
+    "glb": "/figures/models/upm_mv3pq4gf2oh.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq4gf2oh.webp",
+    "ver": 5
+  },
+  {
+    "id": "upm_mv3pq5933py",
+    "name": "袋鼠",
+    "category": "动物",
+    "symbolism": [
+      "跳跃前进",
+      "母性与保护",
+      "活力",
+      "澳洲符号"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.5,
+    "glb": "/figures/models/upm_mv3pq5933py.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq5933py.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq63r7e2",
+    "name": "白头海雕",
+    "category": "动物",
+    "symbolism": [
+      "自由",
+      "力量",
+      "远见",
+      "美国符号"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.9,
+    "glb": "/figures/models/upm_mv3pq63r7e2.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq63r7e2.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq74939p",
+    "name": "枫树",
+    "category": "自然",
+    "symbolism": [
+      "季节变化",
+      "成熟",
+      "温暖",
+      "加拿大符号"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3pq74939p.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq74939p.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq7ux5rg",
+    "name": "白酒瓶",
+    "category": "工具",
+    "symbolism": [
+      "应酬与人情",
+      "压力释放",
+      "传统社交",
+      "成人世界"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.75,
+    "glb": "/figures/models/upm_mv3pq7ux5rg.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq7ux5rg.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq8s65eu",
+    "name": "清酒",
+    "category": "工具",
+    "symbolism": [
+      "仪式感",
+      "节制",
+      "日式文化",
+      "社交"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.75,
+    "glb": "/figures/models/upm_mv3pq8s65eu.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq8s65eu.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pq9kwo5",
+    "name": "啤酒",
+    "category": "工具",
+    "symbolism": [
+      "放松",
+      "聚会",
+      "宣泄",
+      "同伴关系"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.7,
+    "glb": "/figures/models/upm_mv3pq9kwo5.glb",
+    "thumb": "/figures/thumbs/upm_mv3pq9kwo5.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqadxu5",
+    "name": "红酒",
+    "category": "工具",
+    "symbolism": [
+      "品味",
+      "庆祝",
+      "浪漫",
+      "成熟"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.8,
+    "glb": "/figures/models/upm_mv3pqadxu5.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqadxu5.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqbql1mo",
+    "name": "白酒杯",
+    "category": "工具",
+    "symbolism": [
+      "敬酒与人情",
+      "压力",
+      "传统礼数",
+      "成人世界"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.6,
+    "glb": "/figures/models/upm_mv3pqbql1mo.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqbql1mo.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqceveu",
+    "name": "咖啡杯",
+    "category": "工具",
+    "symbolism": [
+      "提神",
+      "日常",
+      "专注",
+      "休憩"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.6,
+    "glb": "/figures/models/upm_mv3pqceveu.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqceveu.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqd291cj",
+    "name": "碗",
+    "category": "工具",
+    "symbolism": [
+      "温饱",
+      "滋养",
+      "家的味道",
+      "容纳"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.6,
+    "glb": "/figures/models/upm_mv3pqd291cj.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqd291cj.webp",
+    "maxWidth": 0.9,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqdu8582",
+    "name": "筷子",
+    "category": "工具",
+    "symbolism": [
+      "饮食传统",
+      "家庭餐桌",
+      "文化身份",
+      "配合"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.75,
+    "glb": "/figures/models/upm_mv3pqdu8582.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqdu8582.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqehw65g",
+    "name": "叉子",
+    "category": "工具",
+    "symbolism": [
+      "西式饮食",
+      "异文化适应",
+      "日常",
+      "工具性"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.75,
+    "glb": "/figures/models/upm_mv3pqehw65g.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqehw65g.webp",
+    "ver": 2
+  },
+  {
+    "id": "upm_mv3pqfaz3q7",
+    "name": "果汁",
+    "category": "工具",
+    "symbolism": [
+      "健康",
+      "清新",
+      "滋养",
+      "童年"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.75,
+    "glb": "/figures/models/upm_mv3pqfaz3q7.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqfaz3q7.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqg1y1z8",
+    "name": "果汁杯",
+    "category": "工具",
+    "symbolism": [
+      "滋养",
+      "轻松",
+      "分享",
+      "童年"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.65,
+    "glb": "/figures/models/upm_mv3pqg1y1z8.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqg1y1z8.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqgvu73f",
+    "name": "餐桌",
+    "category": "工具",
+    "symbolism": [
+      "家庭团聚",
+      "分享",
+      "沟通",
+      "归属"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mv3pqgvu73f.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqgvu73f.webp",
+    "maxWidth": 2.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqhsk1te",
+    "name": "椅子",
+    "category": "工具",
+    "symbolism": [
+      "位置与归属",
+      "休息",
+      "等待",
+      "被接纳"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.1,
+    "glb": "/figures/models/upm_mv3pqhsk1te.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqhsk1te.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqiq64ek",
+    "name": "巨型邮轮",
+    "category": "工具",
+    "symbolism": [
+      "远行",
+      "漂泊与享受",
+      "集体旅程",
+      "开阔"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.4,
+    "glb": "/figures/models/upm_mv3pqiq64ek.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqiq64ek.webp",
+    "maxWidth": 4.8,
+    "ver": 2
+  },
+  {
+    "id": "upm_mv3pqjl54xg",
+    "name": "飞机",
+    "category": "工具",
+    "symbolism": [
+      "远方",
+      "出发",
+      "快速转变",
+      "自由"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pqjl54xg.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqjl54xg.webp",
+    "maxWidth": 3.6,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqknr7lf",
+    "name": "珊瑚礁",
+    "category": "自然",
+    "symbolism": [
+      "生命力",
+      "脆弱与美",
+      "共生",
+      "海洋世界"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mv3pqknr7lf.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqknr7lf.webp",
+    "maxWidth": 2.0,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqlhk1nz",
+    "name": "白人中学生",
+    "category": "人物",
+    "symbolism": [
+      "青春期",
+      "学业",
+      "同伴关系",
+      "成长"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.7,
+    "glb": "/figures/models/upm_mv3pqlhk1nz.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqlhk1nz.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqmcu56m",
+    "name": "白人大学生",
+    "category": "人物",
+    "symbolism": [
+      "独立",
+      "求学",
+      "探索身份",
+      "未来"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqmcu56m.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqmcu56m.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqn5o5kr",
+    "name": "白人娃娃",
+    "category": "人物",
+    "symbolism": [
+      "幼小",
+      "依赖",
+      "纯真",
+      "被照顾的需要"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.9,
+    "glb": "/figures/models/upm_mv3pqn5o5kr.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqn5o5kr.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqnyv7oz",
+    "name": "亚洲人娃娃",
+    "category": "人物",
+    "symbolism": [
+      "幼小",
+      "纯真",
+      "依恋",
+      "童年自我"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.9,
+    "glb": "/figures/models/upm_mv3pqnyv7oz.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqnyv7oz.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqor26a0",
+    "name": "白人男经理",
+    "category": "人物",
+    "symbolism": [
+      "职场",
+      "权威",
+      "责任",
+      "成就压力"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqor26a0.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqor26a0.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqpk161e",
+    "name": "白人女教师",
+    "category": "人物",
+    "symbolism": [
+      "教导",
+      "引领",
+      "规则",
+      "支持"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqpk161e.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqpk161e.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqqd25qz",
+    "name": "白人议员",
+    "category": "人物",
+    "symbolism": [
+      "权力",
+      "公共事务",
+      "规则制定",
+      "社会地位"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqqd25qz.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqqd25qz.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqr6a6ip",
+    "name": "白人警察",
+    "category": "人物",
+    "symbolism": [
+      "秩序",
+      "保护",
+      "规则与约束",
+      "安全感"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqr6a6ip.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqr6a6ip.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqrzx78w",
+    "name": "白人运动员",
+    "category": "人物",
+    "symbolism": [
+      "活力",
+      "竞争",
+      "团队",
+      "身体力量"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqrzx78w.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqrzx78w.webp",
+    "ver": 4
+  },
+  {
+    "id": "upm_mv3pqsw56uh",
+    "name": "太阳伞",
+    "category": "工具",
+    "symbolism": [
+      "庇护",
+      "休闲",
+      "度假",
+      "遮挡"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 2.2,
+    "glb": "/figures/models/upm_mv3pqsw56uh.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqsw56uh.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqtpz5aj",
+    "name": "床",
+    "category": "工具",
+    "symbolism": [
+      "休息",
+      "安全",
+      "私密",
+      "亲密关系"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mv3pqtpz5aj.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqtpz5aj.webp",
+    "maxWidth": 2.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqum04rs",
+    "name": "沙发",
+    "category": "工具",
+    "symbolism": [
+      "放松",
+      "家庭",
+      "陪伴",
+      "舒适区"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mv3pqum04rs.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqum04rs.webp",
+    "maxWidth": 2.2,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqvh65x0",
+    "name": "书桌",
+    "category": "工具",
+    "symbolism": [
+      "学习",
+      "专注",
+      "责任",
+      "个人空间"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.0,
+    "glb": "/figures/models/upm_mv3pqvh65x0.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqvh65x0.webp",
+    "maxWidth": 1.8,
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqwa16g4",
+    "name": "台灯",
+    "category": "工具",
+    "symbolism": [
+      "照亮",
+      "专注",
+      "陪伴",
+      "夜晚的努力"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 0.9,
+    "glb": "/figures/models/upm_mv3pqwa16g4.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqwa16g4.webp",
+    "ver": 2
+  },
+  {
+    "id": "upm_mv3pqwyd4b",
+    "name": "气球",
+    "category": "工具",
+    "symbolism": [
+      "快乐",
+      "庆祝",
+      "轻盈",
+      "易逝"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pqwyd4b.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqwyd4b.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqxue74q",
+    "name": "新郎",
+    "category": "人物",
+    "symbolism": [
+      "婚姻",
+      "承诺",
+      "结合",
+      "人生新阶段"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqxue74q.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqxue74q.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqynt2zn",
+    "name": "新娘",
+    "category": "人物",
+    "symbolism": [
+      "婚姻",
+      "承诺",
+      "结合",
+      "人生新阶段"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.8,
+    "glb": "/figures/models/upm_mv3pqynt2zn.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqynt2zn.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqzar4y9",
+    "name": "中国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家认同",
+      "故乡与根",
+      "文化归属",
+      "集体"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pqzar4y9.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqzar4y9.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pqzxn7mc",
+    "name": "美国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "自由"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pqzxn7mc.glb",
+    "thumb": "/figures/thumbs/upm_mv3pqzxn7mc.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr0ka6ww",
+    "name": "加拿大国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "包容"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr0ka6ww.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr0ka6ww.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr1737fi",
+    "name": "英国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "传统"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr1737fi.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr1737fi.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr1v31n9",
+    "name": "澳大利亚国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "新生活"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr1v31n9.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr1v31n9.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr2hu2zh",
+    "name": "新西兰国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "自然"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr2hu2zh.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr2hu2zh.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr34n20p",
+    "name": "新加坡国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr34n20p.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr34n20p.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr3r17op",
+    "name": "法国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "浪漫"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr3r17op.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr3r17op.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr4dmcn",
+    "name": "德国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "严谨"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr4dmcn.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr4dmcn.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr50l4dt",
+    "name": "日本国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "邻近文化"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr50l4dt.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr50l4dt.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr5o82w4",
+    "name": "韩国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "邻近文化"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr5o82w4.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr5o82w4.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr6b23fu",
+    "name": "中国香港区旗",
+    "category": "工具",
+    "symbolism": [
+      "地区认同",
+      "向往的地方",
+      "东西交汇",
+      "归属"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr6b23fu.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr6b23fu.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr6za1op",
+    "name": "菲律宾国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr6za1op.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr6za1op.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr7m45ka",
+    "name": "马来西亚国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr7m45ka.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr7m45ka.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr88s21a",
+    "name": "印度尼西亚国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr88s21a.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr88s21a.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr8wj22c",
+    "name": "越南国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "邻近文化"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr8wj22c.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr8wj22c.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pr9j328y",
+    "name": "泰国国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pr9j328y.glb",
+    "thumb": "/figures/thumbs/upm_mv3pr9j328y.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3pra5o3qb",
+    "name": "印度国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "多元"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3pra5o3qb.glb",
+    "thumb": "/figures/thumbs/upm_mv3pra5o3qb.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3prast58o",
+    "name": "尼泊尔国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "独特"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3prast58o.glb",
+    "thumb": "/figures/thumbs/upm_mv3prast58o.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3prbfi6b2",
+    "name": "土耳其国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "东西交汇"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3prbfi6b2.glb",
+    "thumb": "/figures/thumbs/upm_mv3prbfi6b2.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3prc346dl",
+    "name": "蒙古国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "辽阔"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3prc346dl.glb",
+    "thumb": "/figures/thumbs/upm_mv3prc346dl.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3prcpp6ee",
+    "name": "阿联酋国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "繁华"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3prcpp6ee.glb",
+    "thumb": "/figures/thumbs/upm_mv3prcpp6ee.webp",
+    "ver": 1
+  },
+  {
+    "id": "upm_mv3prdc63in",
+    "name": "埃及国旗",
+    "category": "工具",
+    "symbolism": [
+      "国家与文化认同",
+      "向往的地方",
+      "异乡与归属",
+      "古老文明"
+    ],
+    "nameEn": "",
+    "symbolismEn": [],
+    "size": 1.6,
+    "glb": "/figures/models/upm_mv3prdc63in.glb",
+    "thumb": "/figures/thumbs/upm_mv3prdc63in.webp",
     "ver": 1
   }
 ]

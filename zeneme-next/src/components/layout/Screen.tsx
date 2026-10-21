@@ -9,6 +9,7 @@ import { IconBack } from "@/components/icons"
 import cloud from "../../../public/design/cloud.png"
 import { MusicButton } from "@/components/layout/MusicButton"
 import { LangButton } from "@/components/layout/LangButton"
+import { HomeLink } from "@/components/layout/HomeLink"
 import { useCopy } from "@/components/layout/LangProvider"
 import { cn } from "@/lib/utils"
 
@@ -79,6 +80,7 @@ export function Screen({ title, back, onBack, action, decorated, headerClassName
           <h1 className="text-base font-medium text-foreground md:text-lg">{title}</h1>
           {/* 统一 h-9 + items-center，否则圆按钮和纯文字按钮的光学中心对不齐 */}
           <div className="absolute right-3 flex h-9 items-center gap-1 md:right-6 md:gap-2">
+            <HomeLink />
             <MusicButton />
             <LangButton />
             {action}
