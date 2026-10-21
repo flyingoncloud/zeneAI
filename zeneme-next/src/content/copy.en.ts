@@ -76,6 +76,7 @@ export const en: typeof zh = {
 
   ui: {
     back: "Back",
+    home: "Home",
     signIn: "Sign in",
     signOut: "Sign out",
     loading: "Loading…",

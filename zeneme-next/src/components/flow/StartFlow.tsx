@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Img as Image } from "@/components/layout/Img"
 import { MusicButton } from "@/components/layout/MusicButton"
 import { LangButton } from "@/components/layout/LangButton"
+import { HomeLink } from "@/components/layout/HomeLink"
 import { useCopy } from "@/components/layout/LangProvider"
 import { HistoryDrawer } from "@/components/history/HistoryDrawer"
 import { SampleCard } from "@/components/report/SampleCard"
@@ -128,7 +129,7 @@ export function StartFlow({ initial = 0, badge }: { initial?: number; badge?: Re
     >
       <div className="relative mx-auto flex h-full w-full max-w-[430px] flex-col px-6 md:max-w-[520px]">
         <header className="relative z-10 flex h-11 shrink-0 items-center justify-between">
-          <span />
+          <HomeLink className="bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]" />
           <div className="flex h-9 items-center gap-2">
             <MusicButton className="bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]" />
             <LangButton className="bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]" />
